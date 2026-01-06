@@ -9,6 +9,8 @@ import { AiUsageProvider } from "./contexts/AiUsageContext";
 import { Web3Provider } from "./contexts/Web3Provider";
 import { ThemeToaster } from "./components/ThemeToaster";
 import { SEOProvider } from "./contexts/HelmetProvider";
+import { ChatProvider } from "./contexts/ChatContext";
+import { FloatingChatButton } from "./components/chat/FloatingChatButton";
 
 const Root = lazy(() => import("./routes/root"));
 const Signin = lazy(() => import("./routes/Auth/sign-in"));
@@ -319,8 +321,11 @@ createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <AuthProvider>
           <AiUsageProvider>
-            <RouterProvider router={router} />
-            <ThemeToaster />
+            <ChatProvider>
+              <RouterProvider router={router} />
+              <FloatingChatButton />
+              <ThemeToaster />
+            </ChatProvider>
           </AiUsageProvider>
         </AuthProvider>
       </ThemeProvider>

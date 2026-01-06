@@ -14,6 +14,7 @@ import { SaveControls } from "@/components/SaveControls";
 import { TipTapEditor } from "@/components/TipTapEditor";
 import { BrainstormIdeas } from "@/components/BrainstormIdeas";
 import { WritingStats } from "@/components/WritingStats";
+import { Chatbot } from "@/components/chat/Chatbot";
 
 export function SimpleEditor() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export function SimpleEditor() {
   const [activeTab, setActiveTab] = useState<"chapters" | "ai">("chapters");
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [rightTab, setRightTab] = useState<"stats" | "brainstorm" | "chat">("stats");
 
   // Refs for debouncing
   const storyTitleRef = useRef(storyTitle);
@@ -324,19 +326,66 @@ export function SimpleEditor() {
             )}
           </button>
 
-          {/* Right Sidebar - Writing Stats */}
+          {/* Right Sidebar - Writing Stats, Brainstorm, and Chat */}
           <div
             className={`relative bg-neutral-50 dark:bg-black border-l border-black/10 dark:border-white/10 transition-all duration-300 ease-in-out ${
               rightSidebarOpen ? "w-80" : "w-0"
             } overflow-hidden`}
           >
-            <div className="w-80 h-full p-6 overflow-y-auto">
-              <WritingStats
-                currentChapter={currentChapter}
-                chaptersCount={chapters.length}
-              />
+            <div className="w-80 h-full flex flex-col overflow-hidden">
+              {/* Tabs */}
+              <div className="flex border-b border-black/10 dark:border-white/10">
+                <button
+                  onClick={() => setRightTab("stats")}
+                  className={`flex-1 py-2 text-sm ${
+                    rightTab === "stats"
+                      ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
+                      : "text-neutral-600 dark:text-neutral-400"
+                  }`}
+                >
+                  Stats
+                </button>
+                <button
+                  onClick={() => setRightTab("brainstorm")}
+                  className={`flex-1 py-2 text-sm ${
+                    rightTab === "brainstorm"
+                      ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
+                      : "text-neutral-600 dark:text-neutral-400"
+                  }`}
+                >
+                  Brainstorm
+                </button>
+                <button
+                  onClick={() => setRightTab("chat")}
+                  className={`flex-1 py-2 text-sm ${
+                    rightTab === "chat"
+                      ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
+                      : "text-neutral-600 dark:text-neutral-400"
+                  }`}
+                >
+                  Assistant
+                </button>
+              </div>
 
-              <BrainstormIdeas storyId={currentStory?.id || null} />
+              {/* Tab Content */}
+              <div className="flex-1 overflow-hidden">
+                {rightTab === "stats" && (
+                  <div className="p-6 overflow-y-auto h-full">
+                    <WritingStats
+                      currentChapter={currentChapter}
+                      chaptersCount={chapters.length}
+                    />
+                  </div>
+                )}
+                {rightTab === "brainstorm" && (
+                  <div className="p-6 overflow-y-auto h-full">
+                    <BrainstormIdeas storyId={currentStory?.id || null} />
+                  </div>
+                )}
+                {rightTab === "chat" && currentStory?.id && (
+                  <Chatbot storyId={currentStory.id} mode="sidebar" />
+                )}
+              </div>
             </div>
           </div>
         </>

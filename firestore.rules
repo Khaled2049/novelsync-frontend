@@ -222,6 +222,20 @@ service cloud.firestore {
         // Only the creator of the story can update or delete places
         allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
       }
+
+      // Nested rules for chats
+      match /chats/{chatId} {
+        // Only story owner can read/write chats
+        allow read, write: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/stories/$(storyId)).data.userId;
+
+        // Nested rules for chat messages
+        match /messages/{messageId} {
+          // Only story owner can read/write messages
+          allow read, write: if request.auth != null &&
+            request.auth.uid == get(/databases/$(database)/documents/stories/$(storyId)).data.userId;
+        }
+      }
     }
     
     

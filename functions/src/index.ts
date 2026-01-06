@@ -30,3 +30,4 @@ export { getData } from "./getData";
 export { generateNextLines } from "./generateNextLines";
 export { searchBooks, getBookDetails } from "./booksApi";
 export { generateCoverImage } from "./generateCoverImage";
+export { sendChatMessage } from "./sendChatMessage";

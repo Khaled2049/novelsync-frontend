@@ -9,24 +9,20 @@
  * Firebase Functions validates the Origin header against this list.
  */
 
-// Production origins (always allowed)
+// Production origins
 const productionOrigins = [
   "https://novel-sync.com",
   "https://www.novel-sync.com",
   "https://novelsync-f82ec.web.app",
 ];
 
-// Development origins (only in emulator/local development)
+// Development origins (localhost for local development)
 const developmentOrigins = ["http://localhost:5173", "http://localhost:3000"];
 
-// Combine origins based on environment
-const isDevelopment =
-  process.env.FUNCTIONS_EMULATOR === "true" ||
-  process.env.NODE_ENV === "development";
-
-const allowedOrigins = isDevelopment
-  ? [...productionOrigins, ...developmentOrigins]
-  : productionOrigins;
+// Always include both production and development origins
+// This is safe because endpoints are protected by authentication
+// CORS is only a browser security feature, not server security
+const allowedOrigins = [...productionOrigins, ...developmentOrigins];
 
 export const corsOptions = {
   cors: allowedOrigins,
