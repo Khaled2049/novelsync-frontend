@@ -1,0 +1,28 @@
+# robots.txt for NovelSync
+# https://novelsync.web.app/robots.txt
+
+User-agent: *
+Allow: /
+
+# Disallow private/admin routes
+Disallow: /create/
+Disallow: /settings
+Disallow: /profile
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /forgot-password
+
+# Allow public pages
+Allow: /
+Allow: /stories
+Allow: /story/
+Allow: /explore
+Allow: /book-clubs
+Allow: /book-clubs/
+Allow: /library
+Allow: /library/book/
+Allow: /privacy-policy
+Allow: /terms-of-use
+
+# Sitemap location
+Sitemap: https://novelsync.web.app/sitemap.xml

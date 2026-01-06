@@ -1,0 +1,29 @@
+# functions/functions/.gcloudignore
+
+# Ignore dependencies (Cloud Build will install them fresh)
+node_modules/
+
+# Ignore logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore source maps (optional, saves space)
+*.js.map
+
+# IMPORTANT: Explicitly allow the 'lib' folder
+# This ensures your compiled 'index.js' is uploaded
+!lib/
+!lib/index.js
+
+# Ignore the source TS files (optional, but good practice to keep upload small)
+# src/
+# *.ts
+# !*.d.ts

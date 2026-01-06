@@ -1,0 +1,75 @@
+name: Deploy Firebase Functions
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "functions/**"
+      - ".github/workflows/firebase-functions.yml"
+      - "firebase.json"
+  workflow_dispatch:
+
+jobs:
+  deploy_functions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Run linter
+        working-directory: functions
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Verify build output
+        working-directory: functions
+        run: |
+          if [ ! -f "lib/index.js" ]; then
+            echo "Error: lib/index.js not found after build"
+            exit 1
+          fi
+          echo "Build output verified: lib/index.js exists"
+
+      - name: Setup Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Deploy to Firebase Functions
+        env:
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          BOOKS_API_KEY: ${{ secrets.BOOKS_API_KEY }}
+        run: |
+          # Note: Environment variables need to be set in Firebase Console for runtime
+          # This deployment will use the variables set in Firebase Console
+          # To set them manually, run:
+          # firebase functions:secrets:set REPLICATE_API_TOKEN
+          # firebase functions:secrets:set BOOKS_API_KEY
+          # Or set them in Firebase Console → Functions → Configuration → Secrets
+          firebase deploy --only functions --project novelsync-f82ec --non-interactive

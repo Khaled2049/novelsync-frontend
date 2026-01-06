@@ -1,0 +1,363 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+        
+    match /messages/{messageId} {
+
+      allow read: if true;
+
+
+      allow create: if request.auth != null;
+
+
+      allow update, delete: if request.auth != null && resource.data.creator == request.auth.uid;
+    }
+  
+    match /comments/{commentId} {
+      allow read, create, update, delete: if true;
+    }
+
+    // Top-level posts collection
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        // Allow updating commentCount (for comment counting)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']) ||
+        // Allow creator to update their post
+        resource.data.authorId == request.auth.uid
+      );
+      // Allow post deletion by author OR by any authenticated user (for reporting/deletion)
+      // SECURITY NOTE: This allows any authenticated user to delete any post.
+      // Consider moving post deletion logic to Cloud Functions with admin privileges for better security.
+      allow delete: if request.auth != null;
+      
+      // Reports subcollection for posts
+      match /reports/{reportId} {
+        // Allow authenticated users to read all reports (needed for checking if first report)
+        allow read: if request.auth != null;
+        // Allow authenticated users to create reports (must set their own userId)
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        // Allow update for batch.set() operations (batch.set() requires both create and update)
+        allow update: if request.auth != null && (
+          // Allow if updating with same userId or if userId matches auth.uid
+          request.resource.data.userId == request.auth.uid ||
+          (resource != null && resource.data.userId == request.auth.uid)
+        );
+        // Allow deleting reports (needed when post is deleted)
+        allow delete: if request.auth != null;
+      }
+      
+      // Votes subcollection for posts
+      match /votes/{voteId} {
+        allow read: if true;
+        allow create, update, delete: if request.auth != null;
+      }
+      
+      // Comments subcollection for posts
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null && resource.data.authorId == request.auth.uid;
+        // Allow deletion by author OR by any authenticated user (for reporting/deletion)
+        // SECURITY NOTE: This allows any authenticated user to delete any comment.
+        // Consider moving comment deletion logic to Cloud Functions with admin privileges for better security.
+        allow delete: if request.auth != null;
+        
+        // Votes subcollection for comments
+        match /votes/{voteId} {
+          allow read: if true;
+          allow create, update, delete: if request.auth != null;
+        }
+      }
+    }
+    
+    match /plotTemplates/{templateId} {
+      
+      allow read: if true;
+      
+      allow create: if true;
+      
+      allow update, delete: if true;
+    }
+    
+    match /stories/{storyId} {
+      // Allow anyone to read stories
+      allow read: if true;
+
+      // Only authenticated users can create stories
+      allow create: if request.auth != null;
+
+      // Allow anyone to increment the view count, but only for the 'views' field
+      // Allow authenticated users to update likes count (when liking/unliking)
+      // Allow updating rating fields (averageRating and ratingsCount)
+      allow update: if (
+        // Allow incrementing the 'views' field only by 1
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
+        request.resource.data.views == resource.data.views + 1
+      ) ||
+      // Allow authenticated users to update likes count (incremented/decremented by 1)
+      (request.auth != null && 
+       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
+      // Allow updating rating fields (averageRating and/or ratingsCount)
+      (request.auth != null && 
+       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating']) ||
+       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingsCount']) ||
+       (request.resource.data.diff(resource.data).affectedKeys().hasAll(['averageRating', 'ratingsCount']) &&
+        request.resource.data.diff(resource.data).affectedKeys().size() == 2)) ||
+      // Allow the creator to update any field
+      (request.auth != null && resource.data.userId == request.auth.uid);
+
+      // Only the creator of the story can delete it
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Likes subcollection for stories
+      match /likes/{likeId} {
+        // Allow anyone to read likes
+        allow read: if true;
+
+        // Allow authenticated users to create their own likes (likeId must be userId)
+        allow create: if request.auth != null && 
+          request.resource.data.userId == request.auth.uid &&
+          likeId == request.auth.uid;
+
+        // Allow users to delete their own likes
+        allow delete: if request.auth != null && 
+          likeId == request.auth.uid;
+      }
+
+      // Ratings subcollection for stories
+      match /ratings/{ratingId} {
+        // Allow anyone to read ratings
+        allow read: if true;
+
+        // Allow authenticated users to create their own rating (ratingId must be userId)
+        // Users can only rate once (no update or delete allowed)
+        allow create: if request.auth != null && 
+          request.resource.data.userId == request.auth.uid &&
+          ratingId == request.auth.uid &&
+          request.resource.data.rating >= 1 &&
+          request.resource.data.rating <= 5;
+      }
+
+      // Nested rules for chapters
+      match /chapters/{chapterId} {
+        // Allow anyone to read chapters
+        allow read: if true;
+
+        // Only authenticated users can create chapters
+        allow create: if request.auth != null;
+
+        // Only the creator of the story can update or delete chapters
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        
+        match /comments/{commentId} {
+          // Allow anyone to read comments
+          allow read: if true;
+
+          // Allow authenticated users to create comments
+          allow create: if request.auth != null && 
+            request.resource.data.userId == request.auth.uid;
+
+          // Allow users to update their own comments
+          allow update: if request.auth != null && 
+            resource.data.userId == request.auth.uid &&
+            request.resource.data.userId == request.auth.uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['message', 'updatedAt']);
+
+          // Allow users to delete their own comments
+          allow delete: if request.auth != null && 
+            resource.data.userId == request.auth.uid;
+
+          // Nested rules for likes
+          match /likes/{likeId} {
+            // Allow anyone to read likes
+            allow read: if true;
+
+            // Allow authenticated users to create their own likes
+            allow create: if request.auth != null && 
+              request.resource.data.userId == request.auth.uid;
+
+            // Allow users to delete their own likes
+            allow delete: if request.auth != null && 
+              resource.data.userId == request.auth.uid;
+          }
+        }
+        
+      }
+
+      // Nested rules for plots
+      match /plots/{plotId} {
+        // Allow anyone to read plots
+        allow read: if true;
+
+        // Only authenticated users can create plots
+        allow create: if request.auth != null;
+
+        // Only the creator of the story can update or delete plots
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Nested rules for characters
+      match /characters/{characterId} {
+        // Allow anyone to read characters
+        allow read: if true;
+
+        // Only authenticated users can create characters
+        allow create: if request.auth != null;
+
+        // Only the creator of the story can update or delete characters
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Nested rules for places
+      match /places/{placeId} {
+        // Allow anyone to read places
+        allow read: if true;
+
+        // Only authenticated users can create places
+        allow create: if request.auth != null;
+
+        // Only the creator of the story can update or delete places
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+    }
+    
+    
+		match /bookClubs/{clubId} {
+      // Allow read access to anyone
+      allow read: if true;
+      
+      // Allow create access to any authenticated user
+      allow create: if request.auth != null;
+      
+      // Allow update and delete only to the creator
+      allow delete: if request.auth != null && request.auth.uid == resource.data.creatorId;
+      
+      // Allow adding feedback to any authenticated user
+      allow update: if request.auth != null;
+      
+      // Rules for the messages subcollection
+      match /messages/{messageId} {
+        // Allow reading messages if they can read the parent book club
+        allow read: if true;
+        
+        allow create: if request.auth != null;
+        
+        // Only allow users to delete their own messages
+        allow delete: if request.auth != null && 
+          resource.data.sender == request.auth.uid;
+          
+      }
+      
+      // Rules for the memberProgress subcollection
+      match /memberProgress/{userId} {
+        // Allow reading progress for authenticated users
+        // This allows members to view all progress in the club
+        allow read: if request.auth != null;
+        
+        // Allow creating progress if user is authenticated and creating their own progress
+        allow create: if request.auth != null && 
+          userId == request.auth.uid &&
+          request.resource.data.userId == request.auth.uid;
+        
+        // Allow updating progress if user is authenticated and updating their own progress
+        allow update: if request.auth != null && 
+          userId == request.auth.uid &&
+          resource.data.userId == request.auth.uid &&
+          request.resource.data.userId == request.auth.uid;
+        
+        // Allow deleting progress if user is authenticated and deleting their own progress
+        allow delete: if request.auth != null && 
+          userId == request.auth.uid;
+      }
+    }
+    
+    // User activity collection for rate limiting
+    // Documents are named as {userId}_{dateString} (e.g., "user123_2024-01-15")
+    match /userActivity/{activityId} {
+      // Allow users to read their own activity documents
+      // Check document ID prefix (format: userId_dateString) or userId field if document exists
+      allow read: if request.auth != null && (
+        activityId.matches(request.auth.uid + '_.*') ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+      
+      // Allow users to create their own activity documents
+      allow create: if request.auth != null && (
+        activityId.matches(request.auth.uid + '_.*') ||
+        request.resource.data.userId == request.auth.uid
+      );
+      
+      // Allow users to update their own activity documents
+      allow update: if request.auth != null && (
+        activityId.matches(request.auth.uid + '_.*') ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+    }
+    
+    // Rules for book lists
+    match /bookLists/{listId} {
+      // Allow authenticated users to read all book lists (application code filters to show only public lists or user's own lists)
+      // NOTE: This allows reading all lists including private ones, but the application filters in memory.
+      // For better security, consider using composite queries with isPublic/userId filters.
+      allow read: if request.auth != null;
+      
+      // Allow authenticated users to create book lists (must set their own userId)
+      allow create: if request.auth != null && 
+                        request.resource.data.userId == request.auth.uid;
+      
+      // Allow users to update their own book lists
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      
+      // Allow users to delete their own book lists
+      allow delete: if request.auth != null && 
+                        resource.data.userId == request.auth.uid;
+    }
+    
+    // Rules for users
+    match /users/{userId} {
+    
+    	// Allow the authenticated user to create their own user document
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Allow authenticated users to read any user document
+      allow read: if request.auth != null;
+      
+			allow update: if request.auth != null &&
+              (
+                // Allow if followers list hasn't changed
+                request.resource.data.followers == resource.data.followers ||
+                
+                // Allow adding a follower
+                (request.resource.data.followers.size() == resource.data.followers.size() + 1 &&
+                 request.resource.data.followers.hasAll(resource.data.followers) &&
+                 !resource.data.followers.hasAny([request.auth.uid])) ||
+                
+                // Allow removing a follower
+                (request.resource.data.followers.size() == resource.data.followers.size() - 1 &&
+                 resource.data.followers.hasAll(request.resource.data.followers) &&
+                 resource.data.followers.hasAny([request.auth.uid]))
+              );
+      
+      // Nested rules for posts
+      match /posts/{postId} {
+        // Allow anyone to read posts
+        allow read: if true;
+
+        // Only authenticated users can create posts
+        allow create: if request.auth != null;
+
+        // Allow update by creator
+        allow update: if request.auth != null && resource.data.creator == request.auth.uid;
+        
+        // Allow deletion by creator OR by any authenticated user (for reporting/deletion)
+        // SECURITY NOTE: This allows any authenticated user to delete posts from user subcollections.
+        // Consider moving post deletion logic to Cloud Functions with admin privileges for better security.
+        allow delete: if request.auth != null;
+      }
+    }
+  }
+}
