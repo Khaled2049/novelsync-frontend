@@ -26,6 +26,8 @@ import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
 import { generateNextLines } from "@/api/brainstormApi";
 import { useAiUsage } from "@/contexts/AiUsageContext";
+import { Loader, Maximize2, MessageSquare, Sparkles } from "lucide-react";
+import { enhanceText } from "@/api/textEnhancementApi";
 
 const limit = 50000;
 
@@ -50,7 +52,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestionMenu, setShowSuggestionMenu] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { incrementAiUsage } = useAiUsage();
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhancementError, setEnhancementError] = useState<string>("");
+  const { incrementAiUsage, canUseAI } = useAiUsage();
   // Initialize the AI generator
 
   // Function to call your backend API
@@ -171,6 +175,61 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     }
   }, [editor, initialContent]);
 
+  // Handle text enhancement (expand, dialogue, rewrite)
+  const handleTextEnhancement = useCallback(
+    async (action: 'expand' | 'dialogue' | 'rewrite') => {
+      if (!editor) return;
+
+      // Check AI limit BEFORE API call
+      if (!canUseAI()) {
+        setEnhancementError("Daily AI usage limit reached. Please try again tomorrow.");
+        setTimeout(() => setEnhancementError(""), 3000);
+        return;
+      }
+
+      // Get selected text
+      const { from, to } = editor.state.selection;
+      const selectedText = editor.state.doc.textBetween(from, to, ' ');
+
+      if (!selectedText.trim()) {
+        setEnhancementError("Please select some text first");
+        setTimeout(() => setEnhancementError(""), 3000);
+        return;
+      }
+
+      setIsEnhancing(true);
+      setEnhancementError("");
+
+      try {
+        const response = await enhanceText({
+          storyId,
+          action,
+          selectedText,
+          chapterId,
+        });
+
+        // Increment usage counter
+        await incrementAiUsage();
+
+        // Replace selected text with AI result
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .insertContentAt(from, response.data.enhancedText)
+          .run();
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to enhance text";
+        setEnhancementError(errorMessage);
+        setTimeout(() => setEnhancementError(""), 3000);
+      } finally {
+        setIsEnhancing(false);
+      }
+    },
+    [editor, storyId, chapterId, canUseAI, incrementAiUsage]
+  );
+
   // Debounce save function
   const debouncedSave = useCallback(
     (content: string) => {
@@ -204,10 +263,55 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       <BubbleMenu
         editor={editor}
         tippyOptions={{ duration: 150 }}
-        className="bg-black text-white shadow-lg dark:bg-black"
+        className="bg-black text-white shadow-lg rounded-md overflow-hidden"
         shouldShow={({ from, to }) => from !== to}
       >
-        <div className="flex min-w-[18rem] justify-center bg-black p-1 shadow-lg"></div>
+        <div className="flex items-center gap-1 bg-black p-1">
+          {/* Expand Button */}
+          <button
+            onClick={() => handleTextEnhancement('expand')}
+            disabled={isEnhancing}
+            className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+            title="Expand text with more detail"
+          >
+            {isEnhancing ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+            <span>Expand</span>
+          </button>
+
+          {/* Improve Dialogue Button */}
+          <button
+            onClick={() => handleTextEnhancement('dialogue')}
+            disabled={isEnhancing}
+            className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+            title="Improve dialogue quality"
+          >
+            {isEnhancing ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <MessageSquare className="w-4 h-4" />
+            )}
+            <span>Dialogue</span>
+          </button>
+
+          {/* Rewrite Button */}
+          <button
+            onClick={() => handleTextEnhancement('rewrite')}
+            disabled={isEnhancing}
+            className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+            title="Rewrite with different phrasing"
+          >
+            {isEnhancing ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>Rewrite</span>
+          </button>
+        </div>
       </BubbleMenu>
 
       <div className="flex-1 transition-colors duration-200 min-h-[500px]">
@@ -242,6 +346,13 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             setSuggestions([]);
           }}
         />
+      )}
+
+      {/* Error Toast Notification */}
+      {enhancementError && (
+        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-md">
+          <p className="text-sm">{enhancementError}</p>
+        </div>
       )}
 
       <div className="flex flex-col items-center my-3 space-y-1">
