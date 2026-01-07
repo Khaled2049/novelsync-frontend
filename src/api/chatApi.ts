@@ -1,8 +1,5 @@
 import axiosInstance from "./index";
-import {
-  SendChatMessageRequest,
-  SendChatMessageResponse,
-} from "@/types/IChat";
+import { SendChatMessageRequest, SendChatMessageResponse } from "@/types/IChat";
 
 /**
  * Send a chat message with story context for RAG-powered response.

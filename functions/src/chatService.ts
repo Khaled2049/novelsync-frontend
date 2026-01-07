@@ -1,6 +1,7 @@
 /** Chat history and session management utilities. */
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
+import { FieldValue } from "firebase-admin/firestore";
 
 export interface ChatMessage {
   id: string;
@@ -102,7 +103,7 @@ export async function saveChatMessages(
       id: userMsgRef.id,
       role: "user",
       content: userMessage,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
 
     // Create assistant message document
@@ -111,8 +112,8 @@ export async function saveChatMessages(
       id: assistantMsgRef.id,
       role: "assistant",
       content: assistantResponse,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      contextSnapshot,
+      timestamp: FieldValue.serverTimestamp(),
+      ...(contextSnapshot && { contextSnapshot }),
     });
 
     // Update chat session metadata
@@ -122,8 +123,8 @@ export async function saveChatMessages(
         id: chatId,
         userId,
         storyId,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        messageCount: admin.firestore.FieldValue.increment(2),
+        updatedAt: FieldValue.serverTimestamp(),
+        messageCount: FieldValue.increment(2),
       },
       { merge: true }
     );
@@ -152,10 +153,7 @@ export async function getOrCreateChatSession(
   userId: string
 ): Promise<string> {
   try {
-    const chatsRef = db
-      .collection("stories")
-      .doc(storyId)
-      .collection("chats");
+    const chatsRef = db.collection("stories").doc(storyId).collection("chats");
 
     // Check if a chat already exists (get most recent)
     const existingChats = await chatsRef

@@ -116,21 +116,12 @@ export const sendChatMessage = onRequest(
         return;
       }
 
-      const responseData = agentResponse.data as {
-        response: string;
-        contextUsed?: {
-          chapters: number;
-          characters: number;
-          plots: number;
-          places: number;
-        };
-      };
+      const responseData = (agentResponse.data as any).data;
 
       // Create context snapshot for tracking
       const contextSnapshot = includeFullContext
         ? {
-            chapterIds:
-              (context as any).chapters?.map((c: any) => c.id) || [],
+            chapterIds: (context as any).chapters?.map((c: any) => c.id) || [],
             characterIds:
               (context as any).characters?.map((c: any) => c.id) || [],
             plotIds: (context as any).plots?.map((p: any) => p.id) || [],
