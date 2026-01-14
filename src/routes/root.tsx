@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 export default function HomePage() {
   const [scrollY, setScrollY] = useState(0);
@@ -78,7 +79,7 @@ export default function HomePage() {
   return (
     <>
       <SEOHead
-        title="NovelSync - AI-Powered Novel Writing Platform"
+        title={`${APP_NAME} - AI-Powered Novel Writing Platform`}
         description="Create, organize, and enhance your stories with AI-powered writing assistants. Join book clubs, discover stories, and connect with writers in a collaborative writing community. Features smart text editor, AI writing assistant, story context manager, and crypto tipping."
         keywords={[
           "novel writing",

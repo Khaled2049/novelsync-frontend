@@ -1,3 +1,5 @@
+import { APP_NAME } from "@/config/seo";
+
 const Announcements: React.FC = () => {
   return (
     <div className="p-6 max-w-screen-md mx-auto space-y-8">
@@ -11,8 +13,8 @@ const Announcements: React.FC = () => {
             Khaled's Release Party
           </h3>
           <p className="text-gray-700 dark:text-gray-300 mt-2">
-            Join us in celebrating the release of NovelSync! Stay tuned for more
-            details about the event.
+            Join us in celebrating the release of {APP_NAME}! Stay tuned for
+            more details about the event.
           </p>
         </div>
       </div>

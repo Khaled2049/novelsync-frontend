@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Search, Filter, Trophy } from "lucide-react";
 import { ICompetition, CompetitionStatus } from "@/types/ICompetition";
 import CompetitionCard from "./CompetitionCard";
+import { APP_NAME } from "@/config/seo";
 
 // Placeholder competition data
 const mockCompetitions: ICompetition[] = [
@@ -20,7 +21,7 @@ const mockCompetitions: ICompetition[] = [
     maxParticipants: 5000,
     tags: ["Fantasy", "World Building", "Lore"],
     category: "World Building",
-    organizer: "NovelSync Team",
+    organizer: `${APP_NAME} Team`,
     rules: [
       "Minimum 10,000 words",
       "Must include magic system",

@@ -6,6 +6,7 @@ import { storiesRepo } from "../../services/StoriesRepo";
 import StoryMetadataModal from "./StoryMetadataModal";
 import { StoryMetadata } from "@/types/IStory";
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const AllStories: React.FC = () => {
   const { user } = useAuthContext();
@@ -53,8 +54,8 @@ const AllStories: React.FC = () => {
   return (
     <>
       <SEOHead
-        title="Discover Stories - NovelSync"
-        description="Browse and discover amazing stories from talented writers. Explore fiction, fantasy, romance, sci-fi, and more. Join the NovelSync community and start reading today."
+        title={`Discover Stories - ${APP_NAME}`}
+        description={`Browse and discover amazing stories from talented writers. Explore fiction, fantasy, romance, sci-fi, and more. Join the ${APP_NAME} community and start reading today.`}
         keywords={[
           "stories",
           "fiction",
@@ -93,7 +94,7 @@ const AllStories: React.FC = () => {
           </div>
         ) : (
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold mb-4">Welcome to NovelSync!</h1>
+            <h1 className="text-2xl font-bold mb-4">Welcome to {APP_NAME}!</h1>
             <Link
               to="/sign-in"
               className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"

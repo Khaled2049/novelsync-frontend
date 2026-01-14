@@ -1,7 +1,10 @@
 /**
  * SEO Configuration
- * Default meta tags and SEO constants for NovelSync
+ * Default meta tags and SEO constants for the application
  */
+
+// Application name from environment variable (allows easy rebranding)
+export const APP_NAME = import.meta.env.VITE_APP_NAME || "ScribeOS";
 
 // Get the base URL from environment or use a default
 const getBaseUrl = () => {
@@ -9,13 +12,13 @@ const getBaseUrl = () => {
     return window.location.origin;
   }
   // Fallback for SSR or build time
-  return process.env.VITE_SITE_URL || "https://novelsync.web.app";
+  return import.meta.env.VITE_SITE_URL || "https://scribeos.web.app";
 };
 
 export const SEO_CONFIG = {
-  siteName: "NovelSync",
+  siteName: APP_NAME,
   siteUrl: getBaseUrl(),
-  defaultTitle: "NovelSync - AI-Powered Novel Writing Platform",
+  defaultTitle: `${APP_NAME} - AI-Powered Novel Writing Platform`,
   defaultDescription:
     "Create, organize, and enhance your stories with AI-powered writing assistants. Join book clubs, discover stories, and connect with writers in a collaborative writing community.",
   defaultKeywords: [
@@ -33,7 +36,7 @@ export const SEO_CONFIG = {
   defaultImage: "/book.svg", // Default OG image
   twitterHandle: "", // Add if you have a Twitter handle
   facebookAppId: "", // Add if you have a Facebook App ID
-  author: "NovelSync Team",
+  author: `${APP_NAME} Team`,
   language: "en",
   locale: "en_US",
 } as const;

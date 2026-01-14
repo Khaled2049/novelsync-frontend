@@ -3,6 +3,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { FaGoogle } from "react-icons/fa";
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -78,8 +79,8 @@ const Signup: React.FC = () => {
   return (
     <>
       <SEOHead
-        title="Sign Up - NovelSync"
-        description="Create your free NovelSync account and start writing stories with AI assistance, join book clubs, and connect with writers."
+        title={`Sign Up - ${APP_NAME}`}
+        description={`Create your free ${APP_NAME} account and start writing stories with AI assistance, join book clubs, and connect with writers.`}
         url="/sign-up"
         noindex={true}
         nofollow={true}
@@ -88,7 +89,7 @@ const Signup: React.FC = () => {
         {/* Logo with animation */}
         <div className="relative z-10 flex items-center text-center mb-8 -ml-6 animate-fade-in-down">
           <h1 className="text-5xl font-serif font-bold text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
-            NovelSync
+            {APP_NAME}
           </h1>
         </div>
 

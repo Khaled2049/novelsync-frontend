@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { userService } from "@/services/UserService";
+import { APP_NAME } from "@/config/seo";
 
 export const WalletConnectButton: React.FC = () => {
   const chain = useChain();
@@ -466,10 +467,10 @@ export const WalletConnectButton: React.FC = () => {
         <ConnectWallet
           theme={theme}
           btnTitle="Connect Wallet"
-          modalTitle="Connect to NovelSync"
+          modalTitle={`Connect to ${APP_NAME}`}
           modalSize="wide"
           welcomeScreen={{
-            title: "Welcome to NovelSync",
+            title: `Welcome to ${APP_NAME}`,
             subtitle: "Connect your wallet to start tipping authors",
           }}
         />

@@ -24,7 +24,7 @@ import DiscussionPromptsSection from "./components/DiscussionPromptsSection";
 import PollsSection from "./components/PollsSection";
 import ReadingProgressTracker from "./components/ReadingProgressTracker";
 import { SEOHead } from "@/components/SEO/SEOHead";
-import { getAbsoluteUrl } from "@/config/seo";
+import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 
 interface MemberInfo {
   id: string;
@@ -196,7 +196,7 @@ const BookClubDetails: React.FC = () => {
           url: getAbsoluteUrl(`/book-clubs/${club.id}`),
           memberOf: {
             "@type": "Organization",
-            name: "NovelSync",
+            name: APP_NAME,
           },
         }}
       />

@@ -1,11 +1,12 @@
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const TermsOfUse = () => {
   return (
     <>
       <SEOHead
-        title="Terms of Use - NovelSync"
-        description="Read NovelSync's Terms of Use to understand the rules and guidelines for using our platform."
+        title={`Terms of Use - ${APP_NAME}`}
+        description={`Read ${APP_NAME}'s Terms of Use to understand the rules and guidelines for using our platform.`}
         url="/terms-of-use"
         canonical="/terms-of-use"
       />
@@ -15,7 +16,7 @@ const TermsOfUse = () => {
 
         <p className="mt-6">
           Please read these Terms of Use ("Terms", "Terms of Use") carefully
-          before using NovelSync (the "Service") operated by Khaled Hossain
+          before using {APP_NAME} (the "Service") operated by Khaled Hossain
           ("us", "we", "our", "me", "biggest daddy", or "I"). Your access to and
           use of the Service is conditioned on your acceptance of and compliance
           with these Terms. These Terms apply to all visitors, users, and others
@@ -89,7 +90,7 @@ const TermsOfUse = () => {
           Limitation of Liability
         </h2>
         <p>
-          In no event shall Khaled Hossain, NovelSync, employees, or affiliates
+          In no event shall Khaled Hossain, {APP_NAME}, employees, or affiliates
           be liable for any indirect, incidental, special, consequential, or
           punitive damages, including but not limited to loss of profits, data,
           or use, whether in an action in contract, tort (including but not

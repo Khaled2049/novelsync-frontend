@@ -1,3 +1,5 @@
+import { APP_NAME } from "@/config/seo";
+
 // Define a type for an Event
 type Event = {
   id: string;
@@ -10,9 +12,8 @@ type Event = {
 const decemberEvents: Event[] = [
   {
     id: "1",
-    title: "Novel Sync Launch Party",
-    description:
-      "Celebrate the launch of NovelSync with fellow writers. Join us for an evening of creativity and inspiration!",
+    title: `${APP_NAME} Launch Party`,
+    description: `Celebrate the launch of ${APP_NAME} with fellow writers. Join us for an evening of creativity and inspiration!`,
     date: "December 1, 2024",
   },
   {

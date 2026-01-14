@@ -6,6 +6,7 @@ import { WalletConnectButton } from "./WalletConnectButton";
 import NavLinks from "./navbar/NavLinks";
 import UserDropdown from "./navbar/UserDropdown";
 import MobileMenu from "./navbar/MobileMenu";
+import { APP_NAME } from "../config/seo";
 
 const Navbar = () => {
   const { user, loading } = useAuthContext();
@@ -39,9 +40,9 @@ const Navbar = () => {
               <Link
                 to="/"
                 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-transparent bg-clip-text bg-gradient-to-r from-dark-green to-light-green dark:from-light-green dark:to-dark-green transition-all duration-300 hover:scale-105 hover:drop-shadow-lg"
-                aria-label="NovelSync Home"
+                aria-label={`${APP_NAME} Home`}
               >
-                NovelSync
+                {APP_NAME}
               </Link>
             </div>
 
