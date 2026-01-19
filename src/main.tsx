@@ -140,6 +140,14 @@ const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          {
+            path: "community",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <Home />
+              </Suspense>
+            ),
+          },
         ],
       },
       {
@@ -171,14 +179,6 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <BookClubDetails />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/Home",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Home />
           </Suspense>
         ),
       },

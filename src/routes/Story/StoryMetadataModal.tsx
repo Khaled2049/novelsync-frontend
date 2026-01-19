@@ -216,6 +216,60 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       >
                         Poetry
                       </SelectItem>
+                      <SelectItem
+                        value="fantasy"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Fantasy
+                      </SelectItem>
+                      <SelectItem
+                        value="science-fiction"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Science Fiction
+                      </SelectItem>
+                      <SelectItem
+                        value="romance"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Romance
+                      </SelectItem>
+                      <SelectItem
+                        value="mystery-thriller"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Mystery/Thriller
+                      </SelectItem>
+                      <SelectItem
+                        value="horror"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Horror
+                      </SelectItem>
+                      <SelectItem
+                        value="historical-fiction"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Historical Fiction
+                      </SelectItem>
+                      <SelectItem
+                        value="young-adult"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Young Adult
+                      </SelectItem>
+                      <SelectItem
+                        value="drama"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Drama
+                      </SelectItem>
+                      <SelectItem
+                        value="adventure"
+                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                      >
+                        Adventure
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

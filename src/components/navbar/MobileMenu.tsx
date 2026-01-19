@@ -34,7 +34,6 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   };
 
   const menuItems = [
-    { to: "/home", label: "Home" },
     { to: "/explore", label: "Explore" },
     { to: "/book-clubs", label: "Book Clubs" },
   ];
