@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const Signin: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -44,8 +45,8 @@ const Signin: React.FC = () => {
   return (
     <>
       <SEOHead
-        title="Sign In - NovelSync"
-        description="Sign in to your NovelSync account to continue writing, reading, and connecting with the writing community."
+        title={`Sign In - ${APP_NAME}`}
+        description={`Sign in to your ${APP_NAME} account to continue writing, reading, and connecting with the writing community.`}
         url="/sign-in"
         noindex={true}
         nofollow={true}
@@ -54,7 +55,7 @@ const Signin: React.FC = () => {
         {/* Logo with animation */}
         <div className="relative z-10 flex items-center text-center mb-8 -ml-6 animate-fade-in-down">
           <h1 className="text-5xl font-serif font-bold text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
-            NovelSync
+            {APP_NAME}
           </h1>
         </div>
 
@@ -191,7 +192,7 @@ const Signin: React.FC = () => {
                 onClick={() => navigate("/sign-up")}
                 className="text-dark-green dark:text-light-green hover:opacity-80 transition-colors duration-200 font-semibold hover:underline bg-transparent border-none cursor-pointer"
               >
-                Create an account
+                Request an Invite
               </button>
             </div>
           </div>

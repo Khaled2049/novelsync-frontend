@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, TrendingUp, Compass, Book } from "lucide-react";
+import { APP_NAME } from "@/config/seo";
 
 export type FeedType = "home" | "popular" | "explore" | "book-clubs";
 
@@ -50,7 +51,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       <div className="h-full flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            NovelSync
+            {APP_NAME}
           </h2>
         </div>
 

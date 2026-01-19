@@ -1,11 +1,12 @@
 import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const PrivacyPolicy = () => {
   return (
     <>
       <SEOHead
-        title="Privacy Policy - NovelSync"
-        description="Read NovelSync's Privacy Policy to understand how we collect, use, and protect your personal information."
+        title={`Privacy Policy - ${APP_NAME}`}
+        description={`Read ${APP_NAME}'s Privacy Policy to understand how we collect, use, and protect your personal information.`}
         url="/privacy-policy"
         canonical="/privacy-policy"
       />

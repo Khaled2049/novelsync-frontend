@@ -1,8 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-        
+
+    // Invites collection for invite-only signup
+    match /invites/{email} {
+      // Anyone can create an invite request (with their email as doc ID)
+      allow create: if request.resource.data.email == email
+                    && request.resource.data.status == "pending"
+                    && request.resource.data.keys().hasAll(["email", "status", "requestedAt", "linkSentCount"]);
+
+      // Allow reads for checking if invite exists (needed before creating)
+      // Document ID is the email, so users can only check invites for emails they know
+      // Authenticated users can also read their own invite
+      allow read: if request.auth == null || 
+                    (request.auth != null && request.auth.token.email == email);
+
+      // Authenticated users can mark their own invite as completed (after magic link signin)
+      // Allow updating from "approved" or "sent" to "completed" (in case function hasn't updated to "sent" yet)
+      allow update: if request.auth != null
+                    && request.auth.token.email != null
+                    && request.auth.token.email == email
+                    && request.resource.data.status == "completed"
+                    && (resource.data.status == "sent" || resource.data.status == "approved");
+
+      // No deletes allowed
+      allow delete: if false;
+    }
+
     match /messages/{messageId} {
 
       allow read: if true;

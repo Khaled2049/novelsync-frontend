@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axiosInstance from "../../api";
 import { SEOHead } from "@/components/SEO/SEOHead";
-import { getAbsoluteUrl } from "@/config/seo";
+import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 
 interface BookDetailsProps {}
 
@@ -110,12 +110,12 @@ const BookDetails: React.FC<BookDetailsProps> = () => {
   return (
     <>
       <SEOHead
-        title={`${book.volumeInfo.title} - NovelSync Library`}
+        title={`${book.volumeInfo.title} - ${APP_NAME} Library`}
         description={
           book.volumeInfo.description ||
           `Read ${book.volumeInfo.title} by ${book.volumeInfo.authors?.join(
             ", "
-          )} on NovelSync Library.`
+          )} on ${APP_NAME} Library.`
         }
         keywords={book.volumeInfo.categories || []}
         image={book.volumeInfo.imageLinks?.thumbnail}

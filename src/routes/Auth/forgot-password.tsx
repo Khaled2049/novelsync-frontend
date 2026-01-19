@@ -1,6 +1,7 @@
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { APP_NAME } from "@/config/seo";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -38,7 +39,7 @@ const ForgotPassword = () => {
     <div className="flex flex-col items-center justify-start min-h-screen  dark:bg-black text-black dark:text-white pt-12 transition-colors duration-300">
       <div className="flex items-center text-center mb-8 -ml-6">
         <h1 className="text-4xl font-serif text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
-          NovelSync
+          {APP_NAME}
         </h1>
       </div>
 
