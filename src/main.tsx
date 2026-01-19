@@ -31,6 +31,7 @@ const PrivateRoute = lazy(() => import("./routes/PrivateRoute"));
 const PrivacyPolicy = lazy(() => import("./components/PrivacyPolicy"));
 const TermsOfUse = lazy(() => import("./components/TermsOfUse"));
 const ForgotPassword = lazy(() => import("./routes/Auth/forgot-password"));
+const CompleteSignup = lazy(() => import("./routes/Auth/complete-signup"));
 const StoriesLayout = lazy(() => import("./routes/Story/StoriesLayout"));
 const BookLists = lazy(() => import("./components/explore/BookLists"));
 const Competitions = lazy(() => import("./components/explore/Competitions"));
@@ -226,6 +227,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <ForgotPassword />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/auth/complete-signup",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <CompleteSignup />
           </Suspense>
         ),
       },

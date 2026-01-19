@@ -1,26 +1,24 @@
 import { useState } from "react";
 import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
+  isSignInWithEmailLink,
   sendPasswordResetEmail,
-  signInAnonymously,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithEmailLink,
   signOut,
   updateProfile,
+  updatePassword,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { auth, firestore } from "../config/firebase";
-import {
-  uniqueNamesGenerator,
-  adjectives,
-  names,
-} from "unique-names-generator";
 
 export const useFirebaseAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
-  const createUserDocument = async (userId: string, userData: any) => {
+  const createUserDocument = async (userId: string, userData: {
+    username: string;
+    email: string;
+    isAnonymous?: boolean;
+  }) => {
     const dbUser = {
       username: userData.username,
       email: userData.email,
@@ -39,21 +37,77 @@ export const useFirebaseAuth = () => {
     await setDoc(doc(firestore, "users", userId), dbUser);
   };
 
-  const handleEmailSignUp = async (
-    email: string,
-    password: string,
-    username: string
-  ) => {
+  /**
+   * Request an invite by creating a pending invite document.
+   * Returns success status and any error message.
+   */
+  const requestInvite = async (email: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
+      // Check if invite already exists
+      const inviteRef = doc(firestore, "invites", email);
+      const existingInvite = await getDoc(inviteRef);
 
-      // Update the user's profile with the username
+      if (existingInvite.exists()) {
+        const data = existingInvite.data();
+        const status = data.status;
+
+        if (status === "pending") {
+          return { success: false, message: "An invite request for this email is already pending." };
+        }
+        if (status === "approved" || status === "sent") {
+          return { success: false, message: "Your invite has been approved! Check your email for the magic link." };
+        }
+        if (status === "completed") {
+          return { success: false, message: "An account with this email already exists. Please sign in." };
+        }
+        if (status === "rejected") {
+          return { success: false, message: "This invite request was declined." };
+        }
+      }
+
+      // Create invite request
+      await setDoc(inviteRef, {
+        email,
+        status: "pending",
+        requestedAt: serverTimestamp(),
+        linkSentCount: 0,
+      });
+
+      setError(null);
+      return { success: true };
+    } catch (err) {
+      const message = (err as Error).message;
+      setError(message);
+      return { success: false, message };
+    }
+  };
+
+  /**
+   * Complete sign-up using a magic link.
+   * This is called after the user clicks the magic link in their email.
+   */
+  const completeMagicLinkSignup = async (
+    email: string,
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const link = window.location.href;
+
+      // Verify the link is a valid sign-in link
+      if (!isSignInWithEmailLink(auth, link)) {
+        return { success: false, message: "Invalid or expired magic link." };
+      }
+
+      // Sign in with the magic link
+      const result = await signInWithEmailLink(auth, email, link);
+      const user = result.user;
+
+      // Update profile with username
       await updateProfile(user, { displayName: username });
+
+      // Set the password for future sign-ins
+      await updatePassword(user, password);
 
       // Create user document in Firestore
       await createUserDocument(user.uid, {
@@ -62,63 +116,44 @@ export const useFirebaseAuth = () => {
         isAnonymous: false,
       });
 
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const user = userCredential.user;
-
-      // Create user document in Firestore
-      await createUserDocument(user.uid, {
-        username: user.displayName || "Google User",
-        email: user.email || "",
-        isAnonymous: false,
+      // Mark invite as completed
+      const inviteRef = doc(firestore, "invites", email);
+      await updateDoc(inviteRef, {
+        status: "completed",
+        completedAt: serverTimestamp(),
       });
 
-      setError("");
+      setError(null);
+      return { success: true };
     } catch (err) {
-      setError((err as Error).message);
+      const error = err as { code?: string; message: string };
+
+      if (error.code === "auth/invalid-action-code") {
+        const message = "This link has expired or already been used. Please request a new invite.";
+        setError(message);
+        return { success: false, message };
+      }
+      if (error.code === "auth/expired-action-code") {
+        const message = "This link has expired. Please request a new invite.";
+        setError(message);
+        return { success: false, message };
+      }
+      if (error.code === "auth/weak-password") {
+        const message = "Password is too weak. Please choose a stronger password.";
+        setError(message);
+        return { success: false, message };
+      }
+
+      setError(error.message);
+      return { success: false, message: error.message };
     }
   };
 
-  const handleAnonymousSignUp = async () => {
-    try {
-      try {
-        const anonymousUsername = uniqueNamesGenerator({
-          dictionaries: [adjectives, names],
-          separator: " ",
-          style: "capital",
-          length: 2,
-        });
-
-        console.log("anonymousUsername", anonymousUsername);
-
-        const userCredential = await signInAnonymously(auth);
-        const user = userCredential.user;
-
-        await updateProfile(user, {
-          displayName: anonymousUsername,
-        });
-
-        await createUserDocument(user.uid, {
-          username: anonymousUsername,
-          email: "",
-          isAnonymous: true,
-        });
-      } catch (err) {
-        console.log("err", err);
-      }
-
-      setError("");
-    } catch (err) {
-      setError((err as Error).message);
-    }
+  /**
+   * Check if the current URL is a valid magic link.
+   */
+  const isMagicLink = (): boolean => {
+    return isSignInWithEmailLink(auth, window.location.href);
   };
 
   const signin = async (email: string, password: string) => {
@@ -164,9 +199,9 @@ export const useFirebaseAuth = () => {
   };
 
   return {
-    handleAnonymousSignUp,
-    handleEmailSignUp,
-    handleGoogleSignUp,
+    requestInvite,
+    completeMagicLinkSignup,
+    isMagicLink,
     signin,
     signout,
     forgotPassword,

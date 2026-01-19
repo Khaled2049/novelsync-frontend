@@ -192,7 +192,7 @@ const Signin: React.FC = () => {
                 onClick={() => navigate("/sign-up")}
                 className="text-dark-green dark:text-light-green hover:opacity-80 transition-colors duration-200 font-semibold hover:underline bg-transparent border-none cursor-pointer"
               >
-                Create an account
+                Request an Invite
               </button>
             </div>
           </div>
