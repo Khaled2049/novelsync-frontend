@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu, Editor } from "@tiptap/react";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
@@ -21,13 +21,14 @@ import BulletList from "@tiptap/extension-bullet-list";
 import ListItem from "@tiptap/extension-list-item";
 import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
-import EditorHeader from "@/components/EditorHeader";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
 import { generateNextLines } from "@/api/brainstormApi";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 import { Loader, Maximize2, MessageSquare, Sparkles } from "lucide-react";
 import { enhanceText } from "@/api/textEnhancementApi";
+import { SaveStatusIndicator } from "@/components/SaveStatusIndicator";
+import { SaveState } from "@/hooks/useAutosave";
 
 const limit = 50000;
 
@@ -35,18 +36,22 @@ interface TipTapEditorProps {
   initialContent: string;
   onContentChange: (content: string) => void;
   onSave: (content: string) => void;
-  saveStatus: string;
+  saveState: SaveState;
+  isOnline?: boolean;
   storyId: string;
   chapterId?: string;
+  onEditorReady?: (editor: Editor | null) => void;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   initialContent,
   onContentChange,
   onSave,
-  saveStatus,
+  saveState,
+  isOnline = true,
   storyId,
   chapterId,
+  onEditorReady,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -175,6 +180,13 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     }
   }, [editor, initialContent]);
 
+  // Notify parent when editor is ready
+  useEffect(() => {
+    if (onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
+
   // Handle text enhancement (expand, dialogue, rewrite)
   const handleTextEnhancement = useCallback(
     async (action: 'expand' | 'dialogue' | 'rewrite') => {
@@ -259,7 +271,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   }
 
   return (
-    <div className="flex h-full flex-col mb-4">
+    <div className="flex flex-col">
+      {/* AI Text Enhancement Bubble Menu */}
       <BubbleMenu
         editor={editor}
         tippyOptions={{ duration: 150 }}
@@ -267,7 +280,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         shouldShow={({ from, to }) => from !== to}
       >
         <div className="flex items-center gap-1 bg-black p-1">
-          {/* Expand Button */}
           <button
             onClick={() => handleTextEnhancement('expand')}
             disabled={isEnhancing}
@@ -282,7 +294,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             <span>Expand</span>
           </button>
 
-          {/* Improve Dialogue Button */}
           <button
             onClick={() => handleTextEnhancement('dialogue')}
             disabled={isEnhancing}
@@ -297,7 +308,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             <span>Dialogue</span>
           </button>
 
-          {/* Rewrite Button */}
           <button
             onClick={() => handleTextEnhancement('rewrite')}
             disabled={isEnhancing}
@@ -314,11 +324,22 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       </BubbleMenu>
 
-      <div className="flex-1 transition-colors duration-200 min-h-[500px]">
+      {/* Google Docs-like page container */}
+      <div className="editor-page transition-colors duration-200">
         <EditorContent
           onClick={() => editor.commands.focus()}
-          className="w-full h-full focus:outline-none selection:bg-light-green/20 dark:selection:bg-dark-green/20 text-black dark:text-white prose prose-lg max-w-none dark:prose-invert"
+          className="w-full focus:outline-none"
           editor={editor}
+        />
+      </div>
+
+      {/* Save Status - Below the page */}
+      <div className="flex justify-center py-4">
+        <SaveStatusIndicator
+          status={saveState.status}
+          lastSaved={saveState.lastSaved}
+          errorMessage={saveState.errorMessage}
+          isOnline={isOnline}
         />
       </div>
 
@@ -354,17 +375,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <p className="text-sm">{enhancementError}</p>
         </div>
       )}
-
-      <div className="flex flex-col items-center my-3 space-y-1">
-        <span
-          className={`text-green-600 dark:text-green-400 min-h-[1.5rem] transition-opacity duration-300 ${
-            saveStatus ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {saveStatus}
-        </span>
-      </div>
-      <EditorHeader editor={editor} />
     </div>
   );
 };

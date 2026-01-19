@@ -34,7 +34,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
+  const [_currentStoryId, setCurrentStoryId] = useState<string | null>(null);
 
   // Track unsubscribe function for cleanup
   const unsubscribeRef = useRef<(() => void) | null>(null);

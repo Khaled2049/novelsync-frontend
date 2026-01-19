@@ -64,7 +64,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor }) => {
   }, [editor, genImage, closeModal]);
 
   return (
-    <div className="flex flex-wrap gap-2 p-2 w-full text-center justify-center dark:bg-transparent transition-colors duration-200 border-b border-gray-200 dark:border-gray-800">
+    <div className="flex flex-wrap gap-1 px-4 py-2 text-center justify-center bg-white dark:bg-neutral-900 transition-colors duration-200">
       {/* Undo Button */}
       <button
         className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
