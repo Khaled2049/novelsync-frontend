@@ -20,6 +20,7 @@ import { Editor } from "@tiptap/react";
 import { useEditorState } from "@/hooks/useEditorState";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { FloatingChatButton } from "./chat/FloatingChatButton";
 
 export function SimpleEditor() {
   const navigate = useNavigate();
@@ -34,6 +35,12 @@ export function SimpleEditor() {
 
   // Editor instance for header
   const [editor, setEditor] = useState<Editor | null>(null);
+
+  // Page count for pagination
+  const [pageCount, setPageCount] = useState(1);
+
+  // Zoom level (percentage, e.g., 100 = 100%)
+  const [zoomLevel, setZoomLevel] = useState(100);
 
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -259,9 +266,9 @@ export function SimpleEditor() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Fixed Editor Header - like Google Docs */}
             {state.currentChapter && editor && (
-              <div className="flex-shrink-0 justify-center flex items-center bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-gray-700">
-                <EditorHeader editor={editor} />
-                <div className="flex items-center gap-2 pr-4">
+              <div className="flex-shrink-0 justify-center flex items-center">
+                <EditorHeader editor={editor} zoomLevel={zoomLevel} onZoomChange={setZoomLevel} storyId={state.story?.id} />
+                <div className="flex items-center gap-2 pr-2">
                   <button
                     onClick={handleNewChapter}
                     className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center gap-1"
@@ -281,12 +288,13 @@ export function SimpleEditor() {
                     <span>{state.story?.isPublished ? "Unpublish" : "Publish"}</span>
                   </button>
                 </div>
+                <FloatingChatButton storyId={state.story?.id} />
               </div>
             )}
 
             {/* Scrollable Editor Area - A4 Page style */}
             {state.currentChapter && (
-              <div className="flex-1 overflow-y-auto bg-neutral-200 dark:bg-neutral-800 py-8">
+              <div className="flex-1 overflow-y-auto">
                 <div className="mx-auto px-8">
                   <TipTapEditor
                     initialContent={state.currentChapter.content}
@@ -297,6 +305,8 @@ export function SimpleEditor() {
                     storyId={state.story?.id || ""}
                     chapterId={state.currentChapter?.id || ""}
                     onEditorReady={setEditor}
+                    onPageCountChange={setPageCount}
+                    zoomLevel={zoomLevel}
                   />
                 </div>
               </div>
@@ -337,16 +347,6 @@ export function SimpleEditor() {
                   Stats
                 </button>
 
-                <button
-                  onClick={() => actions.setRightTab("chat")}
-                  className={`flex-1 py-2 text-sm ${
-                    state.rightTab === "chat"
-                      ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
-                      : "text-neutral-600 dark:text-neutral-400"
-                  }`}
-                >
-                  Assistant
-                </button>
               </div>
 
               {/* Tab Content */}
@@ -356,6 +356,7 @@ export function SimpleEditor() {
                     <WritingStats
                       currentChapter={state.currentChapter}
                       chaptersCount={state.chapters.length}
+                      pageCount={pageCount}
                     />
                   </div>
                 )}

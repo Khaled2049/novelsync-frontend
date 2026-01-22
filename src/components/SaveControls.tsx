@@ -26,7 +26,7 @@ export const SaveControls: React.FC<SaveControlsProps> = ({
               : "bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-white dark:focus:ring-offset-black"
           }`}
         >
-          <Upload className="w-5 h-5 mr-2" />
+          <Upload className="w-5 h-5" />
           <span>{isPublished ? "Unpublish" : "Publish"}</span>
         </button>
 
@@ -34,7 +34,7 @@ export const SaveControls: React.FC<SaveControlsProps> = ({
           onClick={onNewChapter}
           className="p-3 bg-dark-green dark:bg-light-green text-white rounded-lg shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
         >
-          <BookPlus className="w-5 h-5 mr-2" />
+          <BookPlus className="w-5 h-5" />
           <span>New Chapter</span>
         </button>
       </div>

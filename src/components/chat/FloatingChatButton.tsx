@@ -3,12 +3,16 @@ import { MessageCircle } from "lucide-react";
 import { Chatbot } from "./Chatbot";
 import { useParams } from "react-router-dom";
 
-export const FloatingChatButton: React.FC = () => {
+interface FloatingChatButtonProps {
+  storyId?: string;
+}
+
+export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ storyId: propStoryId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { storyId, id } = useParams<{ storyId?: string; id?: string }>();
 
-  // Determine storyId from route params (could be /story/:id or /editor/:storyId)
-  const currentStoryId = storyId || id;
+  // Use prop storyId if provided, otherwise fall back to route params
+  const currentStoryId = propStoryId || storyId || id;
 
   // Don't show if no story context
   if (!currentStoryId) return null;
@@ -18,11 +22,11 @@ export const FloatingChatButton: React.FC = () => {
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-dark-green dark:bg-light-green text-white dark:text-black rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center"
-          aria-label="Open AI Assistant"
+        onClick={() => setIsOpen(true)}
+        className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center"
         >
-          <MessageCircle className="w-6 h-6" />
+          <MessageCircle className="w-5 h-5" />
+          <span>AI Assistant</span>
         </button>
       )}
 

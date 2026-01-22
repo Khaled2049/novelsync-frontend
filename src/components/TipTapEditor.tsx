@@ -41,6 +41,8 @@ interface TipTapEditorProps {
   storyId: string;
   chapterId?: string;
   onEditorReady?: (editor: Editor | null) => void;
+  onPageCountChange?: (pageCount: number) => void;
+  zoomLevel?: number;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -52,6 +54,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   storyId,
   chapterId,
   onEditorReady,
+  onPageCountChange,
+  zoomLevel = 100,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -324,13 +328,23 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       </BubbleMenu>
 
-      {/* Google Docs-like page container */}
-      <div className="editor-page transition-colors duration-200">
-        <EditorContent
-          onClick={() => editor.commands.focus()}
-          className="w-full focus:outline-none"
-          editor={editor}
-        />
+      {/* Pageless editor container */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 flex justify-center">
+        <div
+          className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 min-h-[calc(100vh-200px)] transition-all duration-200"
+          style={{
+            zoom: zoomLevel / 100,
+            width: '800px',
+          }}
+        >
+          <div className="px-16 py-12">
+            <EditorContent
+              onClick={() => editor.commands.focus()}
+              className="w-full focus:outline-none prose prose-lg dark:prose-invert max-w-none"
+              editor={editor}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Save Status - Below the page */}

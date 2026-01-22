@@ -31,7 +31,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-full sticky top-0 z-50 bg-white/95 dark:bg-dark-green/95 backdrop-blur-lg transition-colors duration-300 shadow-sm dark:shadow-dark-green/20">
+      <nav className="w-full sticky top-0 z-50 bg-white/95 dark:bg-black backdrop-blur-lg transition-colors duration-300 shadow-sm dark:shadow-dark-green/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative flex justify-between items-center h-16">
             {/* Left Section - Logo */}

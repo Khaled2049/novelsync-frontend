@@ -5,11 +5,13 @@ const WORD_LIMIT = 5000;
 interface WritingStatsProps {
   currentChapter: Chapter | null;
   chaptersCount: number;
+  pageCount?: number;
 }
 
 export function WritingStats({
   currentChapter,
   chaptersCount,
+  pageCount = 1,
 }: WritingStatsProps) {
   const wordCount = currentChapter?.content
     ? currentChapter.content.split(/\s+/).filter(Boolean).length
@@ -83,6 +85,12 @@ export function WritingStats({
           <span>Reading time:</span>
           <span className="font-medium text-black dark:text-white">
             {readingTime} min
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>Pages:</span>
+          <span className="font-medium text-black dark:text-white">
+            {pageCount}
           </span>
         </div>
         <div className="flex justify-between pt-4 border-t border-black/10 dark:border-white/10">

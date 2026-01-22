@@ -1,21 +1,22 @@
 /* A4 Page-like editor styles */
 
-/* Main editor container - A4 page simulation */
-/* A4 is 210mm x 297mm - we use a fixed width for web display */
-.editor-page {
+/* Paginated editor container */
+.paginated-editor-container {
+  position: relative;
+}
+
+/* Page backgrounds for visual pagination */
+.page-background {
   background: white;
   border-radius: 2px;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.05),
     0 2px 8px rgba(0, 0, 0, 0.08),
     0 8px 30px rgba(0, 0, 0, 0.12);
-  width: 816px; /* ~8.5 inches at 96dpi, standard US Letter/close to A4 */
-  min-height: 400px; /* Minimum visible page height - grows with content */
-  margin: 0 auto;
-  position: relative;
+  transition: box-shadow 0.2s ease;
 }
 
-.dark .editor-page {
+.dark .page-background {
   background: #1e1e1e;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.05),
@@ -23,8 +24,44 @@
     0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
+/* Page number styling */
+.page-number {
+  color: #666;
+  user-select: none;
+}
+
+.dark .page-number {
+  color: #9ca3af;
+}
+
+/* Main editor container - now transparent, background handled by page-background */
+/* A4 is 210mm x 297mm - we use a fixed width for web display */
+.editor-page {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  width: 816px; /* ~8.5 inches at 96dpi, standard US Letter/close to A4 */
+  min-height: auto;
+  margin: 0 auto;
+  position: relative;
+}
+
+.dark .editor-page {
+  background: transparent;
+  box-shadow: none;
+}
+
 /* Responsive: scale down on smaller screens */
 @media (max-width: 900px) {
+  .paginated-editor-container {
+    width: 100% !important;
+  }
+
+  .page-background {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .editor-page {
     width: 100%;
     max-width: 100%;
@@ -38,12 +75,13 @@
 .ProseMirror {
   /* A4-like margins: ~1 inch on each side */
   padding: 72px 72px;
-  min-height: 256px; /* Minimum height - grows with content */
+  min-height: 912px; /* One page content height (1056 - 144 padding) */
   outline: none;
   font-family: 'Merriweather', Georgia, serif;
   font-size: 12pt; /* Standard document font size */
   line-height: 1.75;
   color: #1a1a1a;
+  background: transparent;
 }
 
 .dark .ProseMirror {
