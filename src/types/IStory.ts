@@ -21,6 +21,7 @@ export interface Story {
   likes: number;
   coverImageUrl?: string;
   tags?: string[];
+  category?: string;
   averageRating?: number;
   ratingsCount?: number;
 }
@@ -37,6 +38,7 @@ export interface StoryMetadata {
   likes: number;
   coverImageUrl?: string;
   tags?: string[];
+  category?: string;
   averageRating?: number;
   ratingsCount?: number;
 }

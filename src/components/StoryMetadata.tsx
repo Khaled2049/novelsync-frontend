@@ -70,7 +70,7 @@ export const StoryMetadata: React.FC<StoryMetadataProps> = ({
         <textarea
           value={storyDescription}
           onChange={(e) => handleInputChange(e, onStoryDescriptionChange)}
-          placeholder="Story Description"
+        placeholder="Story Description"
           className="w-full text-base pb-3 bg-transparent border-b border-black/10 dark:border-white/10 text-black/70 dark:text-white/70 placeholder:text-black/30 dark:placeholder:text-white/30 focus:outline-none focus:border-dark-green dark:focus:border-light-green transition-colors duration-200 resize-none"
           rows={3}
           maxLength={200}

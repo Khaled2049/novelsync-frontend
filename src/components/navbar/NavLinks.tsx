@@ -7,7 +7,6 @@ interface NavLinksProps {
 
 const NavLinks = ({ className = "", onLinkClick }: NavLinksProps) => {
   const links = [
-    { to: "/home", label: "Home" },
     { to: "/explore", label: "Explore" },
   ];
 

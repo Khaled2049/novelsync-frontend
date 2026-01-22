@@ -1,238 +1,226 @@
 import "./style.css";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Loader, BookPlus, Upload } from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuthContext } from "../contexts/AuthContext";
 import { storiesRepo } from "../services/StoriesRepo";
-import { Chapter, Story } from "@/types/IStory";
+import { Chapter } from "@/types/IStory";
 
-// Import your new components
+// Import components
 import { SidebarPanel } from "@/components/SidebarPanel";
-import { StoryMetadata } from "@/components/StoryMetadata";
-import { SaveControls } from "@/components/SaveControls";
 import { TipTapEditor } from "@/components/TipTapEditor";
 import { WritingStats } from "@/components/WritingStats";
 import { Chatbot } from "@/components/chat/Chatbot";
+import { ConfirmDialog, UnsavedChangesDialog } from "@/components/ConfirmDialog";
+import EditorHeader from "@/components/EditorHeader";
+import { Editor } from "@tiptap/react";
+
+// Import hooks
+import { useEditorState } from "@/hooks/useEditorState";
+import { useAutosave } from "@/hooks/useAutosave";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { FloatingChatButton } from "./chat/FloatingChatButton";
 
 export function SimpleEditor() {
   const navigate = useNavigate();
   const { storyId } = useParams<{ storyId: string }>();
   const { user } = useAuthContext();
 
-  // State variables
-  const [currentStory, setCurrentStory] = useState<Story | null>(null);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
-  const [storyTitle, setStoryTitle] = useState("");
-  const [storyDescription, setStoryDescription] = useState("");
-  const [chapterTitle, setChapterTitle] = useState("");
-  const [saveStatus, setSaveStatus] = useState("");
-  const [storyLoading, setStoryLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"chapters" | "ai">("chapters");
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
-  const [rightTab, setRightTab] = useState<"stats" | "chat">("stats");
+  // Use the new consolidated state hook
+  const { state, actions } = useEditorState();
 
-  // Refs for debouncing
-  const storyTitleRef = useRef(storyTitle);
-  const storyDescriptionRef = useRef(storyDescription);
-  const chapterTitleRef = useRef(chapterTitle);
+  // Network status
+  const { isOnline } = useNetworkStatus();
 
-  // Load story and chapters
-  const loadStory = async (storyId: string) => {
-    setStoryLoading(true);
-    const story = await storiesRepo.getStory(storyId);
+  // Editor instance for header
+  const [editor, setEditor] = useState<Editor | null>(null);
 
-    if (story) {
-      setCurrentStory(story);
-      setStoryTitle(story.title);
-      setStoryDescription(story.description);
-      const storyChapters = await storiesRepo.getChapters(storyId);
-      setChapters(storyChapters);
-      if (storyChapters.length > 0) {
-        setCurrentChapter(storyChapters[0]);
-        setChapterTitle(storyChapters[0].title);
-        setStoryLoading(false);
-      } else {
-        setCurrentChapter(null);
-        setChapterTitle("");
-        setStoryLoading(false);
-      }
-    }
-  };
+  // Page count for pagination
+  const [pageCount, setPageCount] = useState(1);
 
-  // Save function
-  const handleSave = useCallback(
+  // Zoom level (percentage, e.g., 100 = 100%)
+  const [zoomLevel, setZoomLevel] = useState(100);
+
+  // Dialog states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
+  const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] = useState(false);
+  const [pendingChapter, setPendingChapter] = useState<Chapter | null>(null);
+
+  // Save function that will be passed to useAutosave
+  const performSave = useCallback(
     async (content: string) => {
-      if (!currentStory) {
-        console.error("No story selected");
-        return;
+      if (!state.story) {
+        throw new Error("No story selected");
       }
-      setSaveStatus("Saving...");
-      try {
-        const saveChapter = async () => {
-          if (currentChapter) {
-            // Update existing chapter
-            await storiesRepo.updateChapter(
-              currentStory.id,
-              currentChapter.id,
-              chapterTitleRef.current,
-              content
-            );
-          } else if (content.trim() || chapterTitleRef.current.trim()) {
-            // Add new chapter if content or title is not empty
-            const newChapterId = await storiesRepo.addChapter(
-              currentStory.id,
-              chapterTitleRef.current
-            );
-            await storiesRepo.updateChapter(
-              currentStory.id,
-              newChapterId,
-              chapterTitleRef.current,
-              content
-            );
-            const newChapter = await storiesRepo.getChapter(
-              currentStory.id,
-              newChapterId
-            );
 
-            if (newChapter) {
-              setCurrentChapter(newChapter);
-              setChapters((prevChapters) => [...prevChapters, newChapter]);
-            }
-          }
-        };
+      // Save chapter
+      if (state.currentChapter) {
+        await storiesRepo.updateChapter(
+          state.story.id,
+          state.currentChapter.id,
+          state.chapterTitle,
+          content
+        );
 
-        // Save chapter and story
-        await saveChapter();
+        // Update chapter in list with new content and word count
+        const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+        actions.updateChapterInList(state.currentChapter.id, {
+          title: state.chapterTitle,
+          content,
+          wordCount,
+        });
+      }
+
+      // Only update story metadata if it changed (optimization)
+      if (state.metadataChanged) {
         await storiesRepo.updateStory(
-          currentStory.id,
-          storyTitleRef.current,
-          storyDescriptionRef.current
+          state.story.id,
+          state.storyTitle,
+          state.storyDescription
         );
-
-        setChapters((prevChapters) =>
-          prevChapters.map((chapter) =>
-            chapter.id === currentChapter?.id
-              ? {
-                  ...chapter,
-                  title: chapterTitleRef.current,
-                  content,
-                }
-              : chapter
-          )
-        );
-
-        setSaveStatus("Saved");
-      } catch (error) {
-        console.error("Error saving:", error);
-        setSaveStatus(error instanceof Error ? error.message : "Error saving");
-      } finally {
-        setTimeout(() => setSaveStatus(""), 2000);
+        actions.clearMetadataChanged();
       }
     },
-    [currentStory, currentChapter]
+    [state.story, state.currentChapter, state.chapterTitle, state.storyTitle, state.storyDescription, state.metadataChanged, actions]
   );
 
-  // Handle new chapter creation
-  const handleNewChapter = async () => {
-    if (!currentStory) return;
-    const newChapterId = await storiesRepo.addChapter(
-      currentStory.id,
-      "New Chapter"
-    );
-    await loadStory(currentStory.id); // This will refresh the chapters list
-    const newChapter = await storiesRepo.getChapter(
-      currentStory.id,
-      newChapterId
-    );
-    if (newChapter) {
-      setCurrentChapter(newChapter);
-      setChapterTitle(newChapter.title);
+  // Initialize autosave hook
+  const { triggerSave, forceSave, saveState, isDirty, resetSaveState } = useAutosave({
+    onSave: performSave,
+    debounceMs: 3000,
+    enabled: !!state.story && !!state.currentChapter,
+  });
+
+  // Load story and chapters
+  const loadStory = useCallback(async (loadStoryId: string) => {
+    actions.setLoading(true);
+    resetSaveState();
+
+    const story = await storiesRepo.getStory(loadStoryId);
+    if (story) {
+      const storyChapters = await storiesRepo.getChapters(loadStoryId);
+      const firstChapter = storyChapters.length > 0 ? storyChapters[0] : null;
+      actions.loadStory(story, storyChapters, firstChapter);
     }
-  };
-
-  // Handle publishing
-  const handlePublish = async () => {
-    if (!currentStory) return;
-    await storiesRepo.handlePublish(currentStory.id);
-    navigate("/stories");
-    setTimeout(() => setSaveStatus(""), 2000);
-  };
-
-  // Update refs when state changes
-  useEffect(() => {
-    storyTitleRef.current = storyTitle;
-    storyDescriptionRef.current = storyDescription;
-    chapterTitleRef.current = chapterTitle;
-  }, [storyTitle, storyDescription, chapterTitle]);
+  }, [actions, resetSaveState]);
 
   // Load story on component mount
   useEffect(() => {
     if (storyId) {
       loadStory(storyId);
     }
-  }, [storyId, user]);
+  }, [storyId, user, loadStory]);
 
-  // Handle chapter selection
-  const handleChapterSelect = (chapter: Chapter) => {
-    setCurrentChapter(chapter);
-    setChapterTitle(chapter.title);
+  // Handle new chapter creation
+  const handleNewChapter = async () => {
+    if (!state.story) return;
+
+    // Save current content first if dirty
+    if (isDirty && state.currentChapter?.content) {
+      await forceSave(state.currentChapter.content);
+    }
+
+    const newChapterId = await storiesRepo.addChapter(
+      state.story.id,
+      "New Chapter"
+    );
+    const newChapter = await storiesRepo.getChapter(
+      state.story.id,
+      newChapterId
+    );
+    if (newChapter) {
+      actions.addChapter(newChapter);
+      resetSaveState();
+    }
   };
 
-  // Handle metadata changes
+  // Handle publishing
+  const handlePublish = async () => {
+    if (!state.story) return;
+
+    // Save before publishing if dirty
+    if (isDirty && state.currentChapter?.content) {
+      await forceSave(state.currentChapter.content);
+    }
+
+    await storiesRepo.handlePublish(state.story.id);
+    navigate("/stories");
+  };
+
+  // Handle chapter selection with unsaved changes check
+  const handleChapterSelect = (chapter: Chapter) => {
+    if (isDirty) {
+      setPendingChapter(chapter);
+      setUnsavedChangesDialogOpen(true);
+    } else {
+      actions.selectChapter(chapter);
+      resetSaveState();
+    }
+  };
+
+  // Handle save and continue for unsaved changes dialog
+  const handleSaveAndContinue = async () => {
+    if (state.currentChapter?.content) {
+      await forceSave(state.currentChapter.content);
+    }
+    if (pendingChapter) {
+      actions.selectChapter(pendingChapter);
+      resetSaveState();
+    }
+    setPendingChapter(null);
+  };
+
+  // Handle discard and continue
+  const handleDiscardAndContinue = () => {
+    if (pendingChapter) {
+      actions.selectChapter(pendingChapter);
+      resetSaveState();
+    }
+    setPendingChapter(null);
+  };
+
+  // Handle metadata changes - trigger save
   const handleMetadataChange = () => {
-    if (currentChapter && currentChapter.content) {
-      handleSave(currentChapter.content);
+    if (state.currentChapter && state.currentChapter.content) {
+      triggerSave(state.currentChapter.content);
     }
   };
 
   // Handle content changes in editor
   const handleContentChange = (content: string) => {
-    if (currentChapter) {
-      setCurrentChapter((prev) => (prev ? { ...prev, content } : null));
-    }
+    actions.updateChapterContent(content);
   };
 
-  const handleChapterDelete = async (chapterId: string) => {
-    if (!currentStory) return;
+  // Handle save from editor (autosave trigger)
+  const handleEditorSave = (content: string) => {
+    triggerSave(content);
+  };
 
-    // Confirm deletion
-    if (!window.confirm("Are you sure you want to delete this chapter?")) {
-      return;
-    }
+  // Handle chapter delete request
+  const handleChapterDeleteRequest = (chapterId: string) => {
+    setChapterToDelete(chapterId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm chapter deletion
+  const confirmChapterDelete = async () => {
+    if (!state.story || !chapterToDelete) return;
 
     try {
-      await storiesRepo.deleteChapter(currentStory.id, chapterId);
-
-      // Remove from state
-      setChapters((prevChapters) =>
-        prevChapters.filter((ch) => ch.id !== chapterId)
-      );
-
-      // If deleting current chapter, switch to another one
-      if (currentChapter?.id === chapterId) {
-        const remainingChapters = chapters.filter((ch) => ch.id !== chapterId);
-        if (remainingChapters.length > 0) {
-          setCurrentChapter(remainingChapters[0]);
-          setChapterTitle(remainingChapters[0].title);
-        } else {
-          setCurrentChapter(null);
-          setChapterTitle("");
-        }
-      }
+      await storiesRepo.deleteChapter(state.story.id, chapterToDelete);
+      actions.deleteChapter(chapterToDelete);
+      resetSaveState();
     } catch (error) {
       console.error("Error deleting chapter:", error);
-      setSaveStatus(
-        error instanceof Error ? error.message : "Error deleting chapter"
-      );
     }
+    setChapterToDelete(null);
   };
 
   return (
     <div className="relative w-full h-full bg-neutral-50 dark:bg-neutral-950 flex overflow-hidden transition-colors duration-200">
-      {storyLoading ? (
+      {state.isLoading ? (
         <div className="flex items-center justify-center w-full h-full text-dark-green dark:text-light-green">
           <Loader className="w-12 h-12 animate-spin" />
         </div>
@@ -241,29 +229,33 @@ export function SimpleEditor() {
           {/* Left Sidebar */}
           <div
             className={`relative bg-neutral-50 dark:bg-black border-r border-black/10 dark:border-white/10 transition-all duration-300 ease-in-out ${
-              leftSidebarOpen ? "w-80" : "w-0"
+              state.leftSidebarOpen ? "w-80" : "w-0"
             } overflow-hidden`}
           >
             <div className="w-80 h-full">
               <SidebarPanel
-                chapters={chapters}
-                currentChapterId={currentChapter?.id || ""}
-                chapterTitle={chapterTitle}
+                chapters={state.chapters}
+                currentChapterId={state.currentChapter?.id || ""}
+                chapterTitle={state.chapterTitle}
+                storyTitle={state.storyTitle}
                 onChapterSelect={handleChapterSelect}
-                onChapterDelete={handleChapterDelete}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
+                onChapterDelete={handleChapterDeleteRequest}
+                onStoryTitleChange={actions.updateStoryTitle}
+                onChapterTitleChange={actions.updateChapterTitle}
+                onMetadataChange={handleMetadataChange}
+                activeTab={state.activeTab}
+                onTabChange={actions.setActiveTab}
               />
             </div>
           </div>
 
           {/* Left Sidebar Toggle Button */}
           <button
-            onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+            onClick={actions.toggleLeftSidebar}
             className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-neutral-50 dark:bg-black border border-black/10 dark:border-white/10 rounded-r-lg p-2 shadow-lg hover:bg-black/5 dark:hover:bg-neutral-50/5 transition-all duration-200"
-            style={{ left: leftSidebarOpen ? "320px" : "0px" }}
+            style={{ left: state.leftSidebarOpen ? "320px" : "0px" }}
           >
-            {leftSidebarOpen ? (
+            {state.leftSidebarOpen ? (
               <ChevronLeft className="w-4 h-4 text-black dark:text-white" />
             ) : (
               <ChevronRight className="w-4 h-4 text-black dark:text-white" />
@@ -272,53 +264,63 @@ export function SimpleEditor() {
 
           {/* Main Editor Area - CENTER */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="max-w-4xl mx-auto w-full px-8 flex-shrink-0 py-4">
-                <StoryMetadata
-                  storyTitle={storyTitle}
-                  chapterTitle={chapterTitle}
-                  onStoryTitleChange={setStoryTitle}
-                  onChapterTitleChange={setChapterTitle}
-                  onMetadataChange={handleMetadataChange}
-                />
-              </div>
-
-              {/* Scrollable Editor Area - THIS IS THE ONLY SCROLLABLE PART */}
-              {currentChapter && (
-                <div className="flex-1 overflow-y-auto">
-                  <div className="max-w-4xl mx-auto w-full px-8">
-                    <div className="bg-neutral-50 dark:bg-transparent">
-                      <TipTapEditor
-                        initialContent={currentChapter.content}
-                        onContentChange={handleContentChange}
-                        onSave={handleSave}
-                        saveStatus={saveStatus}
-                        storyId={currentStory?.id || ""}
-                        chapterId={currentChapter?.id || ""}
-                      />
-                    </div>
-                  </div>
+            {/* Fixed Editor Header - like Google Docs */}
+            {state.currentChapter && editor && (
+              <div className="flex-shrink-0 justify-center flex items-center">
+                <EditorHeader editor={editor} zoomLevel={zoomLevel} onZoomChange={setZoomLevel} storyId={state.story?.id} />
+                <div className="flex items-center gap-2 pr-2">
+                  <button
+                    onClick={handleNewChapter}
+                    className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center gap-1"
+                  >
+                    <BookPlus className="w-4 h-4" />
+                    <span>New Chapter</span>
+                  </button>
+                  <button
+                    onClick={handlePublish}
+                    className={`px-3 py-2 text-sm rounded-md shadow-sm transition-colors duration-200 flex items-center gap-1 ${
+                      state.story?.isPublished
+                        ? "bg-red-500 text-white hover:bg-red-600"
+                        : "bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{state.story?.isPublished ? "Unpublish" : "Publish"}</span>
+                  </button>
                 </div>
-              )}
-
-              {/* Save Controls Component - STAYS FIXED AT BOTTOM */}
-              <div className="max-w-4xl mx-auto w-full px-8 pb-4 pt-4 flex-shrink-0">
-                <SaveControls
-                  isPublished={currentStory?.isPublished || false}
-                  onPublish={handlePublish}
-                  onNewChapter={handleNewChapter}
-                />
+                <FloatingChatButton storyId={state.story?.id} />
               </div>
-            </div>
+            )}
+
+            {/* Scrollable Editor Area - A4 Page style */}
+            {state.currentChapter && (
+              <div className="flex-1 overflow-y-auto">
+                <div className="mx-auto px-8">
+                  <TipTapEditor
+                    initialContent={state.currentChapter.content}
+                    onContentChange={handleContentChange}
+                    onSave={handleEditorSave}
+                    saveState={saveState}
+                    isOnline={isOnline}
+                    storyId={state.story?.id || ""}
+                    chapterId={state.currentChapter?.id || ""}
+                    onEditorReady={setEditor}
+                    onPageCountChange={setPageCount}
+                    zoomLevel={zoomLevel}
+                  />
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Right Sidebar Toggle Button */}
           <button
-            onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+            onClick={actions.toggleRightSidebar}
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-neutral-50 dark:bg-black border border-black/10 dark:border-white/10 rounded-l-lg p-2 shadow-lg hover:bg-black/5 dark:hover:bg-neutral-50/5 transition-all duration-200"
-            style={{ right: rightSidebarOpen ? "320px" : "0px" }}
+            style={{ right: state.rightSidebarOpen ? "320px" : "0px" }}
           >
-            {rightSidebarOpen ? (
+            {state.rightSidebarOpen ? (
               <ChevronRight className="w-4 h-4 text-black dark:text-white" />
             ) : (
               <ChevronLeft className="w-4 h-4 text-black dark:text-white" />
@@ -328,16 +330,16 @@ export function SimpleEditor() {
           {/* Right Sidebar - Writing Stats, and Chat */}
           <div
             className={`relative bg-neutral-50 dark:bg-black border-l border-black/10 dark:border-white/10 transition-all duration-300 ease-in-out ${
-              rightSidebarOpen ? "w-80" : "w-0"
+              state.rightSidebarOpen ? "w-80" : "w-0"
             } overflow-hidden`}
           >
             <div className="w-80 h-full flex flex-col overflow-hidden">
               {/* Tabs */}
               <div className="flex border-b border-black/10 dark:border-white/10">
                 <button
-                  onClick={() => setRightTab("stats")}
+                  onClick={() => actions.setRightTab("stats")}
                   className={`flex-1 py-2 text-sm ${
-                    rightTab === "stats"
+                    state.rightTab === "stats"
                       ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
                       : "text-neutral-600 dark:text-neutral-400"
                   }`}
@@ -345,34 +347,45 @@ export function SimpleEditor() {
                   Stats
                 </button>
 
-                <button
-                  onClick={() => setRightTab("chat")}
-                  className={`flex-1 py-2 text-sm ${
-                    rightTab === "chat"
-                      ? "border-b-2 border-dark-green text-dark-green dark:border-light-green dark:text-light-green"
-                      : "text-neutral-600 dark:text-neutral-400"
-                  }`}
-                >
-                  Assistant
-                </button>
               </div>
 
               {/* Tab Content */}
               <div className="flex-1 overflow-hidden">
-                {rightTab === "stats" && (
+                {state.rightTab === "stats" && (
                   <div className="p-6 overflow-y-auto h-full">
                     <WritingStats
-                      currentChapter={currentChapter}
-                      chaptersCount={chapters.length}
+                      currentChapter={state.currentChapter}
+                      chaptersCount={state.chapters.length}
+                      pageCount={pageCount}
                     />
                   </div>
                 )}
-                {rightTab === "chat" && currentStory?.id && (
-                  <Chatbot storyId={currentStory.id} mode="sidebar" />
+                {state.rightTab === "chat" && state.story?.id && (
+                  <Chatbot storyId={state.story.id} mode="sidebar" />
                 )}
               </div>
             </div>
           </div>
+
+          {/* Delete Chapter Confirmation Dialog */}
+          <ConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            title="Delete Chapter"
+            description="Are you sure you want to delete this chapter? This action cannot be undone."
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmChapterDelete}
+          />
+
+          {/* Unsaved Changes Dialog */}
+          <UnsavedChangesDialog
+            open={unsavedChangesDialogOpen}
+            onOpenChange={setUnsavedChangesDialogOpen}
+            onSaveAndContinue={handleSaveAndContinue}
+            onDiscardAndContinue={handleDiscardAndContinue}
+            isSaving={saveState.status === "saving"}
+          />
         </>
       )}
     </div>

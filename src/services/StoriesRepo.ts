@@ -73,8 +73,50 @@ class StoriesRepo {
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
         tags: data.tags || [],
+        category: data.category || undefined,
       };
     });
+  }
+
+  async getPublishedStoriesByCategory(category: string): Promise<StoryMetadata[]> {
+    try {
+      const q = query(
+        this.storiesCollection,
+        where("isPublished", "==", true),
+        where("category", "==", category),
+        orderBy("updatedAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          chapterCount: data.chapterCount,
+          isPublished: data.isPublished,
+          updatedAt: data.updatedAt.toDate(),
+          author: data.author,
+          views: data.views,
+          likes: data.likes,
+          coverImageUrl: data.coverImageUrl || "",
+          tags: data.tags || [],
+          category: data.category || undefined,
+        };
+      });
+    } catch (error: any) {
+      // Handle Firestore index errors gracefully
+      if (error?.code === "failed-precondition") {
+        console.error(
+          "Firestore index required. Please create a composite index for: isPublished, category, updatedAt",
+          error
+        );
+        // Return empty array if index is missing - user will need to create the index
+        return [];
+      }
+      console.error("Error fetching stories by category:", error);
+      throw error;
+    }
   }
 
   async fetchNovelCoverUrls(novels: string[]): Promise<string[]> {

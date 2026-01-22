@@ -1,7 +1,8 @@
 import { Outlet, useLocation, Link } from "react-router-dom";
 
-import { ListTodo, Trophy, BookOpen, Megaphone } from "lucide-react";
+import { ListTodo, Trophy, BookOpen, Megaphone, Users } from "lucide-react";
 import AllStories from "./AllStories";
+import Home from "../Home";
 
 import BookLists from "@/components/explore/BookLists";
 import Announcements from "@/components/explore/Announcements";
@@ -23,13 +24,13 @@ const tabs: Tab[] = [
     component: <AllStories />,
     path: "/explore/stories",
   },
-  // {
-  //   id: "categories",
-  //   label: "Categories",
-  //   path: "/explore/categories",
-  //   icon: <Book className="w-5 h-5" />,
-  //   component: <Categories />,
-  // },
+  {
+    id: "community",
+    label: "Community",
+    icon: <Users className="w-5 h-5" />,
+    component: <Home />,
+    path: "/explore/community",
+  },
   {
     id: "book-lists",
     label: "Book Lists",
@@ -58,27 +59,28 @@ const StoriesLayout = () => {
 
   return (
     <div className="h-full bg-neutral-50 dark:bg-black ">
-      <div className="container mx-auto px-4">
-        <div className="w-full mb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex flex-col space-y-4 py-4">
+      <div className="container mx-auto px-2 sm:px-4">
+        <div className="w-full mb-4 sm:mb-8">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+            <div className="flex flex-col space-y-2 sm:space-y-4 py-2 sm:py-4">
               {/* Main navigation */}
-              <nav className="flex justify-center space-x-4 overflow-x-auto ">
+              <nav className="flex justify-start sm:justify-center space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-2 sm:mx-0 px-2 sm:px-0 touch-pan-x">
                 {tabs.map((tab) => (
                   <Link
                     key={tab.id}
                     to={tab.path}
                     className={`
-                  flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium
-                  transition-colors duration-200 ease-in-out min-w-fit
-                  ${
-                    tab.path === location.pathname ||
-                    (location.pathname === "/stories" &&
-                      tab.path === "/stories")
-                      ? "bg-dark-green dark:bg-light-green text-white"
-                      : "text-black/70 dark:text-white/70 hover:bg-black/10 dark:hover:bg-neutral-50/10"
-                  }
-                `}
+                      flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-2 sm:py-2 rounded-md text-xs sm:text-sm font-medium
+                      transition-colors duration-200 ease-in-out min-w-fit whitespace-nowrap snap-start
+                      touch-manipulation
+                      ${
+                        tab.path === location.pathname ||
+                        (location.pathname === "/stories" &&
+                          tab.path === "/stories")
+                          ? "bg-dark-green dark:bg-light-green text-white"
+                          : "text-black/70 dark:text-white/70 hover:bg-black/10 dark:hover:bg-neutral-50/10 active:bg-black/20 dark:active:bg-neutral-50/20"
+                      }
+                    `}
                   >
                     {tab.icon}
                     <span>{tab.label}</span>
