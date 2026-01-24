@@ -9,7 +9,7 @@ import { voteService } from "@/services/VoteService";
 import { bookClubRepo } from "@/routes/BookClub/bookClubRepo";
 import PostCard from "./PostCard";
 import PostCreationForm from "./PostCreationForm";
-import { FeedType } from "./NavigationSidebar";
+import { FeedType } from "./FeedNavigation";
 import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 interface PostFeedProps {
