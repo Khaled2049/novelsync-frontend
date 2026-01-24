@@ -15,6 +15,12 @@ import {
 import { IUser } from "../types/IUser";
 import { collection } from "firebase/firestore";
 
+export interface ProfileUpdateData {
+  bio?: string;
+  occupation?: string;
+  location?: string;
+}
+
 interface AuthContextType {
   user: IUser | null;
   loading: boolean;
@@ -22,6 +28,7 @@ interface AuthContextType {
   followUser: (uid: string) => Promise<void>;
   unfollowUser: (uid: string) => Promise<void>;
   updateBio: (uid: string, bio: string) => Promise<void>;
+  updateProfile: (uid: string, data: ProfileUpdateData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -177,6 +184,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateProfile = async (uid: string, data: ProfileUpdateData) => {
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    try {
+      // Filter out undefined values
+      const filteredData = Object.fromEntries(
+        Object.entries(data).filter(([, value]) => value !== undefined)
+      );
+
+      if (Object.keys(filteredData).length === 0) {
+        return;
+      }
+
+      const userDocRef = doc(firestore, "users", uid);
+      await updateDoc(userDocRef, filteredData);
+
+      // Update local state
+      setUser((prevUser) => {
+        if (!prevUser) return prevUser;
+        return {
+          ...prevUser,
+          ...filteredData,
+        };
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      throw new Error("Failed to update user profile");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -186,6 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         followUser,
         unfollowUser,
         updateBio,
+        updateProfile,
       }}
     >
       {children}

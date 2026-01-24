@@ -1,12 +1,12 @@
 import { useAuthContext } from "../../contexts/AuthContext";
-import { FaArrowRight, FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
-import StoryMetadataModal from "./StoryMetadataModal";
 import { StoryMetadata } from "@/types/IStory";
 import { SEOHead } from "@/components/SEO/SEOHead";
 import { APP_NAME } from "@/config/seo";
+import StoriesHeader from "@/components/StoriesHeader";
 
 // Category definitions
 const CATEGORIES = [
@@ -136,40 +136,12 @@ const AllStories: React.FC = () => {
         {/* Main Content - Centered container */}
         <div className="flex-1 container mx-auto px-4 max-w-7xl">
           {/* Header */}
-          {user ? (
-            <div className="mb-6 flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {user.displayName
-                  ? `Welcome back, ${user.displayName}!`
-                  : "Welcome Back!"}
-              </h1>
-              <button
-                onClick={handleNewStory}
-                className="bg-dark-green dark:bg-light-green hover:bg-light-green dark:hover:bg-dark-green text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center gap-2"
-              >
-                <FaBook className="text-sm" />
-                New Story
-              </button>
-
-              {/* Story Metadata Modal */}
-              <StoryMetadataModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                userId={user.uid}
-              />
-            </div>
-          ) : (
-            <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold mb-4">Welcome to {APP_NAME}!</h1>
-              <Link
-                to="/sign-in"
-                className="inline-flex items-center gap-2 bg-dark-green dark:bg-light-green hover:bg-light-green dark:hover:bg-dark-green text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
-              >
-                Sign In
-                <FaArrowRight />
-              </Link>
-            </div>
-          )}
+          <StoriesHeader
+            user={user}
+            onNewStory={handleNewStory}
+            isModalOpen={isModalOpen}
+            onCloseModal={() => setIsModalOpen(false)}
+          />
 
           {/* Stories Content - Directly under welcome message */}
           <div>
