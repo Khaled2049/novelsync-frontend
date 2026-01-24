@@ -18,6 +18,7 @@ import { APP_NAME } from "@/config/seo";
 export default function HomePage() {
   const [scrollY, setScrollY] = useState(0);
   const navigate = useNavigate();
+  console.log("APP_NAME", APP_NAME);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
