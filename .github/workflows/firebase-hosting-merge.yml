@@ -77,7 +77,3 @@ jobs:
 
       - name: Deploy Firebase Functions
         run: firebase deploy --only functions --project story-6f89f
-
-      - name: Remove service account file
-        if: always()
-        run: rm -f "$HOME/firebase-sa.json"

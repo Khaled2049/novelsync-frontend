@@ -27,15 +27,23 @@ The GitHub Actions workflow authenticates with Firebase using a service account 
 
 2. Click **Create Service Account**.
    - Name: `github-actions-deploy`
-   - Roles (add both):
+   - Roles (add all three):
      - **Firebase Hosting Admin** (`roles/firebasehosting.admin`) — for hosting deploys
      - **Cloud Functions Admin** (`roles/cloudfunctions.admin`) — for Functions deploys (or **Cloud Functions Developer** `roles/cloudfunctions.developer` if you prefer least privilege)
+     - **Service Account User** (`roles/iam.serviceAccountUser`) — required so the deployer can “act as” the App Engine default service account when deploying Functions (avoids `Missing permissions ... iam.serviceAccounts.ActAs`).
 
-3. After creating the account, go to its **Keys** tab.
+3. **Grant the new account permission to use the App Engine default SA** (required for Functions deploy):
+   - Go to [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) and open the **App Engine default service account** (e.g. `story-6f89f@appspot.gserviceaccount.com`).
+   - Open the **Permissions** tab → **Grant access**.
+   - Add principal: `github-actions-deploy@<your-project-id>.iam.gserviceaccount.com`.
+   - Role: **Service Account User**.
+   - Save.
 
-4. Click **Add Key > Create new key > JSON**.
+4. On the **github-actions-deploy** service account, go to its **Keys** tab.
 
-5. Download the JSON key file. You will paste its entire contents into a GitHub secret in the next step.
+5. Click **Add Key > Create new key > JSON**.
+
+6. Download the JSON key file. You will paste its entire contents into a GitHub secret in the next step.
 
 > **Alternative:** You can run `firebase init hosting:github` in this repo and it will automatically create a service account and configure the GitHub secrets for you. This is the easiest approach if you have both the Firebase CLI and `gh` CLI installed.
 
