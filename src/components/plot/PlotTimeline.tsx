@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, ChevronDown, PlusCircle, Trash2, TrendingUp, Users, MapPin, Link2, GripVertical } from "lucide-react";
+import { Book, ChevronDown, PlusCircle, Trash2, TrendingUp, Users, MapPin, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 

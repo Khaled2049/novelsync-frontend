@@ -54,7 +54,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   storyId,
   chapterId,
   onEditorReady,
-  onPageCountChange,
+  onPageCountChange: _onPageCountChange,
   zoomLevel = 100,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -15,7 +15,7 @@ interface EditorHeaderProps {
 
 const ZOOM_PRESETS = [50, 75, 90, 100, 125, 150, 200];
 
-const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, onZoomChange, storyId }) => {
+const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, onZoomChange, storyId: _storyId }) => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [genImage, setGenImage] = useState("");
   const [_isLoading, setIsLoading] = useState(false);
