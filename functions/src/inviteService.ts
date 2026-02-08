@@ -1,21 +1,3 @@
-/**
- * Invite Service - Handles sending magic link emails when invites are approved
- *
- * This Cloud Function triggers when an invite document is updated in Firestore.
- * When an admin approves an invite (changes status to "approved"), it:
- * 1. Generates a Firebase magic link
- * 2. Sends an email with the magic link
- * 3. Updates the invite document to "sent"
- *
- * Configuration required (set via Firebase Console or CLI):
- * - SMTP_HOST: SMTP server host
- * - SMTP_PORT: SMTP server port
- * - SMTP_USER: SMTP username/email
- * - SMTP_PASS: SMTP password (stored as secret)
- * - EMAIL_FROM: From email address
- * - MAGIC_LINK_REDIRECT_URL: URL where user lands after clicking link
- */
-
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
@@ -23,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 import { defineString, defineSecret } from "firebase-functions/params";
 
 // Define configuration parameters
-const smtpHost = defineString("SMTP_HOST", { default: "smtp.gmail.com" });
+const smtpHost = defineString("SMTP_HOST", { default: "email-smtp.us-east-1.amazonaws.com" });
 const smtpPort = defineString("SMTP_PORT", { default: "587" });
 const smtpUser = defineString("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
@@ -104,12 +86,16 @@ export const onInviteApproved = onDocumentUpdated(
           // Create email transporter
           const transporter = nodemailer.createTransport({
             host: smtpHost.value(),
-            port: parseInt(smtpPort.value(), 10),
-            secure: false, // Use TLS
+            port: parseInt(smtpPort.value(), 10), 
+            secure: false, 
             auth: {
-              user: smtpUser.value(),
-              pass: smtpPass.value(),
+              user: smtpUser.value(), 
+              pass: smtpPass.value(), 
             },
+            tls: {
+              ciphers: 'SSLv3',
+              rejectUnauthorized: true,
+            }
           });
 
           // Send email

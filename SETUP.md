@@ -27,10 +27,12 @@ The GitHub Actions workflow authenticates with Firebase using a service account 
 
 2. Click **Create Service Account**.
    - Name: `github-actions-deploy`
-   - Roles (add all three):
+   - Roles (add all five):
      - **Firebase Hosting Admin** (`roles/firebasehosting.admin`) — for hosting deploys
      - **Cloud Functions Admin** (`roles/cloudfunctions.admin`) — for Functions deploys (or **Cloud Functions Developer** `roles/cloudfunctions.developer` if you prefer least privilege)
      - **Service Account User** (`roles/iam.serviceAccountUser`) — required so the deployer can “act as” the App Engine default service account when deploying Functions (avoids `Missing permissions ... iam.serviceAccounts.ActAs`).
+     - **Firebase Extensions API** access — the CLI calls the Extensions API during deploy; without it you get `403 ... firebaseextensions.googleapis.com`. Grant **Firebase Extensions Developer** (`roles/firebaseextensions.developer`) on the project, or ensure the **Firebase Admin** role is present so the deploy can list extension instances.
+     - **Secret Manager Secret Accessor** (`roles/secretmanager.secretAccessor`) — required so deploy can read secrets (e.g. `SMTP_PASS`) that your Functions use via `defineSecret()`. Grant this on the project, or per secret (see **Setting up SMTP_PASS** below).
 
 3. **Grant the new account permission to use the App Engine default SA** (required for Functions deploy):
    - Go to [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) and open the **App Engine default service account** (e.g. `story-6f89f@appspot.gserviceaccount.com`).
@@ -104,6 +106,45 @@ Workflow files are `.github/workflows/firebase-hosting-merge.yml` (production) a
 2. Open a pull request against `main` — triggers a preview deploy with a comment containing the preview URL.
 
 You can monitor workflow runs at: `https://github.com/<your-org>/novelsync-frontend/actions`
+
+---
+
+## Setting up SMTP_PASS (invite emails)
+
+The invite Cloud Function uses `defineSecret("SMTP_PASS")` for the SMTP password. You must create this secret in Google Cloud and grant access to both the **deploy** and **runtime** service accounts, or you get `403 ... secretmanager.secrets.get denied`.
+
+### 1. Create the secret
+
+1. Open [Secret Manager](https://console.cloud.google.com/security/secret-manager) and select project **story-6f89f** (or your project).
+2. Click **Create secret**.
+3. **Name:** `SMTP_PASS` (exactly — the code expects this id).
+4. **Secret value:** your SMTP password (e.g. Gmail app password).
+5. Create the secret.
+
+Or with gcloud (replace `YOUR_SMTP_PASSWORD` with the real value):
+
+```bash
+echo -n "YOUR_SMTP_PASSWORD" | gcloud secrets create SMTP_PASS --data-file=- --project=story-6f89f
+```
+
+### 2. Grant the deploy service account access
+
+So `firebase deploy --only functions` can read the secret when wiring the function:
+
+- **Option A (project-level):** In [IAM](https://console.cloud.google.com/iam-admin/iam), add role **Secret Manager Secret Accessor** to `github-actions-deploy@<project-id>.iam.gserviceaccount.com`.
+- **Option B (per secret):** In Secret Manager → open secret **SMTP_PASS** → **Permissions** → **Grant access** → add principal `github-actions-deploy@<project-id>.iam.gserviceaccount.com` with role **Secret Manager Secret Accessor**.
+
+### 3. Grant the runtime service account access
+
+The function runs as the App Engine default service account. It needs read access to the secret at runtime:
+
+1. In [Secret Manager](https://console.cloud.google.com/security/secret-manager), open the secret **SMTP_PASS**.
+2. **Permissions** → **Grant access**.
+3. Principal: `story-6f89f@appspot.gserviceaccount.com` (or your project’s App Engine default SA).
+4. Role: **Secret Manager Secret Accessor**.
+5. Save.
+
+After this, deploy (and runtime) can access `SMTP_PASS`. Set the other invite config (e.g. `SMTP_HOST`, `SMTP_USER`, `EMAIL_FROM`, `MAGIC_LINK_REDIRECT_URL`) in Firebase Console → Functions → your function → Configuration (or via env/config).
 
 ---
 
