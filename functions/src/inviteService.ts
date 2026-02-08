@@ -2,15 +2,15 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
 import * as logger from "firebase-functions/logger";
-import { defineString, defineSecret } from "firebase-functions/params";
+import { defineSecret } from "firebase-functions/params";
 
 // Define configuration parameters
-const smtpHost = defineString("SMTP_HOST", { default: "email-smtp.us-east-1.amazonaws.com" });
-const smtpPort = defineString("SMTP_PORT", { default: "587" });
-const smtpUser = defineString("SMTP_USER");
+const smtpHost = "email-smtp.us-east-1.amazonaws.com"
+const smtpPort = "587"
+const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
-const emailFrom = defineString("EMAIL_FROM");
-const magicLinkRedirectUrl = defineString("MAGIC_LINK_REDIRECT_URL");
+const emailFrom = defineSecret("EMAIL_FROM");
+const magicLinkRedirectUrl = defineSecret("MAGIC_LINK_REDIRECT_URL");
 
 interface InviteData {
   email: string;
@@ -85,8 +85,8 @@ export const onInviteApproved = onDocumentUpdated(
         try {
           // Create email transporter
           const transporter = nodemailer.createTransport({
-            host: smtpHost.value(),
-            port: parseInt(smtpPort.value(), 10), 
+            host: smtpHost,
+            port: parseInt(smtpPort, 10), 
             secure: false, 
             auth: {
               user: smtpUser.value(), 
