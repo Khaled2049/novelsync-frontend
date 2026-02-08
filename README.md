@@ -1,264 +1,178 @@
-# NovelSync
+# ScribeOS
 
-An AI-powered novel writing platform that helps writers create, organize, and enhance their stories with intelligent agents and collaborative features.
-
-## Features
-
-### Story Writing & Management
-- **Rich Text Editor**: Powered by TipTap with advanced formatting options
-- **Story Organization**: Create and manage multiple stories with chapters
-- **Auto-save**: Automatic saving of your work
-- **Writing Statistics**: Track your writing progress and statistics
-
-### AI-Powered Writing Agents
-NovelSync features three intelligent co-author agents:
-
-1. **Brainstorming Agent**
-   - Generates fresh ideas for characters, plots, places, and themes
-   - Creates complex scenarios and plot twists
-   - Provides instant brainstorming suggestions
-
-2. **Context Creator Agent**
-   - Generates the perfect next line of dialogue or description
-   - Uses your existing lore, characters, and plot context
-   - Maintains consistency throughout your story
-
-3. **Book Recommendation Agent**
-   - Analyzes your finished work
-   - Suggests books and genres to your target audience
-   - Connects your work to the right readers
-
-### Story Elements Management
-- **Characters**: Create detailed character profiles with roles, descriptions, and relationships
-- **Plots**: Organize plotlines, conflicts, twists, and subplots
-- **Places**: Track and describe locations in your story world
-- **Timeline**: Visual plot timeline to organize story events
-
-### Social & Community Features
-- **Book Clubs**: Join or create book clubs for discussions
-- **Explore Section**: Discover stories, categories, and writing resources
-- **Comments**: Comment system for stories and chapters
-- **Leaderboards**: Track achievements and rankings
-- **Challenges**: Participate in writing challenges
-- **Events**: Stay updated with writing events
-
-### Library Management
-- **Personal Library**: Organize your reading list
-- **Book Search**: Search and add books using Google Books API
-- **Book Details**: View detailed information about books
-
-### User Experience
-- **Dark/Light Theme**: Toggle between themes
-- **Responsive Design**: Works seamlessly on desktop and mobile
-- **AI Usage Tracking**: Monitor your AI usage with progress indicators
-- **Real-time Updates**: Live updates for collaborative features
-
-## Architecture
-
-NovelSync is built with a modern, scalable architecture:
-
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **TailwindCSS** for styling
-- **TipTap** for rich text editing
-- **React Router** for navigation
-- **Firebase SDK** for authentication and real-time data
-
-### Backend
-- **Firebase Functions** (TypeScript) - Serverless API endpoints
-- **Firestore** - NoSQL database for stories, users, and metadata
-- **Firebase Authentication** - User authentication and authorization
-- **Firebase Hosting** - Static site hosting
-
-### AI Agents
-- **Python FastAPI** service deployed on Google Cloud Run
-- **Google AI Studio API** - Uses Gemini models (gemini-2.0-flash-exp)
-- **Asynchronous Job Processing** - Handles long-running AI generation tasks
-- **Context-Aware Generation** - Uses story context for consistent output
-
-### Infrastructure
-- **GitHub Actions** - CI/CD pipelines for automated deployments
-- **Cloud Run** - Containerized Python agents with auto-scaling
-- **Firebase Hosting** - CDN-backed static hosting with preview deployments
-
-## Documentation
-
-Comprehensive documentation is available for different aspects of the project:
-
-- **[Deployment Guide](./DEPLOYMENT.md)** - Complete guide for setting up CI/CD and deploying all components
-- **[CI/CD Setup Summary](./CI_CD_SETUP.md)** - Overview of GitHub Actions workflows and deployment process
-- **[Cloud Build Costs](./CLOUD_BUILD_COSTS.md)** - Cost analysis and optimization recommendations
-- **[API Documentation](./API_DOCUMENTATION.md)** - Complete API reference for all endpoints
-- **[Agent API](./functions/AGENT_API.md)** - Documentation for AI agent endpoints
-- **[Workflows Documentation](./.github/workflows/README.md)** - GitHub Actions workflows guide
-- **[Local Development](./python/LOCAL_DEVELOPMENT.md)** - Guide for local development setup
+A full-featured AI-powered novel writing platform built with React, Firebase, and Web3. Writers can create, organize, and share stories with tools for plot development, character management, AI-assisted writing, and community engagement.
 
 ## Tech Stack
 
-### Frontend
-- React 18.3
-- TypeScript 5.2
-- Vite 5.3
-- TailwindCSS 3.4
-- TipTap 2.5
-- React Router 6.25
-- Firebase 10.14
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Radix UI
+- **Editor:** TipTap (ProseMirror-based rich text editor)
+- **Backend:** Firebase (Firestore, Auth, Storage, Functions)
+- **AI:** Google Generative AI for brainstorming, text enhancement, and image generation
+- **Web3:** Ethers.js + Thirdweb SDK for USDC tipping on Base (Sepolia testnet)
+- **Charts:** Recharts for tension curve visualization and statistics
 
-### Backend
-- Firebase Functions 6.0
-- Node.js 22
-- TypeScript 5.7
-- Firestore
+## Features
 
-### AI Agents
-- Python 3.11
-- FastAPI
-- Google AI Studio API (Gemini)
-- Firestore Admin SDK
+### Writing & Editor
+- Rich text editor with formatting, images, links, and color support
+- Multi-chapter stories (up to 50 chapters, 5000 words each)
+- Real-time autosave to Firestore
+- Zoom controls and page-view reading mode
 
-### DevOps
-- GitHub Actions
-- Google Cloud Run
-- Firebase Hosting
-- Docker
+### Plot Development
+- Multiple plot lines per story
+- Plot events with story beats (exposition, inciting incident, rising action, midpoint, climax, falling action, resolution)
+- Tension level tracking (1-10) with visual tension curve charts
+- Event dependencies (causes, requires, blocks, enables, contradicts)
+- Time constraints for chronological ordering
+- 7 classic plot templates (Overcoming the Monster, Rags to Riches, Quest, etc.)
+
+### Character & Location Management
+- Character profiles with name, age, backstory, affiliations, and notes
+- Place/location management with descriptions
+- Associate characters and locations with plot events
+
+### AI-Powered Tools
+- Brainstorming for characters, plots, places, and themes
+- Text enhancement and improvement suggestions
+- Image generation from descriptions
+- AI writing assistant chat
+- Configurable usage quotas with rate limiting
+
+### Community
+- Discover and browse published stories
+- Like, rate, and comment on stories
+- Follow authors and view profiles
+- Book clubs and book lists
+- Competitions and announcements
+
+### Web3 Tipping
+- Wallet connection via Thirdweb (MetaMask, etc.)
+- Tip authors with USDC on Base (Sepolia testnet)
+- Transaction history and earnings tracking
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 22+
-- Python 3.11+
-- Firebase CLI
-- Google Cloud SDK (for Cloud Run deployment)
-- Google AI Studio API Key
+
+- Node.js 18+
+- npm or yarn
+- Firebase project (or use emulators for local development)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Khaled2049/novel-sync
-   cd novel-sync
-   ```
+```bash
+git clone https://github.com/Khaled2049/novelsync-frontend.git
+cd novelsync-frontend
+yarn install
+```
 
-2. **Install frontend dependencies**
-   ```bash
-   yarn install
-   ```
+### Environment Variables
 
-3. **Install Firebase Functions dependencies**
-   ```bash
-   cd functions
-   yarn install
-   ```
+Create a `.env` file in the project root:
 
-4. **Install Python agent dependencies**
-   ```bash
-   cd python/agents/storyAgent
-   pip install -r requirements.txt
-   ```
+```env
+# Application
+VITE_APP_NAME=ScribeOS
 
-5. **Set up environment variables**
-   - Create `.env` files as needed
-   - Configure Firebase project settings
-   - Set up Google AI Studio API key
+# Firebase
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGE_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 
-6. **Run locally**
-   ```bash
-   # Frontend
-   yarn dev
-   
-   # Firebase Functions (emulator)
-   cd functions
-   npm run emulator
-   
-   # Python Agents
-   cd python
-   python server.py
-   ```
+# Web3 / Thirdweb
+VITE_THIRDWEB_CLIENT_ID=your-client-id
+VITE_USDC_TOKEN_ADDRESS=0x...
+VITE_TIPPING_CONTRACT_ADDRESS=0x...
+VITE_CHAIN_ID=84532
 
-For detailed setup instructions, see the [Deployment Guide](./DEPLOYMENT.md) and [Local Development Guide](./python/LOCAL_DEVELOPMENT.md).
+# AI
+VITE_MAX_AI_USAGE=1000
+GOOGLE_AI_STUDIO_API_KEY=your-google-ai-studio-key
+```
 
-## 🔐 Environment Variables
+### Running Locally
 
-**⚠️ Important**: See [SECRETS_MANAGEMENT.md](./SECRETS_MANAGEMENT.md) for comprehensive secret management guidance and security best practices.
+```bash
+# Start the dev server
+yarn dev
 
-### Frontend (VITE_* - Client-Side, Publicly Visible)
+# Start Firebase emulators (optional, for offline development)
+yarn start:emulator
 
-**These are bundled into the client JavaScript and are publicly visible. Only use for safe, public configuration.**
+# Start the AI agent server (optional)
+yarn start:agent
+```
 
-- `VITE_FIREBASE_API_KEY` - Firebase API key (safe to expose - Firebase design)
-- `VITE_FIREBASE_AUTH_DOMAIN` - Firebase Auth domain
-- `VITE_FIREBASE_PROJECT_ID` - Firebase project ID
-- `VITE_FIREBASE_STORAGE_BUCKET` - Firebase storage bucket
-- `VITE_FIREBASE_MESSAGE_SENDER_ID` - Firebase messaging sender ID
-- `VITE_FIREBASE_APP_ID` - Firebase app ID
-- `VITE_FIREBASE_MEASUREMENT_ID` - Firebase Analytics measurement ID
-- `VITE_FIREBASE_FUNCTIONS_REGION` - Firebase Functions region (default: us-central1)
+The app will be available at `http://localhost:5173`.
 
-**⚠️ Security**: Never expose sensitive API keys (like `BOOKS_API_KEY`) in `VITE_*` variables. Use backend proxy endpoints instead.
+### Building for Production
 
-### Backend (Server-Side Only)
+```bash
+yarn build
 
-**These are only accessible in server-side code and never exposed to the client.**
+# Preview the production build
+yarn preview
 
-#### Firebase Functions
-- `AGENT_SERVICE_URL` - Cloud Run service URL
-- `BOOKS_API_KEY` - Google Books API key (used by Books API proxy endpoint)
+# Analyze bundle size
+yarn build:analyze
+```
 
-#### Cloud Run (Python Agents)
-- `GOOGLE_CLOUD_PROJECT` - Google Cloud project ID
-- `GOOGLE_AI_STUDIO_API_KEY` - Google AI Studio API key (⚠️ **Server-side only**)
-- `GOOGLE_AI_STUDIO_MODEL` - AI model name (default: gemini-2.0-flash-exp)
+## Project Structure
 
-## 📝 API Endpoints
+```
+src/
+├── api/            # External API calls (brainstorm, chat, text enhancement)
+├── components/     # Reusable UI components
+│   ├── ui/         # Base components (button, card, dialog, tabs, etc.)
+│   ├── plot/       # Plot timeline, event editor, tension curves
+│   ├── characters/ # Character management
+│   ├── places/     # Location management
+│   ├── chat/       # AI chat assistant
+│   ├── explore/    # Story discovery and browse
+│   └── navbar/     # Navigation bar
+├── config/         # Firebase, rate limits, SEO config
+├── contexts/       # React Context providers (Auth, Theme, AI, Chat, Web3)
+├── hooks/          # Custom hooks (autosave, editor state, wallet, pagination)
+├── routes/         # Page components
+│   ├── Auth/       # Sign in, sign up, password reset
+│   ├── Story/      # Story creation, viewing, management
+│   ├── Home/       # Landing page
+│   ├── Library/    # Personal library
+│   ├── BookClub/   # Book clubs
+│   ├── Profile/    # User profiles
+│   └── Settings/   # User settings
+├── services/       # Firebase and business logic (Stories, Plot, Characters, etc.)
+├── types/          # TypeScript interfaces
+└── utils/          # Utility functions
+```
 
-### Story Generation
-- `POST /generateStory` - Start asynchronous story generation
-- `POST /generateChapter` - Generate a specific chapter
-- `GET /jobStatus/:jobId` - Check generation job status
-- `GET /storyJobs/:storyId` - Get all jobs for a story
+## Scripts
 
-### Brainstorming
-- `POST /brainstormIdeas` - Generate brainstorming ideas (characters, plots, places, themes)
-- `POST /brainstormCharacter` - Generate detailed character ideas
-- `POST /brainstormPlot` - Generate plot ideas
-
-### Context Management
-- `GET /getStoryContext` - Retrieve all context for a story
-- `POST /updateContext` - Update character, place, or plot context
-- `GET /getData` - Get all stories with associated data
-
-### Authentication
-- `POST /authenticate` - Authenticate user and get Firebase ID token
-
-For complete API documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md).
+| Command | Description |
+|---------|-------------|
+| `yarn dev` | Start development server |
+| `yarn build` | TypeScript check + production build |
+| `yarn build:analyze` | Build with bundle size analysis |
+| `yarn preview` | Preview production build |
+| `yarn lint` | Run ESLint |
+| `yarn start:emulator` | Start Firebase emulators |
+| `yarn start:agent` | Start AI agent server |
 
 ## Deployment
 
-NovelSync uses automated CI/CD with GitHub Actions:
+The project is configured for Firebase Hosting. The `firebase.json` and `.firebaserc` files are included in the repo.
 
-- **Frontend**: Automatically deployed to Firebase Hosting on merge to `main`
-- **Firebase Functions**: Deployed when `functions/**` changes
-- **Python Agents**: Deployed to Cloud Run when `python/agents/**` changes
-- **Preview Deployments**: Automatic preview URLs for pull requests
+```bash
+# Build and deploy
+yarn build
+firebase deploy
+```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+## License
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-[Add your license here]
-
-## 👨‍💻 About the Developer
-
-<!-- Fill in your information here -->
-- **Name**: Khaled Hossain
-- **Email**: khaledhossain.not@gmail.com
-- **Resume**: https://khaled.codexn.com/
-- **LinkedIn**: https://www.linkedin.com/in/khaledhossainn/
-
----
-
+MIT

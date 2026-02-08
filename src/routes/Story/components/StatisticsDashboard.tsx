@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, Eye, ThumbsUp, TrendingUp, Clock, DollarSign } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import { StoryMetadata } from "@/types/IStory";
 
 interface StatisticsDashboardProps {
@@ -14,13 +14,6 @@ interface StatisticsDashboardProps {
 export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   stories,
 }) => {
-  const totalStories = stories.length;
-  const drafts = stories.filter((s) => !s.isPublished).length;
-  const published = stories.filter((s) => s.isPublished).length;
-  const totalViews = stories.reduce((sum, s) => sum + (s.views || 0), 0);
-  const totalLikes = stories.reduce((sum, s) => sum + (s.likes || 0), 0);
-  const avgViews = totalStories > 0 ? Math.round(totalViews / totalStories) : 0;
-  const avgLikes = totalStories > 0 ? Math.round(totalLikes / totalStories) : 0;
   
   const totalEthEarnings = stories.reduce(
     (sum, s) => sum + parseFloat(s.earnings?.eth || "0"),
@@ -31,25 +24,6 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
     0
   );
 
-  const topPerformers = [...stories]
-    .filter((s) => s.isPublished)
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 3);
-
-  const recentActivity = [...stories]
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )
-    .slice(0, 3);
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  };
 
   return (
     <div className="mb-8">
@@ -100,93 +74,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         </div>
       )}
 
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white dark:bg-black border border-black/20 dark:border-white/20 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-black/70 dark:text-white/70 mb-1">
-                Total Stories
-              </p>
-              <p className="text-2xl font-bold text-black dark:text-white">
-                {totalStories}
-              </p>
-              <p className="text-xs text-black/60 dark:text-white/60 mt-1">
-                {drafts} drafts, {published} published
-              </p>
-            </div>
-            <BookOpen className="w-8 h-8 text-dark-green dark:text-light-green" />
-          </div>
-        </div>
 
-        <div className="bg-white dark:bg-black border border-black/20 dark:border-white/20 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-black/70 dark:text-white/70 mb-1">
-                Total Views
-              </p>
-              <p className="text-2xl font-bold text-black dark:text-white">
-                {totalViews.toLocaleString()}
-              </p>
-              <p className="text-xs text-black/60 dark:text-white/60 mt-1">
-                Avg: {avgViews} per story
-              </p>
-            </div>
-            <Eye className="w-8 h-8 text-dark-green dark:text-light-green" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-black border border-black/20 dark:border-white/20 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-black/70 dark:text-white/70 mb-1">
-                Total Likes
-              </p>
-              <p className="text-2xl font-bold text-black dark:text-white">
-                {totalLikes.toLocaleString()}
-              </p>
-              <p className="text-xs text-black/60 dark:text-white/60 mt-1">
-                Avg: {avgLikes} per story
-              </p>
-            </div>
-            <ThumbsUp className="w-8 h-8 text-dark-green dark:text-light-green" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-black border border-black/20 dark:border-white/20 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-black/70 dark:text-white/70 mb-1">
-                Avg Views
-              </p>
-              <p className="text-2xl font-bold text-black dark:text-white">
-                {avgViews}
-              </p>
-              <p className="text-xs text-black/60 dark:text-white/60 mt-1">
-                Per story
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-dark-green dark:text-light-green" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-black border border-black/20 dark:border-white/20 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-black/70 dark:text-white/70 mb-1">
-                Avg Likes
-              </p>
-              <p className="text-2xl font-bold text-black dark:text-white">
-                {avgLikes}
-              </p>
-              <p className="text-xs text-black/60 dark:text-white/60 mt-1">
-                Per story
-              </p>
-            </div>
-            <ThumbsUp className="w-8 h-8 text-dark-green dark:text-light-green" />
-          </div>
-        </div>
-      </div>
 
     </div>
   );

@@ -13,6 +13,8 @@ import {
   PlotLine,
   TemplateData,
   PLOT_TEMPLATES,
+  EventDependency,
+  DEFAULT_PLOT_EVENT_VALUES,
 } from "@/types/IPlot";
 import { firestore } from "@/config/firebase";
 import { storiesRepo } from "@/services/StoriesRepo";
@@ -138,6 +140,182 @@ class PlotService {
 
   async loadTemplateData(): Promise<TemplateData[]> {
     return PLOT_TEMPLATES;
+  }
+
+  // Migrate a legacy event to the new format with default values
+  migrateEvent(event: Partial<PlotEvent> & { id: string; name: string; content: string }, orderIndex: number): PlotEvent {
+    return {
+      ...DEFAULT_PLOT_EVENT_VALUES,
+      ...event,
+      orderIndex: event.orderIndex ?? orderIndex,
+      characterIds: event.characterIds ?? [],
+      locationId: event.locationId ?? null,
+      dependencies: event.dependencies ?? [],
+      dependents: event.dependents ?? [],
+      tensionLevel: event.tensionLevel ?? 5,
+      pacing: event.pacing ?? 'moderate',
+      storyBeat: event.storyBeat ?? 'rising_action',
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // Add a dependency between two events
+  async addEventDependency(
+    storyId: string,
+    sourceEvent: { plotLineId: string; eventId: string },
+    targetEvent: { plotLineId: string; eventId: string },
+    relationshipType: EventDependency['relationshipType'],
+    description?: string
+  ): Promise<void> {
+    try {
+      const storyRef = doc(this.storiesCollection, storyId);
+
+      // Get both plot lines
+      const sourcePlotRef = doc(collection(storyRef, "plots"), sourceEvent.plotLineId);
+      const targetPlotRef = doc(collection(storyRef, "plots"), targetEvent.plotLineId);
+
+      const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
+        getDoc(sourcePlotRef),
+        getDoc(targetPlotRef),
+      ]);
+
+      if (!sourcePlotSnapshot.exists() || !targetPlotSnapshot.exists()) {
+        throw new Error("Plot line not found");
+      }
+
+      const sourcePlotData = sourcePlotSnapshot.data() as PlotLine;
+      const targetPlotData = targetPlotSnapshot.data() as PlotLine;
+
+      // Find the events
+      const sourceEventIndex = sourcePlotData.events.findIndex(e => e.id === sourceEvent.eventId);
+      const targetEventIndex = targetPlotData.events.findIndex(e => e.id === targetEvent.eventId);
+
+      if (sourceEventIndex === -1 || targetEventIndex === -1) {
+        throw new Error("Event not found");
+      }
+
+      // Create dependency objects
+      const dependencyForSource: EventDependency = {
+        eventId: targetEvent.eventId,
+        plotLineId: targetEvent.plotLineId,
+        relationshipType,
+        description,
+      };
+
+      const dependentForTarget: EventDependency = {
+        eventId: sourceEvent.eventId,
+        plotLineId: sourceEvent.plotLineId,
+        relationshipType,
+        description,
+      };
+
+      // Update source event's dependencies
+      const sourceEventData = this.migrateEvent(sourcePlotData.events[sourceEventIndex], sourceEventIndex);
+      sourceEventData.dependencies = [...sourceEventData.dependencies, dependencyForSource];
+      sourcePlotData.events[sourceEventIndex] = sourceEventData;
+
+      // Update target event's dependents
+      const targetEventData = this.migrateEvent(targetPlotData.events[targetEventIndex], targetEventIndex);
+      targetEventData.dependents = [...targetEventData.dependents, dependentForTarget];
+      targetPlotData.events[targetEventIndex] = targetEventData;
+
+      // Save both plot lines
+      if (sourceEvent.plotLineId === targetEvent.plotLineId) {
+        // Same plot line, save once
+        await setDoc(sourcePlotRef, sourcePlotData);
+      } else {
+        // Different plot lines, save both
+        await Promise.all([
+          setDoc(sourcePlotRef, sourcePlotData),
+          setDoc(targetPlotRef, targetPlotData),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error adding event dependency:", error);
+      throw error;
+    }
+  }
+
+  // Remove a dependency between two events
+  async removeEventDependency(
+    storyId: string,
+    sourceEvent: { plotLineId: string; eventId: string },
+    targetEvent: { plotLineId: string; eventId: string }
+  ): Promise<void> {
+    try {
+      const storyRef = doc(this.storiesCollection, storyId);
+
+      const sourcePlotRef = doc(collection(storyRef, "plots"), sourceEvent.plotLineId);
+      const targetPlotRef = doc(collection(storyRef, "plots"), targetEvent.plotLineId);
+
+      const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
+        getDoc(sourcePlotRef),
+        getDoc(targetPlotRef),
+      ]);
+
+      if (!sourcePlotSnapshot.exists() || !targetPlotSnapshot.exists()) {
+        throw new Error("Plot line not found");
+      }
+
+      const sourcePlotData = sourcePlotSnapshot.data() as PlotLine;
+      const targetPlotData = targetPlotSnapshot.data() as PlotLine;
+
+      const sourceEventIndex = sourcePlotData.events.findIndex(e => e.id === sourceEvent.eventId);
+      const targetEventIndex = targetPlotData.events.findIndex(e => e.id === targetEvent.eventId);
+
+      if (sourceEventIndex === -1 || targetEventIndex === -1) {
+        throw new Error("Event not found");
+      }
+
+      // Remove from source's dependencies
+      const sourceEventData = this.migrateEvent(sourcePlotData.events[sourceEventIndex], sourceEventIndex);
+      sourceEventData.dependencies = sourceEventData.dependencies.filter(
+        d => !(d.eventId === targetEvent.eventId && d.plotLineId === targetEvent.plotLineId)
+      );
+      sourcePlotData.events[sourceEventIndex] = sourceEventData;
+
+      // Remove from target's dependents
+      const targetEventData = this.migrateEvent(targetPlotData.events[targetEventIndex], targetEventIndex);
+      targetEventData.dependents = targetEventData.dependents.filter(
+        d => !(d.eventId === sourceEvent.eventId && d.plotLineId === sourceEvent.plotLineId)
+      );
+      targetPlotData.events[targetEventIndex] = targetEventData;
+
+      if (sourceEvent.plotLineId === targetEvent.plotLineId) {
+        await setDoc(sourcePlotRef, sourcePlotData);
+      } else {
+        await Promise.all([
+          setDoc(sourcePlotRef, sourcePlotData),
+          setDoc(targetPlotRef, targetPlotData),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error removing event dependency:", error);
+      throw error;
+    }
+  }
+
+  // Get all events across all plot lines for a story (useful for dependency selection)
+  async getAllEvents(storyId: string): Promise<{ plotLineId: string; plotLineName: string; event: PlotEvent }[]> {
+    try {
+      const plots = await this.getPlots(storyId);
+      const allEvents: { plotLineId: string; plotLineName: string; event: PlotEvent }[] = [];
+
+      for (const plot of plots) {
+        for (let i = 0; i < plot.events.length; i++) {
+          allEvents.push({
+            plotLineId: plot.id,
+            plotLineName: plot.name,
+            event: this.migrateEvent(plot.events[i], i),
+          });
+        }
+      }
+
+      return allEvents;
+    } catch (error) {
+      console.error("Error getting all events:", error);
+      throw error;
+    }
   }
 }
 

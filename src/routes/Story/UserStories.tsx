@@ -97,6 +97,19 @@ const UserStories = () => {
     }
   };
 
+  const handleImageUpdate = async (storyId: string, imageFile: File | null, previewUrl: string | null) => {
+    if (!user) return;
+    setOperationLoading(storyId);
+    try {
+      await storiesRepo.updateStoryCoverImage(storyId, imageFile, previewUrl);
+      await loadStories();
+    } catch (error) {
+      console.error("Error updating cover image:", error);
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
   // Filter and sort stories
   const filteredAndSortedStories = useMemo(() => {
     let filtered = stories.filter((story) => {
@@ -216,6 +229,7 @@ const UserStories = () => {
                   onEdit={editStory}
                   onDelete={deleteStory}
                   onUnpublish={unPublishStory}
+                  onImageUpdate={handleImageUpdate}
                   isLoading={operationLoading === story.id}
                 />
               </div>

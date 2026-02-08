@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { Chapter, Story, StoryMetadata } from "@/types/IStory";
-import { getDownloadURL, ref } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../config/firebase";
 
 const WORD_LIMIT = 5000;
@@ -575,6 +575,43 @@ class StoriesRepo {
       throw error; // Re-throw if you need to propagate the error
     }
   }
+
+  async updateStoryCoverImage(
+    storyId: string,
+    imageFile: File | null,
+    previewUrl: string | null
+  ): Promise<void> {
+    try {
+      const storyRef = doc(this.storiesCollection, storyId);
+      const story = await this.getStory(storyId);
+      if (!story) {
+        throw new Error("Story not found");
+      }
+
+      let coverImageUrl = "";
+
+      if (imageFile) {
+        const storageRef = ref(
+          storage,
+          `book-covers/${story.userId}/${storyId}-${Date.now()}`
+        );
+        await uploadBytes(storageRef, imageFile);
+        coverImageUrl = await getDownloadURL(storageRef);
+      } else if (previewUrl) {
+        // If only previewUrl is provided (e.g., from AI generation), use it directly
+        coverImageUrl = previewUrl;
+      }
+
+      await updateDoc(storyRef, {
+        coverImageUrl,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error("Error updating cover image:", error);
+      throw error;
+    }
+  }
+
   private countWords(text: string): number {
     return text.trim().split(/\s+/).length;
   }

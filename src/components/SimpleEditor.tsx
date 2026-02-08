@@ -268,27 +268,6 @@ export function SimpleEditor() {
             {state.currentChapter && editor && (
               <div className="flex-shrink-0 justify-center flex items-center">
                 <EditorHeader editor={editor} zoomLevel={zoomLevel} onZoomChange={setZoomLevel} storyId={state.story?.id} />
-                <div className="flex items-center gap-2 pr-2">
-                  <button
-                    onClick={handleNewChapter}
-                    className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center gap-1"
-                  >
-                    <BookPlus className="w-4 h-4" />
-                    <span>New Chapter</span>
-                  </button>
-                  <button
-                    onClick={handlePublish}
-                    className={`px-3 py-2 text-sm rounded-md shadow-sm transition-colors duration-200 flex items-center gap-1 ${
-                      state.story?.isPublished
-                        ? "bg-red-500 text-white hover:bg-red-600"
-                        : "bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>{state.story?.isPublished ? "Unpublish" : "Publish"}</span>
-                  </button>
-                </div>
-                <FloatingChatButton storyId={state.story?.id} />
               </div>
             )}
 
@@ -308,6 +287,33 @@ export function SimpleEditor() {
                     onPageCountChange={setPageCount}
                     zoomLevel={zoomLevel}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Action Bar */}
+            {state.currentChapter && (
+              <div className="flex-shrink-0 border-t border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-black px-4 py-3">
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleNewChapter}
+                    className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center gap-1"
+                  >
+                    <BookPlus className="w-4 h-4" />
+                    <span>New Chapter</span>
+                  </button>
+                  <button
+                    onClick={handlePublish}
+                    className={`px-3 py-2 text-sm rounded-md shadow-sm transition-colors duration-200 flex items-center gap-1 ${
+                      state.story?.isPublished
+                        ? "bg-red-500 text-white hover:bg-red-600"
+                        : "bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{state.story?.isPublished ? "Unpublish" : "Publish"}</span>
+                  </button>
+                  <FloatingChatButton storyId={state.story?.id} />
                 </div>
               </div>
             )}

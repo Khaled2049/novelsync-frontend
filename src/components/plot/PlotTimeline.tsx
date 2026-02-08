@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, ChevronDown, PlusCircle, Trash2 } from "lucide-react";
+import { Book, ChevronDown, PlusCircle, Trash2, TrendingUp, Users, MapPin, Link2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 import {
   DropdownMenu,
@@ -12,14 +13,43 @@ import {
 
 import { PlotLineEditModal } from "./PlotlineEditModal";
 import { EventEditModal } from "./EventEditModal";
-import { PlotEvent, PlotLine, TemplateData } from "@/types/IPlot";
+import { TensionCurveChart } from "./TensionCurveChart";
+import { PlotEvent, PlotLine, TemplateData, DEFAULT_PLOT_EVENT_VALUES } from "@/types/IPlot";
+import { Character } from "@/types/ICharacter";
+import { Place } from "@/types/IPlace";
 import { plotService } from "@/services/PlotService";
 import { useParams } from "react-router-dom";
+import { useAuthContext } from "@/contexts/AuthContext";
 import axios from "axios";
+
+// Helper to ensure event has all required fields with defaults
+function ensureEventDefaults(event: Partial<PlotEvent> & { id: string; name: string; content: string }, orderIndex: number): PlotEvent {
+  return {
+    ...DEFAULT_PLOT_EVENT_VALUES,
+    ...event,
+    characterIds: event.characterIds ?? [],
+    locationId: event.locationId ?? null,
+    dependencies: event.dependencies ?? [],
+    dependents: event.dependents ?? [],
+    tensionLevel: event.tensionLevel ?? 5,
+    pacing: event.pacing ?? 'moderate',
+    storyBeat: event.storyBeat ?? 'rising_action',
+    orderIndex: event.orderIndex ?? orderIndex,
+  };
+}
+
+// Get tension color for badge
+function getTensionColor(level: number): string {
+  if (level <= 3) return 'bg-green-500';
+  if (level <= 5) return 'bg-yellow-500';
+  if (level <= 7) return 'bg-orange-500';
+  return 'bg-red-500';
+}
 
 const PlotTimeline: React.FC = () => {
   const [plotLines, setPlotLines] = useState<PlotLine[]>([]);
   const { storyId } = useParams<{ storyId: string }>();
+  const { user } = useAuthContext();
 
   const [templates, setTemplates] = useState<TemplateData[]>([]);
   const [isPlotLineModalOpen, setisPlotLineModalOpen] = useState(false);
@@ -30,6 +60,13 @@ const PlotTimeline: React.FC = () => {
     event: PlotEvent;
   } | null>(null);
 
+  // New state for tension chart visibility
+  const [showTensionChart, setShowTensionChart] = useState(false);
+
+  // Placeholder state for characters and places (would come from their respective services)
+  const [characters] = useState<Character[]>([]);
+  const [places] = useState<Place[]>([]);
+
   useEffect(() => {
     loadPlots();
   }, [storyId]);
@@ -38,10 +75,19 @@ const PlotTimeline: React.FC = () => {
     if (!storyId) return;
 
     const plots = await plotService.getPlots(storyId);
-    setPlotLines(plots);
+    // Migrate events to ensure they have all required fields
+    const migratedPlots = plots.map(plot => ({
+      ...plot,
+      events: plot.events.map((event, index) => ensureEventDefaults(event, index)),
+    }));
+    setPlotLines(migratedPlots);
 
     const data = await plotService.loadTemplateData();
     setTemplates(data);
+
+    // TODO: Load characters and places from their respective services
+    // setCharacters(await characterService.getCharacters(storyId));
+    // setPlaces(await placeService.getPlaces(storyId));
   };
 
   const addPlotLine = async () => {
@@ -60,12 +106,21 @@ const PlotTimeline: React.FC = () => {
   };
 
   const addEvent = async (plotLineId: string) => {
+    if (!storyId || !user?.uid) return;
+
+    const plotLine = plotLines.find(pl => pl.id === plotLineId);
+    const orderIndex = plotLine ? plotLine.events.length : 0;
+
     const newEvent: PlotEvent = {
+      ...DEFAULT_PLOT_EVENT_VALUES,
       id: new Date().getTime().toString(),
       name: "New Event",
       content: "",
+      orderIndex,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId: user.uid,
     };
-    if (!storyId) return;
 
     const eventId = await plotService.addEvent(storyId, plotLineId, newEvent);
     setPlotLines(
@@ -129,22 +184,6 @@ const PlotTimeline: React.FC = () => {
     }
   };
 
-  // const addPlotLineFromTemplate = (template: TemplateData) => {
-  //   const newPlotLine: PlotLine = {
-  //     id: nextplotLineId,
-  //     name: template.name,
-  //     description: `Timeline based on the ${template.name} template`,
-  //     events: template.items.map((item) => ({
-  //       id: nextEventId + item.id - 1,
-  //       name: item.name,
-  //       content: item.content,
-  //     })),
-  //   };
-  //   setPlotLines([...plotLines, newPlotLine]);
-  //   setNextplotLineId(nextplotLineId + 1);
-  //   setNextEventId(nextEventId + template.items.length);
-  // };
-
   const openEditPlotlineModal = (plotLine: PlotLine) => {
     setEditingPlotLine(plotLine);
     setisPlotLineModalOpen(true);
@@ -156,7 +195,8 @@ const PlotTimeline: React.FC = () => {
   };
 
   const openEditEventModal = (plotLineId: string, event: PlotEvent) => {
-    setEditingEvent({ plotLineId, event: { ...event } });
+    const migratedEvent = ensureEventDefaults(event, event.orderIndex ?? 0);
+    setEditingEvent({ plotLineId, event: { ...migratedEvent } });
     setIsEventModalOpen(true);
   };
 
@@ -166,29 +206,29 @@ const PlotTimeline: React.FC = () => {
   };
 
   const addPlotLineFromTemplate = async (template: TemplateData) => {
-    if (!storyId) {
-      console.error("No storyId provided");
+    if (!storyId || !user) {
+      console.error("No storyId or user provided");
       return;
     }
 
     try {
-      // Add the plot first
       const plotId = await plotService.addPlot(storyId, template.name);
 
-      // Prepare all events to be added
       const eventPromises = template.events.map((e, idx) => {
-        const plotEvent = {
+        const plotEvent: PlotEvent = {
+          ...DEFAULT_PLOT_EVENT_VALUES,
+          id: idx.toString(),
           content: e.content,
           name: e.name,
-          id: idx.toString(),
+          orderIndex: idx,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          userId: user.uid,
         };
         return plotService.addEvent(storyId, plotId, plotEvent);
       });
 
-      // Add all events concurrently
       await Promise.all(eventPromises);
-
-      // Reload the plots
       loadPlots();
     } catch (error) {
       console.error("Error adding plot line from template:", error);
@@ -203,7 +243,6 @@ const PlotTimeline: React.FC = () => {
     }
 
     try {
-      // Make the GET request to the specified endpoint
       const response = await axios.get(
         `http://127.0.0.1:5001/novelsync-f82ec/us-central1/createContext`,
         {
@@ -213,7 +252,6 @@ const PlotTimeline: React.FC = () => {
         }
       );
 
-      // Extract the generated text from the response
       const generatedText = response.data.generatedText;
       console.log("Generated text:", generatedText);
     } catch (error) {
@@ -221,12 +259,63 @@ const PlotTimeline: React.FC = () => {
     }
   };
 
+  // Handle drag and drop reordering
+  const handleDragEnd = async (result: DropResult) => {
+    const { source, destination } = result;
+
+    // Dropped outside the list
+    if (!destination) return;
+
+    // Same position
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
+
+    const plotLineId = source.droppableId;
+    const plotLine = plotLines.find((pl) => pl.id === plotLineId);
+
+    if (!plotLine) return;
+
+    // Reorder within the same plot line
+    if (source.droppableId === destination.droppableId) {
+      const newEvents = Array.from(plotLine.events);
+      const [removed] = newEvents.splice(source.index, 1);
+      newEvents.splice(destination.index, 0, removed);
+
+      // Update orderIndex for all events
+      const updatedEvents = newEvents.map((event, index) => ({
+        ...event,
+        orderIndex: index,
+        updatedAt: new Date().toISOString(),
+      }));
+
+      const updatedPlotLine = {
+        ...plotLine,
+        events: updatedEvents,
+      };
+
+      setPlotLines(
+        plotLines.map((pl) =>
+          pl.id === plotLineId ? updatedPlotLine : pl
+        )
+      );
+
+      // Persist to backend
+      if (storyId) {
+        await plotService.updatePlot(storyId, updatedPlotLine);
+      }
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 bg-neutral-50 dark:bg-black transition-colors duration-200">
-      <div className="flex space-x-4 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={addPlotLine}
-          className="mb-4 py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
+          className="py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
         >
           Add Plot
         </button>
@@ -253,75 +342,197 @@ const PlotTimeline: React.FC = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <button
+          onClick={() => setShowTensionChart(!showTensionChart)}
+          className={`py-2 px-4 rounded-sm flex items-center gap-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 ${
+            showTensionChart
+              ? 'bg-dark-green dark:bg-light-green text-white'
+              : 'bg-black/10 dark:bg-neutral-50/10 text-black dark:text-white hover:bg-black/20 dark:hover:bg-neutral-50/20'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Tension Curve
+        </button>
       </div>
 
-      <div className="flex">
-        {/* PlotLine management column */}
-        <div className="space-y-16 w-64 pr-4 border-r border-black/20 dark:border-white/20">
+      {/* Tension Curve Chart */}
+      <AnimatePresence>
+        {showTensionChart && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
+              <TensionCurveChart plotLines={plotLines} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="space-y-6">
           {plotLines.map((plotLine) => (
             <div
               key={plotLine.id}
-              className="rounded-lg shadow-lg p-4 bg-light-green dark:bg-dark-green text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
             >
-              <div
-                className="flex items-center justify-between p-2 rounded cursor-pointer"
-                onClick={() => openEditPlotlineModal(plotLine)}
-              >
-                <span>{plotLine.name}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removePlotline(plotLine.id);
-                  }}
-                  className="text-white/70 hover:text-white transition-colors duration-200"
+              {/* Plot Line Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-light-green dark:bg-dark-green text-white">
+                <div
+                  className="flex items-center gap-2 cursor-pointer flex-1"
+                  onClick={() => openEditPlotlineModal(plotLine)}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <h3 className="font-semibold">{plotLine.name}</h3>
+                  <span className="text-xs opacity-70">
+                    ({plotLine.events.length} event{plotLine.events.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => addEvent(plotLine.id)}
+                    className="flex items-center gap-1 px-3 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors text-sm"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add Event
+                  </button>
+                  <button
+                    onClick={() => removePlotline(plotLine.id)}
+                    className="p-1.5 rounded hover:bg-white/20 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* plotLines display area */}
-        <div className="flex-1 pl-4">
-          {plotLines.map((plotLine) => (
-            <div key={plotLine.id} className="">
-              <div className="relative h-32 overflow-x-auto">
-                <div className="absolute top-[2.5rem] left-0 right-0 h-1 bg-black/20 dark:bg-neutral-50/20 transform -translate-y-1/2" />
-
-                <AnimatePresence>
-                  {plotLine.events.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: 50 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 50 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute top-[-0.75rem] p-3 rounded-full transform -translate-y-1/2"
-                      style={{ left: `${index * 220}px` }}
-                      onClick={() => openEditEventModal(plotLine.id, event)}
-                    >
-                      <div className="w-48 bg-light-green dark:bg-dark-green rounded-lg shadow-lg p-4 text-white cursor-pointer hover:bg-dark-green dark:hover:bg-light-green transition-colors duration-200">
-                        <h3 className="font-bold text-lg mb-2">{event.name}</h3>
-                        <div className="text-sm">Click to edit</div>
+              {/* Events List */}
+              <Droppable droppableId={plotLine.id}>
+                {(provided, droppableSnapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`p-4 min-h-[80px] ${
+                      droppableSnapshot.isDraggingOver
+                        ? 'bg-dark-green/5 dark:bg-light-green/5'
+                        : 'bg-gray-50 dark:bg-gray-900'
+                    }`}
+                  >
+                    {plotLine.events.length === 0 ? (
+                      <div className="flex items-center justify-center h-16 text-gray-400 dark:text-gray-500 text-sm">
+                        No events yet. Click "Add Event" to create one.
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                    ) : (
+                      <div className="space-y-2">
+                        {plotLine.events.map((event, index) => {
+                          const migratedEvent = ensureEventDefaults(event, index);
 
-                <button
-                  onClick={() => addEvent(plotLine.id)}
-                  className="absolute top-[2.5rem] p-3 pl-4 pr-6 flex items-center space-x-2 rounded-full transform -translate-y-1/2 z-10 bg-black/10 dark:bg-neutral-50/10 text-black dark:text-white hover:bg-black/20 dark:hover:bg-neutral-50/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
-                  style={{ left: `${plotLine.events.length * 220}px` }}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  <span>Add</span>
-                </button>
-              </div>
+                          return (
+                            <Draggable
+                              key={migratedEvent.id}
+                              draggableId={migratedEvent.id}
+                              index={index}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  style={provided.draggableProps.style}
+                                  className={`flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:shadow-md hover:border-dark-green dark:hover:border-light-green transition-all ${
+                                    snapshot.isDragging ? 'shadow-xl ring-2 ring-dark-green dark:ring-light-green' : ''
+                                  }`}
+                                  onClick={() => openEditEventModal(plotLine.id, migratedEvent)}
+                                >
+                                  {/* Drag Handle */}
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing flex-shrink-0"
+                                  >
+                                    <GripVertical className="w-5 h-5" />
+                                  </div>
+
+                                  {/* Event Number */}
+                                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500 w-8 flex-shrink-0">
+                                    #{index + 1}
+                                  </span>
+
+                                  {/* Event Name & Content */}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                                      {migratedEvent.name}
+                                    </h4>
+                                    {migratedEvent.content && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        {migratedEvent.content}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Metadata Badges */}
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {/* Tension Badge */}
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTensionColor(
+                                        migratedEvent.tensionLevel
+                                      )} text-white`}
+                                    >
+                                      {migratedEvent.tensionLevel}
+                                    </span>
+
+                                    {/* Story Beat */}
+                                    <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                      {migratedEvent.storyBeat.replace('_', ' ')}
+                                    </span>
+
+                                    {/* Pacing */}
+                                    <span className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                                      migratedEvent.pacing === 'slow' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                      migratedEvent.pacing === 'fast' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                                      'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                    }`}>
+                                      {migratedEvent.pacing}
+                                    </span>
+
+                                    {/* Characters Count */}
+                                    {migratedEvent.characterIds.length > 0 && (
+                                      <span className="hidden lg:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                        <Users className="w-3 h-3" />
+                                        {migratedEvent.characterIds.length}
+                                      </span>
+                                    )}
+
+                                    {/* Location */}
+                                    {migratedEvent.locationId && (
+                                      <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                                        <MapPin className="w-3 h-3" />
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Droppable>
             </div>
           ))}
+
+          {plotLines.length === 0 && (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Book className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No plot lines yet.</p>
+              <p className="text-sm">Click "Add Plot" or choose a template to get started.</p>
+            </div>
+          )}
         </div>
-      </div>
+      </DragDropContext>
 
       <PlotLineEditModal
         isOpen={isPlotLineModalOpen}
@@ -337,11 +548,14 @@ const PlotTimeline: React.FC = () => {
         onSave={handleSaveEvent}
         editingEvent={editingEvent}
         setEditingEvent={setEditingEvent}
+        characters={characters}
+        places={places}
       />
-      <div className="flex">
+
+      <div className="flex mt-4">
         <button
           onClick={generateText}
-          className="mb-4 py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
+          className="py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
         >
           Generate Plot Ideas
         </button>
