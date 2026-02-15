@@ -30,7 +30,7 @@ interface InviteData {
 export const onInviteApproved = onDocumentUpdated(
   {
     document: "invites/{email}",
-    secrets: [smtpPass],
+    secrets: [smtpUser, smtpPass, emailFrom, magicLinkRedirectUrl],
   },
   async (event) => {
     const beforeData = event.data?.before.data() as InviteData | undefined;
