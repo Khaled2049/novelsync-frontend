@@ -1,8 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, ChevronDown, PlusCircle, Trash2, TrendingUp, Users, MapPin, GripVertical } from "lucide-react";
+import {
+  Book,
+  ChevronDown,
+  PlusCircle,
+  Trash2,
+  TrendingUp,
+  Users,
+  MapPin,
+  GripVertical,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  type DroppableProvided,
+  type DroppableStateSnapshot,
+  type DraggableProvided,
+  type DraggableStateSnapshot,
+} from "@hello-pangea/dnd";
 
 import {
   DropdownMenu,
@@ -14,7 +32,12 @@ import {
 import { PlotLineEditModal } from "./PlotlineEditModal";
 import { EventEditModal } from "./EventEditModal";
 import { TensionCurveChart } from "./TensionCurveChart";
-import { PlotEvent, PlotLine, TemplateData, DEFAULT_PLOT_EVENT_VALUES } from "@/types/IPlot";
+import {
+  PlotEvent,
+  PlotLine,
+  TemplateData,
+  DEFAULT_PLOT_EVENT_VALUES,
+} from "@/types/IPlot";
 import { Character } from "@/types/ICharacter";
 import { Place } from "@/types/IPlace";
 import { plotService } from "@/services/PlotService";
@@ -23,7 +46,10 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import axios from "axios";
 
 // Helper to ensure event has all required fields with defaults
-function ensureEventDefaults(event: Partial<PlotEvent> & { id: string; name: string; content: string }, orderIndex: number): PlotEvent {
+function ensureEventDefaults(
+  event: Partial<PlotEvent> & { id: string; name: string; content: string },
+  orderIndex: number,
+): PlotEvent {
   return {
     ...DEFAULT_PLOT_EVENT_VALUES,
     ...event,
@@ -32,18 +58,18 @@ function ensureEventDefaults(event: Partial<PlotEvent> & { id: string; name: str
     dependencies: event.dependencies ?? [],
     dependents: event.dependents ?? [],
     tensionLevel: event.tensionLevel ?? 5,
-    pacing: event.pacing ?? 'moderate',
-    storyBeat: event.storyBeat ?? 'rising_action',
+    pacing: event.pacing ?? "moderate",
+    storyBeat: event.storyBeat ?? "rising_action",
     orderIndex: event.orderIndex ?? orderIndex,
   };
 }
 
 // Get tension color for badge
 function getTensionColor(level: number): string {
-  if (level <= 3) return 'bg-green-500';
-  if (level <= 5) return 'bg-yellow-500';
-  if (level <= 7) return 'bg-orange-500';
-  return 'bg-red-500';
+  if (level <= 3) return "bg-green-500";
+  if (level <= 5) return "bg-yellow-500";
+  if (level <= 7) return "bg-orange-500";
+  return "bg-red-500";
 }
 
 const PlotTimeline: React.FC = () => {
@@ -76,9 +102,11 @@ const PlotTimeline: React.FC = () => {
 
     const plots = await plotService.getPlots(storyId);
     // Migrate events to ensure they have all required fields
-    const migratedPlots = plots.map(plot => ({
+    const migratedPlots = plots.map((plot) => ({
       ...plot,
-      events: plot.events.map((event, index) => ensureEventDefaults(event, index)),
+      events: plot.events.map((event, index) =>
+        ensureEventDefaults(event, index),
+      ),
     }));
     setPlotLines(migratedPlots);
 
@@ -108,7 +136,7 @@ const PlotTimeline: React.FC = () => {
   const addEvent = async (plotLineId: string) => {
     if (!storyId || !user?.uid) return;
 
-    const plotLine = plotLines.find(pl => pl.id === plotLineId);
+    const plotLine = plotLines.find((pl) => pl.id === plotLineId);
     const orderIndex = plotLine ? plotLine.events.length : 0;
 
     const newEvent: PlotEvent = {
@@ -133,8 +161,8 @@ const PlotTimeline: React.FC = () => {
                 { ...newEvent, id: eventId } as PlotEvent,
               ],
             }
-          : plotLine
-      )
+          : plotLine,
+      ),
     );
   };
 
@@ -150,8 +178,8 @@ const PlotTimeline: React.FC = () => {
     if (editingPlotLine) {
       setPlotLines(
         plotLines.map((plotLine) =>
-          plotLine.id === editingPlotLine.id ? editingPlotLine : plotLine
-        )
+          plotLine.id === editingPlotLine.id ? editingPlotLine : plotLine,
+        ),
       );
       closeEditPlotLineModal();
     }
@@ -164,7 +192,7 @@ const PlotTimeline: React.FC = () => {
       await plotService.updateEvent(
         storyId,
         editingEvent.plotLineId,
-        editingEvent.event
+        editingEvent.event,
       );
       setPlotLines(
         plotLines.map((plotLine) =>
@@ -174,11 +202,11 @@ const PlotTimeline: React.FC = () => {
                 events: plotLine.events.map((event) =>
                   event.id === editingEvent.event.id
                     ? editingEvent.event
-                    : event
+                    : event,
                 ),
               }
-            : plotLine
-        )
+            : plotLine,
+        ),
       );
       closeEditEventModal();
     }
@@ -244,12 +272,12 @@ const PlotTimeline: React.FC = () => {
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:5001/novelsync-f82ec/us-central1/createContext`,
+        `http://127.0.0.1:5001/story-6f89f/us-central1/createContext`,
         {
           params: {
             storyId: storyId,
           },
-        }
+        },
       );
 
       const generatedText = response.data.generatedText;
@@ -298,9 +326,7 @@ const PlotTimeline: React.FC = () => {
       };
 
       setPlotLines(
-        plotLines.map((pl) =>
-          pl.id === plotLineId ? updatedPlotLine : pl
-        )
+        plotLines.map((pl) => (pl.id === plotLineId ? updatedPlotLine : pl)),
       );
 
       // Persist to backend
@@ -347,8 +373,8 @@ const PlotTimeline: React.FC = () => {
           onClick={() => setShowTensionChart(!showTensionChart)}
           className={`py-2 px-4 rounded-sm flex items-center gap-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 ${
             showTensionChart
-              ? 'bg-dark-green dark:bg-light-green text-white'
-              : 'bg-black/10 dark:bg-neutral-50/10 text-black dark:text-white hover:bg-black/20 dark:hover:bg-neutral-50/20'
+              ? "bg-dark-green dark:bg-light-green text-white"
+              : "bg-black/10 dark:bg-neutral-50/10 text-black dark:text-white hover:bg-black/20 dark:hover:bg-neutral-50/20"
           }`}
         >
           <TrendingUp className="h-4 w-4" />
@@ -361,7 +387,7 @@ const PlotTimeline: React.FC = () => {
         {showTensionChart && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="mb-6 overflow-hidden"
           >
@@ -387,7 +413,8 @@ const PlotTimeline: React.FC = () => {
                 >
                   <h3 className="font-semibold">{plotLine.name}</h3>
                   <span className="text-xs opacity-70">
-                    ({plotLine.events.length} event{plotLine.events.length !== 1 ? 's' : ''})
+                    ({plotLine.events.length} event
+                    {plotLine.events.length !== 1 ? "s" : ""})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -409,14 +436,14 @@ const PlotTimeline: React.FC = () => {
 
               {/* Events List */}
               <Droppable droppableId={plotLine.id}>
-                {(provided, droppableSnapshot) => (
+                {(provided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={`p-4 min-h-[80px] ${
                       droppableSnapshot.isDraggingOver
-                        ? 'bg-dark-green/5 dark:bg-light-green/5'
-                        : 'bg-gray-50 dark:bg-gray-900'
+                        ? "bg-dark-green/5 dark:bg-light-green/5"
+                        : "bg-gray-50 dark:bg-gray-900"
                     }`}
                   >
                     {plotLine.events.length === 0 ? (
@@ -426,7 +453,10 @@ const PlotTimeline: React.FC = () => {
                     ) : (
                       <div className="space-y-2">
                         {plotLine.events.map((event, index) => {
-                          const migratedEvent = ensureEventDefaults(event, index);
+                          const migratedEvent = ensureEventDefaults(
+                            event,
+                            index,
+                          );
 
                           return (
                             <Draggable
@@ -434,15 +464,22 @@ const PlotTimeline: React.FC = () => {
                               draggableId={migratedEvent.id}
                               index={index}
                             >
-                              {(provided, snapshot) => (
+                              {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   style={provided.draggableProps.style}
                                   className={`flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:shadow-md hover:border-dark-green dark:hover:border-light-green transition-all ${
-                                    snapshot.isDragging ? 'shadow-xl ring-2 ring-dark-green dark:ring-light-green' : ''
+                                    snapshot.isDragging
+                                      ? "shadow-xl ring-2 ring-dark-green dark:ring-light-green"
+                                      : ""
                                   }`}
-                                  onClick={() => openEditEventModal(plotLine.id, migratedEvent)}
+                                  onClick={() =>
+                                    openEditEventModal(
+                                      plotLine.id,
+                                      migratedEvent,
+                                    )
+                                  }
                                 >
                                   {/* Drag Handle */}
                                   <div
@@ -475,7 +512,7 @@ const PlotTimeline: React.FC = () => {
                                     {/* Tension Badge */}
                                     <span
                                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTensionColor(
-                                        migratedEvent.tensionLevel
+                                        migratedEvent.tensionLevel,
                                       )} text-white`}
                                     >
                                       {migratedEvent.tensionLevel}
@@ -483,15 +520,22 @@ const PlotTimeline: React.FC = () => {
 
                                     {/* Story Beat */}
                                     <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                      {migratedEvent.storyBeat.replace('_', ' ')}
+                                      {migratedEvent.storyBeat.replace(
+                                        "_",
+                                        " ",
+                                      )}
                                     </span>
 
                                     {/* Pacing */}
-                                    <span className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
-                                      migratedEvent.pacing === 'slow' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                                      migratedEvent.pacing === 'fast' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
-                                      'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                                    }`}>
+                                    <span
+                                      className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                                        migratedEvent.pacing === "slow"
+                                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                          : migratedEvent.pacing === "fast"
+                                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                      }`}
+                                    >
                                       {migratedEvent.pacing}
                                     </span>
 
@@ -528,7 +572,9 @@ const PlotTimeline: React.FC = () => {
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <Book className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No plot lines yet.</p>
-              <p className="text-sm">Click "Add Plot" or choose a template to get started.</p>
+              <p className="text-sm">
+                Click "Add Plot" or choose a template to get started.
+              </p>
             </div>
           )}
         </div>

@@ -3,10 +3,11 @@
  * This endpoint proxies requests to Replicate API to protect the API key.
  */
 import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { corsOptions } from "./corsConfig";
 import Replicate from "replicate";
 
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+const replicateApiToken = defineSecret("REPLICATE_API_TOKEN");
 
 interface GenerateCoverRequest {
   prompt: string;
@@ -62,125 +63,129 @@ async function readableStreamToBase64(
  * Generate cover image using Replicate API.
  * POST /generateCoverImage
  */
-export const generateCoverImage = onRequest(corsOptions, async (req, res) => {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  if (!REPLICATE_API_TOKEN) {
-    res.status(500).json({
-      error:
-        "Replicate API token not configured. Please set REPLICATE_API_TOKEN environment variable.",
-    });
-    return;
-  }
-
-  try {
-    const { prompt } = req.body as GenerateCoverRequest;
-
-    // Validate prompt
-    if (!prompt?.trim()) {
-      res.status(400).json({ error: "Prompt is required" });
+export const generateCoverImage = onRequest(
+  { secrets: [replicateApiToken], ...corsOptions },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
       return;
     }
 
-    if (prompt.length > 500) {
-      res.status(400).json({ error: "Prompt must be 500 characters or less" });
+    const apiToken = replicateApiToken.value();
+    if (!apiToken) {
+      res.status(500).json({
+        error:
+          "Replicate API token not configured. Please set REPLICATE_API_TOKEN secret.",
+      });
       return;
     }
 
-    const startTime = Date.now();
+    try {
+      const { prompt } = req.body as GenerateCoverRequest;
 
-    // Initialize Replicate client
-    const replicate = new Replicate({
-      auth: REPLICATE_API_TOKEN,
-    });
-
-    // Run the model - following Replicate docs exactly
-    const output = await replicate.run("black-forest-labs/flux-schnell", {
-      input: {
-        prompt: prompt.trim(),
-        num_outputs: 1,
-        aspect_ratio: "3:4", // Good for book covers
-        output_format: "png",
-        output_quality: 80,
-      },
-    });
-
-    console.log("Replicate output:", output);
-
-    // Handle different output types from Replicate
-    if (!Array.isArray(output) || output.length === 0) {
-      throw new Error(
-        `Invalid output from model. Expected array, got: ${typeof output}`
-      );
-    }
-
-    const firstItem = output[0];
-    let imageBase64: string;
-
-    // Check if it's a ReadableStream
-    if (
-      firstItem &&
-      typeof firstItem === "object" &&
-      "getReader" in firstItem &&
-      typeof (firstItem as any).getReader === "function"
-    ) {
-      console.log("Processing ReadableStream...");
-      // Handle ReadableStream
-      imageBase64 = await readableStreamToBase64(
-        firstItem as ReadableStream<Uint8Array>
-      );
-      console.log(
-        `ReadableStream converted to base64. Length: ${imageBase64.length}`
-      );
-    }
-    // Check if it has a url() method (FileOutput object)
-    else if (
-      firstItem &&
-      typeof firstItem === "object" &&
-      "url" in firstItem &&
-      typeof (firstItem as any).url === "function"
-    ) {
-      console.log("Processing FileOutput with url() method...");
-      // Access the file URL as documented: output[0].url()
-      const imageUrl = await (firstItem as any).url();
-
-      if (!imageUrl || typeof imageUrl !== "string") {
-        throw new Error(`Failed to extract image URL. Got: ${typeof imageUrl}`);
+      // Validate prompt
+      if (!prompt?.trim()) {
+        res.status(400).json({ error: "Prompt is required" });
+        return;
       }
 
-      console.log("Image URL extracted:", imageUrl.substring(0, 100) + "...");
+      if (prompt.length > 500) {
+        res.status(400).json({ error: "Prompt must be 500 characters or less" });
+        return;
+      }
 
-      // Download image from URL and convert to base64
-      imageBase64 = await imageUrlToBase64(imageUrl);
+      const startTime = Date.now();
+
+      // Initialize Replicate client
+      const replicate = new Replicate({
+        auth: apiToken,
+      });
+
+      // Run the model - following Replicate docs exactly
+      const output = await replicate.run("black-forest-labs/flux-schnell", {
+        input: {
+          prompt: prompt.trim(),
+          num_outputs: 1,
+          aspect_ratio: "3:4", // Good for book covers
+          output_format: "png",
+          output_quality: 80,
+        },
+      });
+
+      console.log("Replicate output:", output);
+
+      // Handle different output types from Replicate
+      if (!Array.isArray(output) || output.length === 0) {
+        throw new Error(
+          `Invalid output from model. Expected array, got: ${typeof output}`
+        );
+      }
+
+      const firstItem = output[0];
+      let imageBase64: string;
+
+      // Check if it's a ReadableStream
+      if (
+        firstItem &&
+        typeof firstItem === "object" &&
+        "getReader" in firstItem &&
+        typeof (firstItem as any).getReader === "function"
+      ) {
+        console.log("Processing ReadableStream...");
+        // Handle ReadableStream
+        imageBase64 = await readableStreamToBase64(
+          firstItem as ReadableStream<Uint8Array>
+        );
+        console.log(
+          `ReadableStream converted to base64. Length: ${imageBase64.length}`
+        );
+      }
+      // Check if it has a url() method (FileOutput object)
+      else if (
+        firstItem &&
+        typeof firstItem === "object" &&
+        "url" in firstItem &&
+        typeof (firstItem as any).url === "function"
+      ) {
+        console.log("Processing FileOutput with url() method...");
+        // Access the file URL as documented: output[0].url()
+        const imageUrl = await (firstItem as any).url();
+
+        if (!imageUrl || typeof imageUrl !== "string") {
+          throw new Error(`Failed to extract image URL. Got: ${typeof imageUrl}`);
+        }
+
+        console.log("Image URL extracted:", imageUrl.substring(0, 100) + "...");
+
+        // Download image from URL and convert to base64
+        imageBase64 = await imageUrlToBase64(imageUrl);
+      }
+      // Check if it's already a string URL
+      else if (typeof firstItem === "string") {
+        console.log("Processing string URL...");
+        imageBase64 = await imageUrlToBase64(firstItem);
+      }
+      // Unknown format
+      else {
+        throw new Error(
+          `Unsupported output format. Expected ReadableStream, FileOutput, or string URL. Got: ${typeof firstItem}, constructor: ${firstItem?.constructor?.name}`
+        );
+      }
+
+      const generationTime = (Date.now() - startTime) / 1000;
+
+      res.status(200).json({
+        image: imageBase64,
+        prompt: prompt.trim(),
+        model: "flux-schnell",
+        generation_time: Math.round(generationTime * 100) / 100,
+      });
+    } catch (error) {
+      console.error("Error generating cover image:", error);
+
+      const message =
+        error instanceof Error ? error.message : "Internal server error";
+      res.status(500).json({ error: message });
     }
-    // Check if it's already a string URL
-    else if (typeof firstItem === "string") {
-      console.log("Processing string URL...");
-      imageBase64 = await imageUrlToBase64(firstItem);
-    }
-    // Unknown format
-    else {
-      throw new Error(
-        `Unsupported output format. Expected ReadableStream, FileOutput, or string URL. Got: ${typeof firstItem}, constructor: ${firstItem?.constructor?.name}`
-      );
-    }
-
-    const generationTime = (Date.now() - startTime) / 1000;
-
-    res.status(200).json({
-      image: imageBase64,
-      prompt: prompt.trim(),
-      model: "flux-schnell",
-      generation_time: Math.round(generationTime * 100) / 100,
-    });
-  } catch (error) {
-    console.error("Error generating cover image:", error);
-
-    const message =
-      error instanceof Error ? error.message : "Internal server error";
-    res.status(500).json({ error: message });
   }
-});
+);

@@ -10,11 +10,7 @@
  */
 
 // Production origins
-const productionOrigins = [
-  "https://novel-sync.com",
-  "https://www.novel-sync.com",
-  "https://novelsync-f82ec.web.app",
-];
+const productionOrigins = ["https://story-6f89f.web.app"];
 
 // Development origins (localhost for local development)
 const developmentOrigins = ["http://localhost:5173", "http://localhost:3000"];
