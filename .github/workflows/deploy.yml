@@ -187,7 +187,7 @@ jobs:
 
       - name: Deploy Hosting, Functions & Rules
         run: |
-          firebase deploy --only hosting,functions,firestore:rules,storage --project=${{ env.PROJECT_ID }}
+          firebase deploy --only hosting,functions,firestore:rules,storage --project=${{ env.PROJECT_ID }} --force
 
       - name: Wait for deployment to stabilize
         run: sleep 10
