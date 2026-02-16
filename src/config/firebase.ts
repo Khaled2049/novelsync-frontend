@@ -24,7 +24,10 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
 // Connect to emulators in development mode
-if (import.meta.env.MODE === "development") {
+if (
+  import.meta.env.MODE === "development" &&
+  import.meta.env.VITE_USE_EMULATORS !== "false"
+) {
   // Use a flag to prevent double connection (e.g., during hot reload)
   const emulatorsConnected = (window as any).__FIREBASE_EMULATORS_CONNECTED__;
 
