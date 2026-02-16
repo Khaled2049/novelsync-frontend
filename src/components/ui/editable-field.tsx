@@ -79,7 +79,7 @@ export function EditableField({
   if (isEditing) {
     return (
       <div className={cn("space-y-1", className)}>
-        <label className="block text-xs font-medium uppercase tracking-wider text-black/40 dark:text-white/40">
+        <label className="block text-xs font-medium font-ui uppercase tracking-wider text-ns-ink-muted">
           {label}
         </label>
         <div className="relative">
@@ -92,12 +92,12 @@ export function EditableField({
               maxLength={maxLength}
               disabled={isLoading}
               className={cn(
-                "w-full min-h-[80px] px-3 py-2 text-sm rounded-lg",
-                "bg-white dark:bg-neutral-800",
-                "border border-emerald-500 dark:border-emerald-400",
-                "text-black dark:text-white",
-                "placeholder:text-black/40 dark:placeholder:text-white/40",
-                "focus:outline-none focus:ring-2 focus:ring-emerald-500/20",
+                "w-full min-h-[80px] px-3 py-2 text-sm rounded-ns",
+                "bg-ns-elevated",
+                "border border-ns-accent",
+                "text-ns-ink",
+                "placeholder:text-ns-ink-muted",
+                "focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "resize-none"
               )}
@@ -113,12 +113,12 @@ export function EditableField({
               maxLength={maxLength}
               disabled={isLoading}
               className={cn(
-                "w-full px-3 py-2 text-sm rounded-lg",
-                "bg-white dark:bg-neutral-800",
-                "border border-emerald-500 dark:border-emerald-400",
-                "text-black dark:text-white",
-                "placeholder:text-black/40 dark:placeholder:text-white/40",
-                "focus:outline-none focus:ring-2 focus:ring-emerald-500/20",
+                "w-full px-3 py-2 text-sm rounded-ns",
+                "bg-ns-elevated",
+                "border border-ns-accent",
+                "text-ns-ink",
+                "placeholder:text-ns-ink-muted",
+                "focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)]",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
               placeholder={placeholder}
@@ -127,26 +127,26 @@ export function EditableField({
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-1">
               {maxLength && (
-                <span className="text-xs text-black/40 dark:text-white/40">
+                <span className="text-xs text-ns-ink-muted">
                   {editValue.length}/{maxLength}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-1">
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
+                <Loader2 className="w-4 h-4 animate-spin text-ns-accent" />
               ) : (
                 <>
                   <button
                     onClick={handleSave}
-                    className="p-1.5 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-colors"
+                    className="p-1.5 rounded-ns hover:bg-ns-surface text-ns-accent transition-colors"
                     title="Save (Enter)"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-black/60 dark:text-white/60 transition-colors"
+                    className="p-1.5 rounded-ns hover:bg-ns-surface text-ns-ink-muted transition-colors"
                     title="Cancel (Escape)"
                   >
                     <X className="w-4 h-4" />
@@ -157,7 +157,7 @@ export function EditableField({
           </div>
         </div>
         {error && (
-          <p className="text-xs text-red-500 dark:text-red-400 mt-1">{error}</p>
+          <p className="text-xs text-ns-destructive mt-1">{error}</p>
         )}
       </div>
     );
@@ -165,17 +165,17 @@ export function EditableField({
 
   return (
     <div className={cn("space-y-1", className)}>
-      <label className="block text-xs font-medium uppercase tracking-wider text-black/40 dark:text-white/40">
+      <label className="block text-xs font-medium font-ui uppercase tracking-wider text-ns-ink-muted">
         {label}
       </label>
       <button
         onClick={() => setIsEditing(true)}
         className={cn(
-          "w-full text-left px-3 py-2 rounded-lg",
-          "bg-neutral-50 dark:bg-neutral-800/50",
+          "w-full text-left px-3 py-2 rounded-ns",
+          "bg-ns-surface",
           "border border-transparent",
-          "hover:border-emerald-500/30 dark:hover:border-emerald-400/30",
-          "hover:bg-neutral-100 dark:hover:bg-neutral-800",
+          "hover:border-ns-border-strong",
+          "hover:bg-ns-surface-hover",
           "transition-all duration-200",
           "group cursor-pointer"
         )}
@@ -185,13 +185,13 @@ export function EditableField({
             className={cn(
               "text-sm",
               value
-                ? "text-black dark:text-white"
-                : "text-black/40 dark:text-white/40 italic"
+                ? "text-ns-ink"
+                : "text-ns-ink-muted italic"
             )}
           >
             {value || placeholder}
           </span>
-          <Pencil className="w-3.5 h-3.5 text-black/20 dark:text-white/20 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex-shrink-0 mt-0.5" />
+          <Pencil className="w-3.5 h-3.5 text-ns-ink-muted group-hover:text-ns-accent transition-colors flex-shrink-0 mt-0.5" />
         </div>
       </button>
     </div>

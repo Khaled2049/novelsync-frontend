@@ -8,15 +8,21 @@ export const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 p-3 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 group"
+      className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 group"
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
       title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
     >
-      {theme === "light" ? (
-        <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors" />
-      ) : (
-        <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors" />
-      )}
+      {/* Outer ring glow */}
+      <div className="absolute inset-0 rounded-full bg-ns-accent opacity-0 blur-lg group-hover:opacity-20 transition-opacity duration-500" />
+
+      {/* Button body */}
+      <div className="relative p-3 rounded-full bg-ns-elevated border border-ns-border shadow-ns hover:shadow-ns-lg transition-all duration-300 hover:scale-110 active:scale-95 hover:border-ns-accent/30">
+        {theme === "light" ? (
+          <Moon className="w-5 h-5 text-ns-ink-secondary group-hover:text-ns-accent transition-colors duration-200" />
+        ) : (
+          <Sun className="w-5 h-5 text-ns-ink-secondary group-hover:text-ns-gold transition-colors duration-200" />
+        )}
+      </div>
     </button>
   );
 };

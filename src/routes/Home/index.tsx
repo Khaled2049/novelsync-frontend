@@ -31,7 +31,7 @@ const Home: React.FC = () => {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader
-          className="animate-spin text-dark-green dark:text-light-green"
+          className="animate-spin text-ns-accent"
           size={48}
         />
       </div>
@@ -39,7 +39,7 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-neutral-50 dark:bg-neutral-950">
+    <div className="flex flex-col h-full bg-ns-bg">
       {/* Mobile Tabs - Only visible on mobile */}
       <MobileTabs activeFeed={activeFeed} onFeedChange={setActiveFeed} />
 

@@ -13,11 +13,11 @@ export const NavbarWrapper = () => {
     location.pathname.startsWith("/forgot-password");
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden bg-ns-bg">
       <Navbar />
 
       <main
-        className={`w-full h-full bg-white dark:bg-black ${
+        className={`w-full h-full bg-ns-bg ${
           isEditorPage || isAuthPage ? "overflow-hidden" : "overflow-y-auto"
         }`}
       >
