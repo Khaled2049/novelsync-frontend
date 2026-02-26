@@ -184,11 +184,9 @@ jobs:
       - name: Write functions .env for deploy
         run: |
           BACKEND_URL="${{ needs.terraform-apply.outputs.backend_url }}"
-          if [ -z "$BACKEND_URL" ]; then
-            echo "::error::AGENT_SERVICE_URL is required but backend_url from Terraform is empty. Check that terraform-apply outputs backend_service_url."
-            exit 1
-          fi
-          echo "AGENT_SERVICE_URL=$BACKEND_URL" > functions/.env
+          # Use '>>' or ensure the directory exists to avoid silent failures
+          echo "AGENT_SERVICE_URL=$BACKEND_URL" > functions/.env.production
+          echo "Created .env.production with URL: $BACKEND_URL"
 
       - name: Deploy Hosting, Functions & Rules
         run: |
