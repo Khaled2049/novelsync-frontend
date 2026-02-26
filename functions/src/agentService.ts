@@ -1,7 +1,13 @@
 /** Service for communicating with the Python agent. */
 import * as logger from "firebase-functions/logger";
+import { defineString } from "firebase-functions/params";
 import axios, { AxiosError } from "axios";
 import { GoogleAuth } from "google-auth-library";
+
+const agentServiceUrlParam = defineString("AGENT_SERVICE_URL", {
+  default: "http://localhost:8000",
+  description: "URL of the Python agent service (Cloud Run or local)",
+});
 
 export interface AgentRequest {
   action: string;
@@ -17,13 +23,12 @@ export interface AgentResponse {
 const isLocalDevelopment = process.env.FUNCTIONS_EMULATOR === "true";
 
 function getAgentServiceUrl(): string {
-  const url = process.env.AGENT_SERVICE_URL;
-  if (isLocalDevelopment) return url || "http://localhost:8000";
-  if (!url) throw new Error("AGENT_SERVICE_URL must be set in production");
+  const url = agentServiceUrlParam.value();
+  if (!url) {
+    throw new Error("AGENT_SERVICE_URL must be set in production");
+  }
   return url.replace(/\/$/, "");
 }
-
-const AGENT_SERVICE_URL = getAgentServiceUrl();
 
 // Initialize Auth only if not local
 const auth = isLocalDevelopment ? null : new GoogleAuth();
@@ -32,13 +37,14 @@ const auth = isLocalDevelopment ? null : new GoogleAuth();
  * Get an identity token for Cloud Run authentication.
  */
 async function getIdentityToken(): Promise<string | null> {
-  if (isLocalDevelopment || AGENT_SERVICE_URL.includes("localhost")) {
+  const url = getAgentServiceUrl();
+  if (isLocalDevelopment || url.includes("localhost")) {
     return null;
   }
 
   try {
     if (!auth) return null;
-    const client = await auth.getIdTokenClient(AGENT_SERVICE_URL);
+    const client = await auth.getIdTokenClient(url);
     const headers = await client.getRequestHeaders();
     return headers.Authorization?.split(" ")[1] || null;
   } catch (error) {
@@ -54,11 +60,12 @@ export async function callAgent(
   action: string,
   parameters: Record<string, unknown>,
 ): Promise<AgentResponse> {
+  const agentUrl = getAgentServiceUrl();
   const request: AgentRequest = { action, parameters };
 
   try {
     logger.info(`Calling agent service: ${action}`, {
-      url: `${AGENT_SERVICE_URL}/agent/execute`,
+      url: `${agentUrl}/agent/execute`,
       parameters: Object.keys(parameters),
     });
 
@@ -74,14 +81,14 @@ export async function callAgent(
     }
 
     logger.info(`Making POST request to agent service...`, {
-      url: `${AGENT_SERVICE_URL}/agent/execute`,
+      url: `${agentUrl}/agent/execute`,
       action,
       requestSize: JSON.stringify(request).length,
     });
 
     const startTime = Date.now();
     const response = await axios.post(
-      `${AGENT_SERVICE_URL}/agent/execute`,
+      `${agentUrl}/agent/execute`,
       request,
       {
         headers,
@@ -114,7 +121,7 @@ export async function callAgent(
         status: axiosError.response?.status,
         statusText: axiosError.response?.statusText,
         message: axiosError.message,
-        url: `${AGENT_SERVICE_URL}/agent/execute`,
+        url: `${agentUrl}/agent/execute`,
         isLocalDevelopment,
       };
 
@@ -124,10 +131,10 @@ export async function callAgent(
         errorMessage.includes("ECONNREFUSED")
       ) {
         const helpfulError = isLocalDevelopment
-          ? `Connection refused to ${AGENT_SERVICE_URL}. ` +
+          ? `Connection refused to ${agentUrl}. ` +
             `Make sure the Python agent service is running locally on port 8000. ` +
             `Start it with: cd python && python server.py`
-          : `Connection refused to ${AGENT_SERVICE_URL}. ` +
+          : `Connection refused to ${agentUrl}. ` +
             `This usually means AGENT_SERVICE_URL environment variable is not set ` +
             `or is set to localhost. Please set it to your Cloud Run service URL ` +
             `(e.g., https://story-agent-xxxxx.run.app) in Firebase Console → ` +
@@ -165,7 +172,7 @@ export async function callAgent(
     const genericError = error instanceof Error ? error.message : String(error);
     logger.error(`Error calling agent service: ${action}`, {
       error: genericError,
-      url: `${AGENT_SERVICE_URL}/agent/execute`,
+      url: `${agentUrl}/agent/execute`,
       isLocalDevelopment,
     });
     return {

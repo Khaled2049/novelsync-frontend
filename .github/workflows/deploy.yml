@@ -181,12 +181,10 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Write functions .env for deploy
+      - name: Set Firebase param
         run: |
-          BACKEND_URL="${{ needs.terraform-apply.outputs.backend_url }}"
-          # Use '>>' or ensure the directory exists to avoid silent failures
-          echo "AGENT_SERVICE_URL=$BACKEND_URL" > functions/.env.production
-          echo "Created .env.production with URL: $BACKEND_URL"
+          firebase functions:params:set AGENT_SERVICE_URL="${{ needs.terraform-apply.outputs.backend_url }}" \
+            --project=${{ env.PROJECT_ID }}
 
       - name: Deploy Hosting, Functions & Rules
         run: |
