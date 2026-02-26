@@ -14,19 +14,19 @@ export interface Theme {
 
 export const theme: Theme = {
   light: {
-    background: "bg-cream-100",
-    text: "text-gray-800",
-    primary: "text-indigo-700",
-    secondary: "text-teal-600",
-    accent: "",
-    border: "border-gray-300",
+    background: "bg-ns-bg",
+    text: "text-ns-ink",
+    primary: "text-ns-accent",
+    secondary: "text-ns-ink-secondary",
+    accent: "text-ns-gold",
+    border: "border-ns-border",
   },
   dark: {
-    background: "bg-gray-900",
-    text: "text-gray-100",
-    primary: "text-indigo-400",
-    secondary: "text-teal-400",
-    accent: "",
-    border: "border-gray-700",
+    background: "bg-ns-bg",
+    text: "text-ns-ink",
+    primary: "text-ns-accent",
+    secondary: "text-ns-ink-secondary",
+    accent: "text-ns-gold",
+    border: "border-ns-border",
   },
 };

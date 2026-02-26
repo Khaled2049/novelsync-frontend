@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Star } from "lucide-react";
 
 interface StoryHeaderProps {
   title: string;
@@ -24,9 +23,6 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
 }) => {
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
 
-  // Determine which rating to display
-  // If user has rated, show their rating; otherwise show average rating
-  // When hovering (and user hasn't rated), show hover preview
   const canRate = isAuthenticated && onRatingSubmit && userRating === null;
   const displayRating = userRating ?? rating ?? 0;
   const starsToShow = hoveredStar ?? displayRating;
@@ -38,51 +34,42 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
   };
 
   const getRatingText = () => {
-    if (ratingsCount === 0) {
-      return "No ratings yet";
-    }
+    if (ratingsCount === 0) return "No ratings yet";
     return `${ratingsCount} ${ratingsCount === 1 ? "rating" : "ratings"}`;
   };
 
   return (
     <div className="mb-8">
-      <h1 className="text-4xl md:text-6xl font-heading font-bold mb-3 text-black dark:text-white leading-tight">
+      <h1 className="font-heading italic text-5xl md:text-6xl text-ns-ink leading-[0.9] mb-4 tracking-tight">
         {title}
       </h1>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-        <div className="text-xl text-black/80 dark:text-white/80 font-body">
-          <span className="opacity-60">by</span>{" "}
-          <span className="font-semibold underline decoration-2 decoration-dark-green/30 dark:decoration-light-green/30 underline-offset-4">
-            {author}
-          </span>
-        </div>
+        <p className="font-ui text-sm text-ns-ink-secondary">
+          <span className="text-ns-ink-muted mr-1.5">by</span>
+          <span className="text-ns-ink">{author}</span>
+        </p>
 
-        {/* Star Rating Display */}
+        {/* Star Rating */}
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((star) => {
             const isFilled = star <= Math.round(starsToShow);
-
             return (
-              <Star
+              <button
                 key={star}
-                size={18}
-                className={`transition-colors ${
-                  isFilled
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-neutral-300 dark:text-neutral-700"
-                } ${
-                  canRate
-                    ? "cursor-pointer hover:fill-yellow-300 hover:text-yellow-300"
-                    : ""
-                }`}
+                className={`text-lg leading-none transition-all duration-100 ${
+                  isFilled ? "text-ns-gold" : "text-ns-border"
+                } ${canRate ? "cursor-pointer hover:scale-125" : "cursor-default"}`}
                 onMouseEnter={() => canRate && setHoveredStar(star)}
                 onMouseLeave={() => setHoveredStar(null)}
                 onClick={() => handleStarClick(star)}
-              />
+                disabled={!canRate}
+              >
+                ★
+              </button>
             );
           })}
-          <span className="ml-2 text-sm text-black/50 dark:text-white/50">
+          <span className="ml-2 font-ui text-xs text-ns-ink-muted">
             {getRatingText()}
           </span>
         </div>
@@ -93,7 +80,7 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
         {genres.map((g) => (
           <span
             key={g}
-            className="px-3 py-1 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-black/70 dark:text-white/70 uppercase tracking-wide"
+            className="px-2.5 py-0.5 rounded-full border border-ns-border font-ui text-[10px] text-ns-ink-secondary uppercase tracking-widest"
           >
             {g}
           </span>

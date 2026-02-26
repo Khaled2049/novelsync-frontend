@@ -3,7 +3,6 @@ import * as Icons from "./Icons";
 import { Editor } from "@tiptap/react";
 import { LinkModal } from "./LinkModal";
 import axiosInstance from "../api";
-// import { RiAiGenerate } from "react-icons/ri";
 import { List, ZoomIn, ZoomOut } from "lucide-react";
 
 interface EditorHeaderProps {
@@ -49,7 +48,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
         .focus()
         .setImage({ src: `data:image/png;base64,${imageData}` })
         .run();
-      // Handle the response data as needed
     } catch (error) {
       console.error("Error generating text:", error);
     } finally {
@@ -69,122 +67,109 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
     editor.chain().focus().toggleItalic().run();
   }, [editor]);
 
-  // const openModal = useCallback(() => {
-  //   setIsOpen(true);
-  // }, [editor]);
-
   const closeModal = useCallback(() => {
     setIsOpen(false);
     setGenImage("");
   }, []);
 
   const saveLink = useCallback(async () => {
-    // Generate image if a prompt is provided
     if (genImage) {
       await generateImage(genImage);
     }
-
     editor.commands.blur();
     closeModal();
   }, [editor, genImage, closeModal]);
 
+  const toolbarBtn = (active: boolean) =>
+    `p-2 rounded-ns transition-all duration-150 ${
+      active
+        ? "bg-ns-accent-subtle text-ns-accent"
+        : "text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
+    }`;
+
+  const disabledBtn =
+    "p-2 rounded-ns text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
+
   return (
-    <div className="flex flex-wrap gap-1 px-4 py-2 text-center justify-center transition-colors duration-200">
-      {/* Undo Button */}
+    <div className="flex flex-wrap items-center gap-0.5 px-3 py-1.5 justify-center">
+      {/* Undo */}
       <button
-        className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+        className={disabledBtn}
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
+        title="Undo"
       >
         <Icons.RotateLeft />
       </button>
-      {/* Redo Button */}
+      {/* Redo */}
       <button
-        className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+        className={disabledBtn}
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
+        title="Redo"
       >
         <Icons.RotateRight />
       </button>
 
-      {/* Bold Button */}
-      <button
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("bold") ? "bg-gray-300 dark:bg-gray-700" : ""
-        }`}
-        onClick={toggleBold}
-      >
+      {/* Separator */}
+      <div className="w-px h-5 bg-ns-border mx-1 self-center" />
+
+      {/* Bold */}
+      <button className={toolbarBtn(editor.isActive("bold"))} onClick={toggleBold} title="Bold">
         <Icons.Bold />
       </button>
-      {/* Underline Button */}
-      <button
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("underline")
-            ? "bg-gray-300 dark:bg-gray-700" // Active state (now a softer dark gray)
-            : ""
-        }`}
-        onClick={toggleUnderline}
-      >
-        <Icons.Underline />
-      </button>
-      {/* Italic Button */}
-      <button
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("italic")
-            ? "bg-gray-300 dark:bg-gray-700" // Active state (now a softer dark gray)
-            : ""
-        }`}
-        onClick={toggleItalic}
-      >
+      {/* Italic */}
+      <button className={toolbarBtn(editor.isActive("italic"))} onClick={toggleItalic} title="Italic">
         <Icons.Italic />
       </button>
+      {/* Underline */}
+      <button className={toolbarBtn(editor.isActive("underline"))} onClick={toggleUnderline} title="Underline">
+        <Icons.Underline />
+      </button>
 
-      {/* H1 Button */}
+      {/* Separator */}
+      <div className="w-px h-5 bg-ns-border mx-1 self-center" />
+
+      {/* H1 */}
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("heading", { level: 1 })
-            ? "bg-gray-300 dark:bg-gray-700" // Active state (now a softer dark gray)
-            : ""
-        }`}
+        className={`${toolbarBtn(editor.isActive("heading", { level: 1 }))} font-ui text-xs font-semibold px-2`}
+        title="Heading 1"
       >
         H1
       </button>
-      {/* H2 Button */}
+      {/* H2 */}
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("heading", { level: 2 })
-            ? "bg-gray-300 dark:bg-gray-700" // Active state (now a softer dark gray)
-            : ""
-        }`}
+        className={`${toolbarBtn(editor.isActive("heading", { level: 2 }))} font-ui text-xs font-semibold px-2`}
+        title="Heading 2"
       >
         H2
       </button>
-      {/* Bullet List Button */}
+      {/* Bullet List */}
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={`p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300 ${
-          editor.isActive("bulletList")
-            ? "bg-gray-300 dark:bg-gray-700" // Active state (now a softer dark gray)
-            : ""
-        }`}
+        className={toolbarBtn(editor.isActive("bulletList"))}
+        title="Bullet list"
       >
-        <List />
+        <List className="w-4 h-4" />
       </button>
 
+      {/* Separator */}
+      <div className="w-px h-5 bg-ns-border mx-1 self-center" />
+
       {/* Word Count */}
-      <div className="flex items-center justify-center h-12 p-2 rounded-md text-gray-500 dark:text-gray-400">
+      <div className="px-2 font-ui text-xs text-ns-ink-muted tabular-nums select-none">
         {editor.storage.characterCount.words()} words
       </div>
 
       {/* Separator */}
-      <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-2" />
+      <div className="w-px h-5 bg-ns-border mx-1 self-center" />
 
       {/* Zoom Controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
-          className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+          className={disabledBtn}
           onClick={handleZoomOut}
           disabled={zoomLevel <= ZOOM_PRESETS[0]}
           title="Zoom out"
@@ -195,7 +180,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
         <select
           value={zoomLevel}
           onChange={(e) => handleZoomSelect(e.target.value)}
-          className="h-9 px-2 rounded-md bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green"
+          className="h-8 px-1.5 rounded-ns bg-transparent border border-ns-border text-ns-ink-secondary font-ui text-xs hover:bg-ns-surface-hover transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-ns-accent"
         >
           {ZOOM_PRESETS.map((preset) => (
             <option key={preset} value={preset}>
@@ -205,7 +190,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
         </select>
 
         <button
-          className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+          className={disabledBtn}
           onClick={handleZoomIn}
           disabled={zoomLevel >= ZOOM_PRESETS[ZOOM_PRESETS.length - 1]}
           title="Zoom in"
@@ -213,8 +198,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
           <ZoomIn className="w-4 h-4" />
         </button>
       </div>
-      
-      {/* LinkModal (Keep as is) */}
+
       <LinkModal
         url={genImage}
         isOpen={modalIsOpen}

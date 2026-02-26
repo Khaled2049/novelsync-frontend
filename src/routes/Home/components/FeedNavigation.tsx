@@ -8,59 +8,46 @@ interface FeedNavigationProps {
   onFeedChange: (feed: FeedType) => void;
 }
 
-const FeedNavigation: React.FC<FeedNavigationProps> = ({
-  activeFeed,
-  onFeedChange,
-}) => {
-  const navItems = [
-    {
-      id: "home" as FeedType,
-      label: "Home",
-      icon: Home,
-    },
-    {
-      id: "popular" as FeedType,
-      label: "Popular",
-      icon: TrendingUp,
-    },
-    {
-      id: "book-clubs" as FeedType,
-      label: "Book Clubs",
-      icon: Book,
-    },
-  ];
+const navItems = [
+  { id: "home" as FeedType,       label: "Home",       icon: Home,       symbol: "◆" },
+  { id: "popular" as FeedType,    label: "Popular",    icon: TrendingUp, symbol: "↑" },
+  { id: "book-clubs" as FeedType, label: "Book Clubs", icon: Book,       symbol: "◎" },
+];
 
+const FeedNavigation: React.FC<FeedNavigationProps> = ({ activeFeed, onFeedChange }) => {
   return (
-    <div className="hidden md:block mb-4">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-2">
-        <nav>
-          <ul className="flex items-center justify-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeFeed === item.id;
+    <div className="mb-6">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="font-ui text-xs tracking-widest uppercase text-ns-ink-muted whitespace-nowrap">
+          Community
+        </span>
+        <div className="flex-1 h-px bg-ns-border" />
+      </div>
 
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => onFeedChange(item.id)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-lg
-                      text-sm font-medium transition-colors duration-200
-                      ${
-                        isActive
-                          ? "bg-dark-green dark:bg-light-green text-white dark:text-black"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }
-                    `}
-                  >
-                    <Icon size={18} />
-                    <span>{item.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {navItems.map(({ id, label, symbol }) => {
+          const isActive = activeFeed === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onFeedChange(id)}
+              className={`
+                flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
+                rounded-full border text-xs font-ui font-medium tracking-wide
+                transition-all duration-200
+                ${isActive
+                  ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                  : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
+                }
+              `}
+            >
+              <span className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`} aria-hidden="true">
+                {symbol}
+              </span>
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

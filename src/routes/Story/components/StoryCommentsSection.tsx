@@ -30,15 +30,16 @@ export const StoryCommentsSection: React.FC<StoryCommentsSectionProps> = ({
   return (
     <section>
       <div className="flex items-center gap-3 mb-8">
-        <h3 className="text-2xl font-bold text-black dark:text-white">
+        <h3 className="font-heading italic text-2xl text-ns-ink">
           Community Reviews
         </h3>
-        <span className="px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-sm font-medium text-black/60 dark:text-white/60">
-          {comments.length}
-        </span>
+        {comments.length > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-ns-accent-subtle font-ui text-[10px] font-semibold text-ns-accent">
+            {comments.length}
+          </span>
+        )}
       </div>
 
-      {/* Reusing existing Comment Components */}
       {currentUser && (
         <div className="mb-10">
           <CommentInput
@@ -50,8 +51,8 @@ export const StoryCommentsSection: React.FC<StoryCommentsSectionProps> = ({
       )}
 
       {commentsLoading ? (
-        <div className="py-10 text-center opacity-50">
-          Loading community thoughts...
+        <div className="py-10 text-center font-ui text-xs text-ns-ink-muted animate-pulse">
+          Loading community thoughts…
         </div>
       ) : (
         <CommentList

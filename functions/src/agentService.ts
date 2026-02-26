@@ -14,19 +14,16 @@ export interface AgentResponse {
   error?: string;
 }
 
-/**
- * Configuration for agent service.
- * In production, this should point to the deployed Cloud Run service.
- * For local development, it can point to a local server.
- */
 const isLocalDevelopment = process.env.FUNCTIONS_EMULATOR === "true";
 
-// When running in emulator, always use localhost regardless of AGENT_SERVICE_URL
-// This prevents accidentally connecting to production Cloud Run from local emulator
-const RAW_SERVICE_URL = isLocalDevelopment
-  ? "http://localhost:8000"
-  : process.env.AGENT_SERVICE_URL || "http://localhost:8000";
-const AGENT_SERVICE_URL = RAW_SERVICE_URL.replace(/\/$/, "");
+function getAgentServiceUrl(): string {
+  const url = process.env.AGENT_SERVICE_URL;
+  if (isLocalDevelopment) return url || "http://localhost:8000";
+  if (!url) throw new Error("AGENT_SERVICE_URL must be set in production");
+  return url.replace(/\/$/, "");
+}
+
+const AGENT_SERVICE_URL = getAgentServiceUrl();
 
 // Initialize Auth only if not local
 const auth = isLocalDevelopment ? null : new GoogleAuth();
@@ -55,7 +52,7 @@ async function getIdentityToken(): Promise<string | null> {
  */
 export async function callAgent(
   action: string,
-  parameters: Record<string, unknown>
+  parameters: Record<string, unknown>,
 ): Promise<AgentResponse> {
   const request: AgentRequest = { action, parameters };
 
@@ -89,7 +86,7 @@ export async function callAgent(
       {
         headers,
         timeout: 300000,
-      }
+      },
     );
     const duration = Date.now() - startTime;
 
@@ -138,7 +135,7 @@ export async function callAgent(
 
         logger.error(
           `Agent service error [${action}]: ${helpfulError}`,
-          errorDetails
+          errorDetails,
         );
 
         return {
@@ -150,7 +147,7 @@ export async function callAgent(
       // Log detailed error information
       logger.error(
         `Agent service error [${action}]: ${errorMessage}`,
-        errorDetails
+        errorDetails,
       );
 
       return {
@@ -185,7 +182,7 @@ export async function callAgentWithRetry(
   action: string,
   parameters: Record<string, unknown>,
   maxRetries = 3,
-  retryDelay = 1000
+  retryDelay = 1000,
 ): Promise<AgentResponse> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const result = await callAgent(action, parameters);
@@ -202,7 +199,7 @@ export async function callAgentWithRetry(
 
     // LOGIC FIX: Wait and retry if it failed (and we have attempts left)
     logger.warn(
-      `Agent call failed (${action}). Retrying ${attempt}/${maxRetries} in ${retryDelay}ms. Error: ${result.error}`
+      `Agent call failed (${action}). Retrying ${attempt}/${maxRetries} in ${retryDelay}ms. Error: ${result.error}`,
     );
 
     await new Promise((resolve) => setTimeout(resolve, retryDelay));

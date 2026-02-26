@@ -8,9 +8,8 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { onSnapshot, orderBy, query } from "firebase/firestore";
 import { StoryLoadingState } from "./components/StoryLoadingState";
 import { StoryErrorState } from "./components/StoryErrorState";
-import { StorySidebar } from "./components/StorySidebar";
-import { StoryHeader } from "./components/StoryHeader";
 import { StorySynopsis } from "./components/StorySynopsis";
+import { BookOpen, Heart } from "lucide-react";
 import { StoryAuthorBio } from "./components/StoryAuthorBio";
 import { StoryCommentsSection } from "./components/StoryCommentsSection";
 import { ChapterReader } from "./components/reader/ChapterReader";
@@ -40,8 +39,8 @@ const StoryDetail: React.FC = () => {
   const { user } = useAuthContext();
   const commentService = useMemo(() => new CommentService(), []);
 
-  // New state to control the view
   const [viewMode, setViewMode] = useState<ViewMode>("details");
+  const [hoveredHeroStar, setHoveredHeroStar] = useState<number | null>(null);
 
   const [state, setState] = useState<StoryDetailState>({
     story: null,
@@ -58,7 +57,6 @@ const StoryDetail: React.FC = () => {
     ratingsCount: 0,
   });
 
-  // Fetch author's wallet address
   const { walletAddress: authorWalletAddress } = useUserWalletAddress(
     state.story?.userId
   );
@@ -89,7 +87,6 @@ const StoryDetail: React.FC = () => {
         );
         const currentChapter = chaptersData[validChapterIndex] || null;
 
-        // Check if current user has liked this story
         let isLiked = false;
         let userRating: number | null = null;
         if (user) {
@@ -128,7 +125,6 @@ const StoryDetail: React.FC = () => {
     const previousIsLiked = state.isLiked;
     const previousLikes = state.likes;
 
-    // Optimistically update UI
     setState((prev) => ({
       ...prev,
       isLiked: !prev.isLiked,
@@ -137,7 +133,6 @@ const StoryDetail: React.FC = () => {
 
     try {
       const isLiked = await storiesRepo.toggleStoryLike(id, user.uid);
-      // Update with actual result from server
       setState((prev) => ({
         ...prev,
         isLiked,
@@ -145,7 +140,6 @@ const StoryDetail: React.FC = () => {
       }));
     } catch (error) {
       console.error("Error toggling like:", error);
-      // Revert optimistic update on error
       setState((prev) => ({
         ...prev,
         isLiked: previousIsLiked,
@@ -157,17 +151,12 @@ const StoryDetail: React.FC = () => {
   const handleRatingSubmit = useCallback(
     async (rating: number) => {
       if (!id || !user) return;
-
-      // Prevent duplicate ratings
-      if (state.userRating !== null) {
-        return;
-      }
+      if (state.userRating !== null) return;
 
       const previousUserRating = state.userRating;
       const previousRatingsCount = state.ratingsCount;
       const previousAverageRating = state.story?.averageRating;
 
-      // Optimistically update UI
       setState((prev) => ({
         ...prev,
         userRating: rating,
@@ -176,7 +165,6 @@ const StoryDetail: React.FC = () => {
 
       try {
         await storiesRepo.submitStoryRating(id, user.uid, rating);
-        // Refresh story to get updated rating stats
         const updatedStory = await storiesRepo.getStory(id);
         if (updatedStory) {
           setState((prev) => ({
@@ -187,7 +175,6 @@ const StoryDetail: React.FC = () => {
         }
       } catch (error) {
         console.error("Error submitting rating:", error);
-        // Revert optimistic update on error
         setState((prev) => ({
           ...prev,
           userRating: previousUserRating,
@@ -350,7 +337,7 @@ const StoryDetail: React.FC = () => {
     return () => unsubscribe();
   }, [id, state.currentChapter, commentService]);
 
-  // --- Common Components ---
+  // --- Render ---
   if (state.loading) {
     return <StoryLoadingState />;
   }
@@ -364,6 +351,7 @@ const StoryDetail: React.FC = () => {
     );
   }
 
+  // --- VIEW 1: DETAILS ---
   if (viewMode === "details") {
     const genres = state.story.tags || ["Fiction", "Adventure", "Fantasy"];
     const storyUrl = `/story/${state.story.id}`;
@@ -371,7 +359,6 @@ const StoryDetail: React.FC = () => {
       ? getAbsoluteUrl(state.story.coverImageUrl)
       : getAbsoluteUrl("/book.svg");
 
-    // Structured data for Article/Book
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "Book",
@@ -396,6 +383,10 @@ const StoryDetail: React.FC = () => {
       numberOfPages: state.chapters.length,
     };
 
+    const canRate = !!user && state.userRating === null;
+    const displayRating = state.userRating ?? state.story.averageRating ?? 0;
+    const starsToShow = hoveredHeroStar ?? displayRating;
+
     return (
       <>
         <SEOHead
@@ -411,34 +402,126 @@ const StoryDetail: React.FC = () => {
           canonical={storyUrl}
           structuredData={structuredData}
         />
-        <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200 font-body">
-          <div className="max-w-7xl mx-auto px-6 pt-24 pb-20">
-            <div className="flex flex-col md:flex-row gap-12 lg:gap-16">
-              <StorySidebar
-                title={state.story.title}
-                coverImageUrl={state.story.coverImageUrl}
-                likes={state.likes}
-                chaptersCount={state.chapters.length}
-                isLiked={state.isLiked}
-                onReadNow={() => setViewMode("reader")}
-                onLike={handleLike}
-              />
 
-              <main className="md:w-2/3 lg:w-3/4">
-                <StoryHeader
-                  title={state.story.title}
-                  author={state.story.author}
-                  genres={genres}
-                  rating={state.story.averageRating}
-                  ratingsCount={state.ratingsCount}
-                  userRating={state.userRating}
-                  onRatingSubmit={handleRatingSubmit}
-                  isAuthenticated={!!user}
-                />
+        <div className="min-h-screen bg-ns-bg font-body">
 
+          {/* ── Header: cover + title side by side ── */}
+          <div className="max-w-5xl mx-auto px-6 pt-28 pb-10 border-b border-ns-border">
+            <div className="flex flex-col sm:flex-row gap-8 sm:gap-10 items-start">
+
+              {/* Book cover */}
+              <div className="flex-shrink-0 w-36 sm:w-44 aspect-[2/3] rounded-ns-lg shadow-ns-xl overflow-hidden ring-1 ring-ns-border/40 self-start">
+                {state.story.coverImageUrl ? (
+                  <img
+                    src={state.story.coverImageUrl}
+                    alt={state.story.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-ns-elevated flex items-center justify-center">
+                    <span className="font-heading italic text-3xl text-ns-ink-muted opacity-40">
+                      {state.story.title.charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Title block */}
+              <div className="flex-1 min-w-0 pt-1">
+                {/* Genre pills */}
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {genres.map((g) => (
+                    <span
+                      key={g}
+                      className="px-2.5 py-0.5 rounded-full border border-ns-border font-ui text-[10px] uppercase tracking-widest text-ns-ink-muted"
+                    >
+                      {g}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title */}
+                <h1 className="font-heading italic text-5xl sm:text-6xl md:text-7xl text-ns-ink leading-[0.88] mb-5 tracking-tight">
+                  {state.story.title}
+                </h1>
+
+                {/* Author + stats */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-6">
+                  <span className="font-ui text-xs text-ns-ink-muted">by</span>
+                  <span className="font-ui text-sm text-ns-ink">
+                    {state.story.author}
+                  </span>
+                  <span className="text-ns-border select-none">·</span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => canRate && handleRatingSubmit(star)}
+                        onMouseEnter={() => canRate && setHoveredHeroStar(star)}
+                        onMouseLeave={() => setHoveredHeroStar(null)}
+                        disabled={!canRate}
+                        className={`text-base leading-none transition-all duration-100 ${
+                          star <= Math.round(starsToShow)
+                            ? "text-ns-gold"
+                            : "text-ns-border"
+                        } ${canRate ? "cursor-pointer hover:scale-125" : "cursor-default"}`}
+                        aria-label={`Rate ${star} stars`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <span className="font-ui text-xs text-ns-ink-muted">
+                    {state.ratingsCount > 0
+                      ? `${state.ratingsCount} ${state.ratingsCount === 1 ? "rating" : "ratings"}`
+                      : "No ratings yet"}
+                  </span>
+                  <span className="text-ns-border select-none">·</span>
+                  <span className="font-ui text-xs text-ns-ink-muted">
+                    {state.chapters.length}{" "}
+                    {state.chapters.length === 1 ? "chapter" : "chapters"}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setViewMode("reader")}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Read Now
+                  </button>
+                  <button
+                    onClick={handleLike}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-ns border font-ui text-sm transition-all duration-150 active:scale-[0.97] ${
+                      state.isLiked
+                        ? "border-ns-accent text-ns-accent bg-ns-accent-subtle"
+                        : "border-ns-border text-ns-ink-secondary hover:border-ns-border-strong hover:text-ns-ink hover:bg-ns-surface-hover"
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-all ${state.isLiked ? "fill-current" : ""}`}
+                    />
+                    {state.likes} {state.likes === 1 ? "Like" : "Likes"}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Content ── */}
+          <div className="max-w-5xl mx-auto px-6 py-12">
+            <main className="max-w-2xl mx-auto">
                 <StorySynopsis description={state.story.description} />
 
-                <hr className="border-black/10 dark:border-white/10 mb-12" />
+                {/* Ornamental divider */}
+                <div className="flex items-center gap-4 my-10">
+                  <div className="flex-1 h-px bg-ns-border" />
+                  <span className="text-ns-ink-muted text-xs select-none">✦</span>
+                  <div className="flex-1 h-px bg-ns-border" />
+                </div>
 
                 <StoryAuthorBio
                   author={state.story.author}
@@ -446,7 +529,11 @@ const StoryDetail: React.FC = () => {
                   storyId={id!}
                 />
 
-                <hr className="border-black/10 dark:border-white/10 mb-12" />
+                <div className="flex items-center gap-4 my-10">
+                  <div className="flex-1 h-px bg-ns-border" />
+                  <span className="text-ns-ink-muted text-xs select-none">✦</span>
+                  <div className="flex-1 h-px bg-ns-border" />
+                </div>
 
                 {state.currentChapter && (
                   <StoryCommentsSection
@@ -461,9 +548,9 @@ const StoryDetail: React.FC = () => {
                     onEdit={handleEdit}
                   />
                 )}
-              </main>
-            </div>
+            </main>
           </div>
+
         </div>
       </>
     );

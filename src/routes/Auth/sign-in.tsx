@@ -51,31 +51,28 @@ const Signin: React.FC = () => {
         noindex={true}
         nofollow={true}
       />
-      <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
-        {/* Logo with animation */}
-        <div className="relative z-10 flex items-center text-center mb-8 -ml-6 animate-fade-in-down">
-          <h1 className="text-5xl font-serif font-bold text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
+      <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-ns-bg transition-colors duration-300">
+        {/* Logo */}
+        <div className="relative z-10 flex items-center text-center mb-8 animate-ns-fade-in">
+          <h1 className="text-5xl font-heading font-medium text-ns-ink tracking-tight transition-colors duration-300">
             {APP_NAME}
           </h1>
         </div>
 
         {/* Sign In Form Container */}
-        <div className="relative z-10 w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 transition-all duration-300 animate-fade-in-up">
-          <h2 className="text-3xl font-serif font-semibold text-neutral-900 dark:text-white mb-2 transition-colors duration-300 animate-fade-in">
+        <div className="relative z-10 w-full max-w-md p-8 bg-ns-elevated rounded-ns-2xl shadow-ns border border-ns-border transition-all duration-300 opacity-0 animate-ns-slide-up" style={{ animationDelay: '0.1s' }}>
+          <h2 className="text-3xl font-heading font-medium text-ns-ink mb-2 transition-colors duration-300">
             Sign In
           </h2>
-          <p
-            className="text-sm text-neutral-600 dark:text-neutral-400 mb-6 animate-fade-in"
-            style={{ animationDelay: "0.1s" }}
-          >
+          <p className="text-sm text-ns-ink-secondary font-body mb-6">
             Continue your storytelling journey
           </p>
 
           <div className="space-y-5">
-            <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="opacity-0 animate-ns-fade-in" style={{ animationDelay: "0.2s" }}>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-neutral-900 dark:text-white mb-1 transition-colors duration-300"
+                className="block text-sm font-medium font-ui text-ns-ink mb-1 transition-colors duration-300"
               >
                 Email
               </label>
@@ -87,23 +84,23 @@ const Signin: React.FC = () => {
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
                 required
-                className="w-full px-4 py-3 
-               bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white 
-               border border-neutral-200 dark:border-neutral-700 
-               rounded-xl 
-               focus:outline-none focus:border-dark-green dark:focus:border-light-green
-               focus:ring-2 focus:ring-dark-green/20 dark:focus:ring-light-green/20
-               transition-all duration-300 
-               placeholder:text-neutral-400 dark:placeholder:text-neutral-500
-               hover:border-neutral-300 dark:hover:border-neutral-600"
+                className="w-full px-4 py-3
+                 bg-ns-surface text-ns-ink
+                 border border-ns-border
+                 rounded-ns-lg
+                 focus:outline-none focus:border-ns-accent
+                 focus:ring-2 focus:ring-[var(--ns-ring)]
+                 transition-all duration-200
+                 placeholder:text-ns-ink-muted
+                 hover:border-ns-border-strong"
                 placeholder="your@email.com"
               />
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
+            <div className="opacity-0 animate-ns-fade-in" style={{ animationDelay: "0.3s" }}>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-neutral-900 dark:text-white mb-1 transition-colors duration-300"
+                className="block text-sm font-medium font-ui text-ns-ink mb-1 transition-colors duration-300"
               >
                 Password
               </label>
@@ -115,33 +112,33 @@ const Signin: React.FC = () => {
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
                 required
-                className="w-full px-4 py-3 
-               bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white 
-               border border-neutral-200 dark:border-neutral-700 
-               rounded-xl 
-               focus:outline-none focus:border-dark-green dark:focus:border-light-green
-               focus:ring-2 focus:ring-dark-green/20 dark:focus:ring-light-green/20
-               transition-all duration-300 
-               placeholder:text-neutral-400 dark:placeholder:text-neutral-500
-               hover:border-neutral-300 dark:hover:border-neutral-600"
+                className="w-full px-4 py-3
+                 bg-ns-surface text-ns-ink
+                 border border-ns-border
+                 rounded-ns-lg
+                 focus:outline-none focus:border-ns-accent
+                 focus:ring-2 focus:ring-[var(--ns-ring)]
+                 transition-all duration-200
+                 placeholder:text-ns-ink-muted
+                 hover:border-ns-border-strong"
                 placeholder="••••••••"
               />
             </div>
 
             <div
-              className="text-left animate-fade-in"
+              className="text-left opacity-0 animate-ns-fade-in"
               style={{ animationDelay: "0.4s" }}
             >
               <button
                 onClick={() => navigate("/forgot-password")}
-                className="text-sm text-dark-green dark:text-light-green hover:opacity-80 transition-colors duration-200 font-medium hover:underline bg-transparent border-none cursor-pointer"
+                className="text-sm text-ns-accent hover:text-ns-accent-hover transition-colors duration-200 font-ui font-medium hover:underline bg-transparent border-none cursor-pointer"
               >
                 Forgot password?
               </button>
             </div>
 
             {error && (
-              <div className="text-red-600 dark:text-red-400 text-sm mt-2 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800/30 animate-shake">
+              <div className="text-ns-destructive text-sm mt-2 p-3 bg-ns-destructive/5 rounded-ns-lg border border-ns-destructive/20 animate-shake">
                 {error}
               </div>
             )}
@@ -149,10 +146,10 @@ const Signin: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className={`w-full bg-dark-green dark:bg-light-green text-white dark:text-neutral-900 font-semibold py-3 px-6 rounded-xl shadow-sm transition-all duration-300 animate-fade-in ${
+              className={`w-full bg-ns-accent text-white font-ui font-semibold py-3 px-6 rounded-ns-lg shadow-ns-sm transition-all duration-300 opacity-0 animate-ns-fade-in ${
                 isLoading
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:opacity-90 hover:shadow-md active:scale-[0.98]"
+                  : "hover:bg-ns-accent-hover hover:shadow-ns active:scale-[0.98]"
               }`}
               style={{ animationDelay: "0.5s" }}
             >
@@ -182,15 +179,15 @@ const Signin: React.FC = () => {
             </button>
 
             <div
-              className="text-center mt-6 animate-fade-in"
+              className="text-center mt-6 opacity-0 animate-ns-fade-in"
               style={{ animationDelay: "0.6s" }}
             >
-              <span className="text-neutral-600 dark:text-neutral-400 text-sm">
+              <span className="text-ns-ink-secondary text-sm font-ui">
                 Don't have an account?{" "}
               </span>
               <button
                 onClick={() => navigate("/sign-up")}
-                className="text-dark-green dark:text-light-green hover:opacity-80 transition-colors duration-200 font-semibold hover:underline bg-transparent border-none cursor-pointer"
+                className="text-ns-accent hover:text-ns-accent-hover transition-colors duration-200 font-ui font-semibold hover:underline bg-transparent border-none cursor-pointer"
               >
                 Request an Invite
               </button>
@@ -198,78 +195,24 @@ const Signin: React.FC = () => {
           </div>
         </div>
 
-        {/* Subtle writing-themed decoration */}
+        {/* Decorative quote */}
         <div
-          className="relative z-10 mt-6 text-center text-xs text-neutral-500 dark:text-neutral-500 animate-fade-in"
+          className="relative z-10 mt-8 text-center text-xs text-ns-ink-muted opacity-0 animate-ns-fade-in"
           style={{ animationDelay: "0.7s" }}
         >
-          <p className="italic">
+          <p className="italic font-body">
             "Every great story begins with a single word"
           </p>
         </div>
 
         <style>{`
-        @keyframes fade-in-down {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
         @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
         }
-
-        .animate-fade-in-down {
-          animation: fade-in-down 0.6s ease-out;
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-          animation-fill-mode: both;
-        }
-
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-      `}</style>
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        `}</style>
       </div>
     </>
   );

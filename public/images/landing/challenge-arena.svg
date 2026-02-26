@@ -1,0 +1,26 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F2937"/>
+      <stop offset="1" stop-color="#7F1D1D"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect x="160" y="180" width="880" height="540" rx="28" fill="#111827" fill-opacity="0.72" stroke="#FCA5A5" stroke-opacity="0.35"/>
+
+  <path d="M260 650L400 330L540 650H260Z" fill="#F59E0B" fill-opacity="0.85"/>
+  <path d="M660 650L800 270L940 650H660Z" fill="#EF4444" fill-opacity="0.9"/>
+
+  <rect x="210" y="230" width="220" height="42" rx="21" fill="#F59E0B"/>
+  <rect x="770" y="230" width="220" height="42" rx="21" fill="#EF4444"/>
+
+  <circle cx="600" cy="300" r="70" fill="#FEF2F2" fill-opacity="0.1"/>
+  <path d="M600 240L620 284H668L630 312L646 356L600 332L554 356L570 312L532 284H580L600 240Z" fill="#FEF3C7"/>
+
+  <g opacity="0.3" stroke="#FDE68A">
+    <path d="M0 160H1200"/>
+    <path d="M0 320H1200"/>
+    <path d="M0 480H1200"/>
+    <path d="M0 640H1200"/>
+  </g>
+</svg>

@@ -19,28 +19,29 @@ export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ storyId:
 
   return (
     <>
-      {/* Floating Button */}
-      {!isOpen && (
-        <button
+      {/* Fixed FAB trigger */}
+      <button
         onClick={() => setIsOpen(true)}
-        className="px-3 py-2 bg-dark-green dark:bg-light-green text-white text-sm rounded-md shadow-sm hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 flex items-center"
-        >
-          <MessageCircle className="w-5 h-5" />
-          <span>AI Assistant</span>
-        </button>
-      )}
+        className={`fixed bottom-20 right-4 md:bottom-24 md:right-6 z-30 w-11 h-11 rounded-full bg-ns-accent text-white shadow-ns-lg hover:bg-ns-accent-hover active:scale-95 transition-all duration-200 flex items-center justify-center ${
+          isOpen ? "opacity-0 pointer-events-none scale-90" : "opacity-100 scale-100"
+        }`}
+        aria-label="Open AI Assistant"
+        title="AI Assistant"
+      >
+        <MessageCircle className="w-5 h-5" />
+      </button>
 
       {/* Sliding Panel */}
       {isOpen && (
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[2px]"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Chat Panel */}
-          <div className="fixed right-0 top-0 bottom-0 w-full md:w-96 z-50 transform transition-transform duration-300 ease-in-out shadow-2xl">
+          <div className="fixed right-0 top-0 bottom-0 w-full md:w-96 z-50 shadow-ns-xl animate-ns-slide-up">
             <Chatbot
               storyId={currentStoryId}
               onClose={() => setIsOpen(false)}

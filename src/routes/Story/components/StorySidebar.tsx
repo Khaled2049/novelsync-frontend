@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, ThumbsUp } from "lucide-react";
+import { BookOpen, Heart, Layers } from "lucide-react";
 
 interface StorySidebarProps {
   title: string;
@@ -12,8 +12,6 @@ interface StorySidebarProps {
 }
 
 export const StorySidebar: React.FC<StorySidebarProps> = ({
-  title,
-  coverImageUrl,
   likes,
   chaptersCount,
   isLiked,
@@ -21,53 +19,39 @@ export const StorySidebar: React.FC<StorySidebarProps> = ({
   onLike,
 }) => {
   return (
-    <aside className="md:w-1/3 lg:w-1/4 flex-shrink-0">
-      <div className="md:sticky md:top-24">
-        {/* Cover Image */}
-        <div className="w-48 mx-auto md:w-full aspect-[2/3] relative rounded shadow-xl overflow-hidden mb-6">
-          {coverImageUrl ? (
-            <img
-              src={coverImageUrl}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
-              <BookOpen
-                size={48}
-                className="text-black/20 dark:text-white/20"
-              />
-            </div>
-          )}
-        </div>
+    <aside className="md:w-44 flex-shrink-0">
+      <div className="md:sticky md:top-24 flex flex-col gap-3">
 
-        {/* Primary Action */}
+        {/* Primary CTA */}
         <button
           onClick={onReadNow}
-          className="w-full py-3 px-6 bg-dark-green dark:bg-light-green text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transform transition-all duration-200 flex items-center justify-center gap-2 mb-4"
+          className="w-full py-2.5 px-4 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 flex items-center justify-center gap-2"
         >
-          <BookOpen size={20} />
+          <BookOpen className="w-4 h-4" />
           Read Now
         </button>
 
-        {/* Secondary Actions / Stats */}
-        <div className="flex justify-center md:justify-between items-center px-2 text-sm text-black/60 dark:text-white/60 mb-6">
-          <button
-            onClick={onLike}
-            className={`flex items-center gap-1.5 transition-colors ${
-              isLiked
-                ? "text-dark-green"
-                : "hover:text-black dark:hover:text-white"
-            }`}
-          >
-            <ThumbsUp size={16} />
-            <span>{likes} Likes</span>
-          </button>
-          <div className="flex items-center gap-1.5">
-            <BookOpen size={16} />
-            <span>{chaptersCount} Chapters</span>
-          </div>
+        {/* Like */}
+        <button
+          onClick={onLike}
+          className={`w-full py-2 px-4 rounded-ns border font-ui text-sm transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.97] ${
+            isLiked
+              ? "border-ns-accent text-ns-accent bg-ns-accent-subtle"
+              : "border-ns-border text-ns-ink-secondary hover:border-ns-border-strong hover:text-ns-ink hover:bg-ns-surface-hover"
+          }`}
+        >
+          <Heart
+            className={`w-4 h-4 transition-all duration-150 ${isLiked ? "fill-current" : ""}`}
+          />
+          <span>{likes} {likes === 1 ? "Like" : "Likes"}</span>
+        </button>
+
+        {/* Chapters count */}
+        <div className="flex items-center justify-center gap-2 py-1.5 font-ui text-xs text-ns-ink-muted">
+          <Layers className="w-3.5 h-3.5" />
+          <span>{chaptersCount} {chaptersCount === 1 ? "Chapter" : "Chapters"}</span>
         </div>
+
       </div>
     </aside>
   );

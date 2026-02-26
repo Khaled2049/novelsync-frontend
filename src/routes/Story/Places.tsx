@@ -1,68 +1,55 @@
 import React, { useEffect, useState } from "react";
-
-import AddPlaceModal from "@/components/places/AddPlaceModal";
-
-import { useParams } from "react-router-dom";
 import { Place } from "@/types/IPlace";
+import AddPlaceModal from "@/components/places/AddPlaceModal";
 import { placeService } from "@/services/PlaceService";
+import { useParams } from "react-router-dom";
 import UpdatePlaceModal from "@/components/places/UpdatePlaceModal";
+import { MapPin, MapPinPlus, Map, Pencil, Trash2 } from "lucide-react";
 
-const places: React.FC = () => {
+const Places: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
-  const [places, setplaces] = useState<Place[]>([]);
-  const [selectedplace, setSelectedplace] = useState<Place | null>(null);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [placeToUpdate, setplaceToUpdate] = useState<Place | null>(null);
+  const [placeToUpdate, setPlaceToUpdate] = useState<Place | null>(null);
 
   useEffect(() => {
-    loadplaces();
+    loadPlaces();
   }, [storyId]);
 
-  // const removePlace = async (id: string) => {
-  //   if (!storyId) return;
-  //   await placeService.deletePlace(storyId, id);
-  //   setplaces(places.filter((place) => place.id !== id));
-  // };
-
-  const loadplaces = async () => {
+  const loadPlaces = async () => {
     if (!storyId) return;
-    const places = await placeService.getPlaces(storyId);
-    setplaces(places);
+    const data = await placeService.getPlaces(storyId);
+    setPlaces(data);
   };
 
-  const handleplaceClick = (place: Place) => {
-    setSelectedplace(place);
+  const handlePlaceClick = (place: Place) => {
+    setSelectedPlace(place);
   };
 
-  const handleAddplace = (newplace: Place) => {
-    setplaces([...places, newplace]);
+  const handleAddPlace = (newPlace: Place) => {
+    setPlaces((prev) => [...prev, newPlace]);
     setIsAddModalOpen(false);
   };
 
-  const handleUpdateplace = (updatedplace: Place) => {
-    setplaces((prevplaces) =>
-      prevplaces.map((place) =>
-        place.id === updatedplace.id ? updatedplace : place
-      )
+  const handleUpdatePlace = (updatedPlace: Place) => {
+    setPlaces((prev) =>
+      prev.map((p) => (p.id === updatedPlace.id ? updatedPlace : p))
     );
     setIsUpdateModalOpen(false);
-    setplaceToUpdate(null);
-    if (selectedplace?.id === updatedplace.id) {
-      setSelectedplace(updatedplace);
+    setPlaceToUpdate(null);
+    if (selectedPlace?.id === updatedPlace.id) {
+      setSelectedPlace(updatedPlace);
     }
   };
 
-  const handleDeleteplace = async (placeId: string) => {
+  const handleDeletePlace = async (placeId: string) => {
     if (!storyId) return;
     try {
       await placeService.deletePlace(storyId, placeId);
-      setplaces((prevplaces) =>
-        prevplaces.filter((place) => place.id !== placeId)
-      );
-      if (selectedplace?.id === placeId) {
-        setSelectedplace(null);
-      }
+      setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+      if (selectedPlace?.id === placeId) setSelectedPlace(null);
     } catch (error) {
       console.error("Error deleting place:", error);
     }
@@ -70,90 +57,227 @@ const places: React.FC = () => {
 
   if (!storyId) {
     return (
-      <div>Story ID not found in URL. Please check the URL and try again.</div>
+      <div className="h-full flex items-center justify-center">
+        <p className="font-ui text-sm text-ns-ink-muted">
+          Story ID not found. Please check the URL and try again.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-neutral-50 dark:bg-black text-black dark:text-white transition-colors duration-200">
-      <div className="w-1/2 p-4 border-r border-black/20 dark:border-white/20">
-        <h2 className="text-xl font-bold mb-4">places</h2>
+    <div className="h-full flex flex-col bg-ns-bg">
+
+      {/* ── Toolbar ── */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-ns-border bg-ns-surface">
+        <div className="flex items-center gap-2.5">
+          <span className="font-heading italic text-lg text-ns-ink">Places</span>
+          {places.length > 0 && (
+            <span className="font-ui text-[10px] font-semibold text-ns-accent bg-ns-accent-subtle px-2 py-0.5 rounded-full">
+              {places.length}
+            </span>
+          )}
+        </div>
         <button
-          className="bg-dark-green dark:bg-light-green text-white px-4 py-2 rounded mb-4 hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200"
           onClick={() => setIsAddModalOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
-          Add place
+          <MapPinPlus className="w-3.5 h-3.5" />
+          Add Place
         </button>
-        <ul>
-          {places.map((place) => (
-            <li
-              key={place.id}
-              className="flex items-center justify-between hover:bg-black/10 dark:hover:bg-neutral-50/10 p-2 rounded-md transition-colors duration-200"
-            >
-              <span
-                className="cursor-pointer"
-                onClick={() => handleplaceClick(place)}
-              >
-                {place.name}
-              </span>
-              <div>
-                <button
-                  className="bg-light-green dark:bg-dark-green text-white px-2 py-1 rounded mr-2 hover:bg-dark-green dark:hover:bg-light-green transition-colors duration-200"
-                  onClick={() => {
-                    setplaceToUpdate(place);
-                    setIsUpdateModalOpen(true);
-                  }}
-                >
-                  Update
-                </button>
-                <button
-                  className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors duration-200"
-                  onClick={() => handleDeleteplace(place.id)}
-                >
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
       </div>
-      <div className="w-1/2 p-4">
-        <h2 className="text-xl font-bold mb-4">place Details</h2>
-        {selectedplace ? (
-          <div className="bg-neutral-50 dark:bg-black p-4 rounded-lg border border-black/20 dark:border-white/20">
-            <h3 className="text-lg font-semibold">{selectedplace.name}</h3>
-            <p className="text-black/70 dark:text-white/70">
-              Description: {selectedplace.description}
-            </p>
-            {selectedplace.notes && (
-              <p className="text-black/70 dark:text-white/70">
-                Notes: {selectedplace.notes}
-              </p>
+
+      {/* ── Two-Panel Content ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Left: Roster */}
+        <div className="w-64 flex-shrink-0 border-r border-ns-border flex flex-col bg-ns-surface">
+          <div className="flex-1 overflow-y-auto py-3 px-3">
+            {places.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
+                <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
+                  <Map className="w-5 h-5 text-ns-accent opacity-60" />
+                </div>
+                <p className="font-ui text-xs text-ns-ink-muted text-center leading-relaxed">
+                  No places yet.<br />Add your first location.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {places.map((place) => {
+                  const isSelected = selectedPlace?.id === place.id;
+                  return (
+                    <div
+                      key={place.id}
+                      onClick={() => handlePlaceClick(place)}
+                      className={`flex items-center gap-3 rounded-ns px-3 py-2.5 cursor-pointer transition-all duration-150 group ${
+                        isSelected ? "bg-ns-accent-subtle" : "hover:bg-ns-surface-hover"
+                      }`}
+                    >
+                      {/* Icon badge */}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isSelected
+                            ? "bg-ns-accent text-white"
+                            : "bg-ns-border text-ns-ink-secondary"
+                        }`}
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`font-ui text-xs font-medium truncate transition-colors ${
+                            isSelected ? "text-ns-ink" : "text-ns-ink-secondary"
+                          }`}
+                        >
+                          {place.name}
+                        </p>
+                        {place.description && (
+                          <p className="font-ui text-[10px] text-ns-ink-muted truncate">
+                            {place.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Hover actions */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPlaceToUpdate(place);
+                            setIsUpdateModalOpen(true);
+                          }}
+                          className="p-1.5 rounded text-ns-ink-muted hover:text-ns-ink hover:bg-ns-elevated transition-all duration-150"
+                          aria-label="Edit place"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePlace(place.id);
+                          }}
+                          className="p-1.5 rounded text-ns-ink-muted hover:text-ns-destructive hover:bg-ns-elevated transition-all duration-150"
+                          aria-label="Delete place"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-        ) : (
-          <p className="text-black/50 dark:text-white/50">
-            Select a place to view details
-          </p>
-        )}
+        </div>
+
+        {/* Right: Detail Panel */}
+        <div className="flex-1 overflow-y-auto bg-ns-bg">
+          {!selectedPlace ? (
+            /* Empty state */
+            <div className="h-full flex flex-col items-center justify-center gap-3 px-8 animate-ns-fade-in">
+              <div className="w-14 h-14 rounded-full bg-ns-accent-subtle flex items-center justify-center">
+                <MapPin className="w-6 h-6 text-ns-accent opacity-60" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-heading italic text-xl text-ns-ink-secondary">
+                  Select a place
+                </p>
+                <p className="font-ui text-xs text-ns-ink-muted">
+                  Choose a location from the list to view its details
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Place Detail */
+            <div className="max-w-xl mx-auto p-6 space-y-6 animate-ns-fade-in">
+
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-full bg-ns-accent flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-7 h-7 text-white" />
+                </div>
+                <div className="flex-1 min-w-0 pt-1">
+                  <h2 className="font-heading italic text-2xl text-ns-ink leading-tight">
+                    {selectedPlace.name}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setPlaceToUpdate(selectedPlace);
+                    setIsUpdateModalOpen(true);
+                  }}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink active:scale-[0.97] transition-all duration-150"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+              </div>
+
+              <div className="h-px bg-ns-border" />
+
+              {/* Fields */}
+              <div className="space-y-5">
+                {selectedPlace.description && (
+                  <div className="space-y-1.5">
+                    <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
+                      Description
+                    </p>
+                    <p className="font-body text-sm text-ns-ink leading-relaxed">
+                      {selectedPlace.description}
+                    </p>
+                  </div>
+                )}
+
+                {selectedPlace.notes && (
+                  <div className="space-y-1.5">
+                    <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
+                      Notes
+                    </p>
+                    <p className="font-body text-sm text-ns-ink-secondary leading-relaxed">
+                      {selectedPlace.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Danger zone */}
+              <div className="pt-2 border-t border-ns-border">
+                <button
+                  onClick={() => handleDeletePlace(selectedPlace.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs text-ns-destructive border border-ns-destructive/20 hover:bg-ns-destructive/5 hover:border-ns-destructive/40 active:scale-[0.97] transition-all duration-150"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Place
+                </button>
+              </div>
+
+            </div>
+          )}
+        </div>
+
       </div>
-      {isAddModalOpen && storyId && (
+
+      {/* ── Modals ── */}
+      {isAddModalOpen && (
         <AddPlaceModal
           storyId={storyId}
           onClose={() => setIsAddModalOpen(false)}
-          onAddPlace={handleAddplace}
+          onAddPlace={handleAddPlace}
         />
       )}
-      {isUpdateModalOpen && storyId && placeToUpdate && (
+      {isUpdateModalOpen && placeToUpdate && (
         <UpdatePlaceModal
           storyId={storyId}
           place={placeToUpdate}
           onClose={() => setIsUpdateModalOpen(false)}
-          onUpdateplace={handleUpdateplace}
+          onUpdateplace={handleUpdatePlace}
         />
       )}
     </div>
   );
 };
 
-export default places;
+export default Places;

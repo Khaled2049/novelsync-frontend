@@ -40,7 +40,6 @@ const UserDropdown = ({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      // Check if click is outside both the dropdown and its container (which includes the button)
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(target) &&
@@ -52,7 +51,6 @@ const UserDropdown = ({
     };
 
     if (isOpen) {
-      // Use a small delay to avoid immediate closure when opening
       const timeoutId = setTimeout(() => {
         document.addEventListener("click", handleClickOutside);
       }, 0);
@@ -100,31 +98,31 @@ const UserDropdown = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-900 text-black dark:text-white rounded-lg shadow-xl z-50 overflow-hidden border border-black/10 dark:border-white/10 backdrop-blur-sm"
+      className="absolute right-0 mt-2 w-56 bg-ns-elevated text-ns-ink rounded-ns-xl shadow-ns-lg z-50 overflow-hidden border border-ns-border animate-ns-slide-down"
     >
       {/* User Info */}
       <Link
         to="/profile"
         onClick={onClose}
-        className="block p-4 hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/10 dark:border-white/10 transition-colors"
+        className="block p-4 hover:bg-ns-surface border-b border-ns-border transition-colors"
       >
         <div className="flex items-center gap-3">
           {user.photoURL && user.photoURL.trim() !== "" ? (
             <img
               src={user.photoURL}
               alt="User Avatar"
-              className="w-10 h-10 rounded-full border-2 border-dark-green dark:border-light-green"
+              className="w-10 h-10 rounded-full border-2 border-ns-border"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-dark-green dark:bg-light-green flex items-center justify-center">
-              <User className="w-6 h-6 text-white dark:text-black" />
+            <div className="w-10 h-10 rounded-full bg-ns-accent flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate text-black dark:text-white">
+            <p className="text-sm font-semibold truncate text-ns-ink">
               {user.displayName || "User"}
             </p>
-            <p className="text-xs text-black/60 dark:text-white/60 truncate">
+            <p className="text-xs text-ns-ink-muted truncate">
               {user.email}
             </p>
           </div>
@@ -132,7 +130,7 @@ const UserDropdown = ({
       </Link>
 
       {/* Menu Items */}
-      <div className="py-2">
+      <div className="py-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -140,10 +138,10 @@ const UserDropdown = ({
               key={item.to}
               to={item.to}
               onClick={item.onClick}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-ns-surface transition-colors group"
             >
-              <Icon className="w-5 h-5 text-black/60 dark:text-white/60 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors" />
-              <span className="text-black dark:text-white group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
+              <Icon className="w-4 h-4 text-ns-ink-muted group-hover:text-ns-accent transition-colors" />
+              <span className="text-ns-ink-secondary group-hover:text-ns-ink transition-colors">
                 {item.label}
               </span>
             </Link>
@@ -152,12 +150,12 @@ const UserDropdown = ({
       </div>
 
       {/* Sign Out */}
-      <div className="border-t border-black/10 dark:border-white/10">
+      <div className="border-t border-ns-border">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/10 transition-colors group"
+          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-ns-destructive hover:bg-ns-destructive/5 transition-colors group"
         >
-          <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
           <span>Sign Out</span>
         </button>
       </div>

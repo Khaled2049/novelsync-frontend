@@ -21,36 +21,33 @@ export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
     bio ||
     `${author} is a writer who loves exploring complex themes through storytelling.`;
 
-  const handleTipClick = () => {
-    setShowTipModal(true);
-  };
-
   return (
     <>
-      <section className="mb-12">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40 mb-4">
+      <section className="mb-10">
+        <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest mb-5">
           About the Author
-        </h3>
-        <div className="flex gap-6 items-start">
-          <div className="w-16 h-16 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-            <User size={32} className="text-black/40 dark:text-white/40" />
+        </p>
+
+        <div className="flex gap-5 items-start">
+          <div className="w-14 h-14 rounded-full bg-ns-elevated border border-ns-border flex items-center justify-center flex-shrink-0">
+            <User className="w-6 h-6 text-ns-ink-muted" />
           </div>
-          <div className="flex-1">
-            <h4 className="font-bold text-lg text-black dark:text-white mb-2">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-ui text-sm font-semibold text-ns-ink mb-1.5">
               {author}
             </h4>
-            <p className="text-black/70 dark:text-white/70 leading-relaxed">
+            <p className="font-body text-sm text-ns-ink-secondary leading-relaxed">
               {authorBio}
             </p>
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5">
           <button
-            onClick={handleTipClick}
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white py-2.5 px-5 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-neutral-900 transition-all duration-200 text-sm font-medium"
+            onClick={() => setShowTipModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink active:scale-[0.97] transition-all duration-150"
           >
-            <DollarSign size={18} />
+            <DollarSign className="w-3.5 h-3.5" />
             Support this author
           </button>
         </div>

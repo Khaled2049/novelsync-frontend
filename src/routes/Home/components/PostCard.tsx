@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MessageCircle, BookOpen, Trash2 } from "lucide-react";
+import { MessageCircle, BookOpen, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { IPost } from "@/types/IPost";
 import { IUser } from "@/types/IUser";
 import { Link } from "react-router-dom";
@@ -24,23 +24,18 @@ const PostCard: React.FC<PostCardProps> = ({
   onPostDeleted,
 }) => {
   const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount || 0);
   const [downvoteCount, setDownvoteCount] = useState(post.downvoteCount || 0);
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(
-    post.userVote || null
-  );
+  const [userVote, setUserVote] = useState<"up" | "down" | null>(post.userVote || null);
   const [isVoting, setIsVoting] = useState(false);
   const [hasReported, setHasReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    // Check if user has reported this post
     const checkReported = async () => {
       if (currentUser) {
-        const reported = await reportService.hasUserReported(
-          post.id,
-          currentUser.uid
-        );
+        const reported = await reportService.hasUserReported(post.id, currentUser.uid);
         setHasReported(reported);
       }
     };
@@ -50,26 +45,17 @@ const PostCard: React.FC<PostCardProps> = ({
   const handleVote = async (voteType: "up" | "down" | null) => {
     if (!currentUser || isVoting) return;
 
-    // Optimistic update
     const previousVote = userVote;
     const previousUpvotes = upvoteCount;
     const previousDownvotes = downvoteCount;
 
-    // Calculate new counts optimistically
     let newUpvotes = previousUpvotes;
     let newDownvotes = previousDownvotes;
 
-    if (previousVote === "up") {
-      newUpvotes -= 1;
-    } else if (previousVote === "down") {
-      newDownvotes -= 1;
-    }
-
-    if (voteType === "up") {
-      newUpvotes += 1;
-    } else if (voteType === "down") {
-      newDownvotes += 1;
-    }
+    if (previousVote === "up") newUpvotes -= 1;
+    else if (previousVote === "down") newDownvotes -= 1;
+    if (voteType === "up") newUpvotes += 1;
+    else if (voteType === "down") newDownvotes += 1;
 
     setUpvoteCount(newUpvotes);
     setDownvoteCount(newDownvotes);
@@ -80,7 +66,6 @@ const PostCard: React.FC<PostCardProps> = ({
       await voteService.votePost(post.id, currentUser.uid, voteType);
     } catch (error) {
       console.error("Error voting on post:", error);
-      // Revert optimistic update on error
       setUpvoteCount(previousUpvotes);
       setDownvoteCount(previousDownvotes);
       setUserVote(previousVote);
@@ -91,11 +76,9 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleReport = async (reason?: string) => {
     if (!currentUser) return;
-
     try {
       await reportService.reportPost(post.id, currentUser.uid, reason);
       setHasReported(true);
-      // Optimistically remove post from feed
       onPostDeleted?.(post.id);
     } catch (error) {
       console.error("Error reporting post:", error);
@@ -105,19 +88,11 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleDelete = async () => {
     if (!currentUser || currentUser.uid !== post.authorId) return;
-
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this post? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return;
 
     setIsDeleting(true);
     try {
       await postsService.deletePost(post.id, post.authorId);
-      // Call callback to remove post from feed
       onPostDeleted?.(post.id);
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -143,56 +118,60 @@ const PostCard: React.FC<PostCardProps> = ({
     return d.toLocaleDateString();
   };
 
+  const initials = post.authorName.charAt(0).toUpperCase();
+
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-ns-elevated border border-ns-border rounded-ns-lg p-5 mb-3 shadow-ns-sm hover:shadow-ns transition-shadow duration-200 overflow-hidden">
       {/* Post Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-dark-green dark:bg-light-green flex items-center justify-center text-white dark:text-black font-semibold">
-            {post.authorName.charAt(0).toUpperCase()}
+          {/* Avatar */}
+          <div className="w-9 h-9 rounded-full bg-ns-accent flex items-center justify-center text-white font-ui font-semibold text-sm flex-shrink-0">
+            {initials}
           </div>
           <div>
-            <div className="font-semibold text-gray-900 dark:text-gray-100">
+            <div className="font-ui font-semibold text-ns-ink text-sm leading-tight">
               {post.authorName}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="font-ui text-xs text-ns-ink-muted mt-0.5">
               {formatDate(post.createdAt)}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {post.bookClubId && bookClubName && (
             <Link
               to={`/book-clubs/${post.bookClubId}`}
-              className="flex items-center gap-1 text-xs text-dark-green dark:text-light-green hover:underline"
+              className="flex items-center gap-1 text-xs font-ui text-ns-accent hover:text-ns-accent-hover transition-colors no-underline"
             >
-              <BookOpen size={14} />
-              {bookClubName}
+              <BookOpen size={13} />
+              <span>{bookClubName}</span>
             </Link>
           )}
           {currentUser?.uid === post.authorId && (
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors disabled:opacity-50"
+              className="text-ns-ink-muted hover:text-ns-destructive transition-colors disabled:opacity-40"
               title="Delete post"
             >
-              {isDeleting ? "Deleting..." : <Trash2 size={14} />}
+              {isDeleting
+                ? <span className="font-ui text-xs">Deleting…</span>
+                : <Trash2 size={14} />
+              }
             </button>
           )}
         </div>
       </div>
 
       {/* Post Content */}
-      <div className="mb-4">
-        <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-          {post.content}
-        </p>
-      </div>
+      <p className="font-body text-ns-ink whitespace-pre-wrap leading-relaxed mb-4 text-[0.9375rem]">
+        {post.content}
+      </p>
 
       {/* Post Actions */}
-      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
+      <div className="flex items-center justify-between border-t border-ns-border pt-3">
         <div className="flex items-center gap-4">
           <VoteButtons
             upvoteCount={upvoteCount}
@@ -202,24 +181,31 @@ const PostCard: React.FC<PostCardProps> = ({
             isLoading={isVoting}
             disabled={!currentUser}
           />
-          <div className="flex items-center gap-1">
-            <MessageCircle size={16} />
-            <span>
-              {commentCount} {commentCount === 1 ? "comment" : "comments"}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setCommentsExpanded((prev) => !prev)}
+            className="flex items-center gap-1.5 font-ui text-xs text-ns-ink-secondary hover:text-ns-ink transition-colors"
+            aria-expanded={commentsExpanded}
+          >
+            <MessageCircle size={14} />
+            <span>{commentCount} {commentCount === 1 ? "comment" : "comments"}</span>
+            {commentsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
         </div>
         {currentUser && (
           <ReportButton onReport={handleReport} hasReported={hasReported} />
         )}
       </div>
 
-      {/* Comment Section */}
-      <PostCommentSection
-        postId={post.id}
-        currentUser={currentUser}
-        onCommentCountChange={setCommentCount}
-      />
+      {/* Comment Section (expandable) */}
+      {commentsExpanded && (
+        <PostCommentSection
+          postId={post.id}
+          currentUser={currentUser}
+          onCommentCountChange={setCommentCount}
+          onHideComments={() => setCommentsExpanded(false)}
+        />
+      )}
     </div>
   );
 };

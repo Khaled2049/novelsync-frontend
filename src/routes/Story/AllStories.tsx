@@ -8,21 +8,20 @@ import { SEOHead } from "@/components/SEO/SEOHead";
 import { APP_NAME } from "@/config/seo";
 import StoriesHeader from "@/components/StoriesHeader";
 
-// Category definitions
 const CATEGORIES = [
-  { id: "all", name: "All Stories", value: "all" },
-  { id: "fiction", name: "Fiction", value: "fiction" },
-  { id: "non-fiction", name: "Non-Fiction", value: "non-fiction" },
-  { id: "poetry", name: "Poetry", value: "poetry" },
-  { id: "fantasy", name: "Fantasy", value: "fantasy" },
-  { id: "science-fiction", name: "Science Fiction", value: "science-fiction" },
-  { id: "romance", name: "Romance", value: "romance" },
-  { id: "mystery-thriller", name: "Mystery/Thriller", value: "mystery-thriller" },
-  { id: "horror", name: "Horror", value: "horror" },
-  { id: "historical-fiction", name: "Historical Fiction", value: "historical-fiction" },
-  { id: "young-adult", name: "Young Adult", value: "young-adult" },
-  { id: "drama", name: "Drama", value: "drama" },
-  { id: "adventure", name: "Adventure", value: "adventure" },
+  { id: "all",               name: "All",         value: "all",               symbol: "◆" },
+  { id: "fiction",           name: "Fiction",      value: "fiction",           symbol: "◗" },
+  { id: "non-fiction",       name: "Non-Fiction",  value: "non-fiction",       symbol: "◎" },
+  { id: "poetry",            name: "Poetry",       value: "poetry",            symbol: "❧" },
+  { id: "fantasy",           name: "Fantasy",      value: "fantasy",           symbol: "✦" },
+  { id: "science-fiction",   name: "Sci-Fi",       value: "science-fiction",   symbol: "⊙" },
+  { id: "romance",           name: "Romance",      value: "romance",           symbol: "♡" },
+  { id: "mystery-thriller",  name: "Mystery",      value: "mystery-thriller",  symbol: "◐" },
+  { id: "horror",            name: "Horror",       value: "horror",            symbol: "◈" },
+  { id: "historical-fiction",name: "Historical",   value: "historical-fiction",symbol: "⊕" },
+  { id: "young-adult",       name: "Young Adult",  value: "young-adult",       symbol: "✶" },
+  { id: "drama",             name: "Drama",        value: "drama",             symbol: "◉" },
+  { id: "adventure",         name: "Adventure",    value: "adventure",         symbol: "▷" },
 ] as const;
 
 const AllStories: React.FC = () => {
@@ -33,6 +32,7 @@ const AllStories: React.FC = () => {
   const [stories, setStories] = useState<StoryMetadata[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [loading, setLoading] = useState(false);
+
   const storiesPerPage = 12;
   const indexOfLastNovel = currentPage * storiesPerPage;
   const indexOfFirstNovel = indexOfLastNovel - storiesPerPage;
@@ -67,7 +67,7 @@ const AllStories: React.FC = () => {
         storyList = await storiesRepo.getPublishedStoriesByCategory(selectedCategory);
       }
       setStories(storyList);
-      setCurrentPage(1); // Reset to first page when category changes
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error loading stories:", error);
       setStories([]);
@@ -101,93 +101,84 @@ const AllStories: React.FC = () => {
         url="/stories"
         canonical="/stories"
       />
-      <div className="flex text-gray-900 dark:text-gray-100 transition-colors duration-300">
-        {/* Categories Sidebar - Outside container, on the left */}
-        <div className="hidden md:block w-64 flex-shrink-0 pl-4">
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 sticky top-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
-              Categories
-            </h2>
-            <ul className="space-y-1">
-              {CATEGORIES.map((category) => (
-                <li key={category.id}>
-                  <button
-                    onClick={() => setSelectedCategory(category.value)}
-                    className={`w-full text-left px-4 py-3 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
-                      selectedCategory === category.value
-                        ? "bg-dark-green dark:bg-light-green text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    }`}
+
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Header */}
+        <StoriesHeader
+          user={user}
+          onNewStory={handleNewStory}
+          isModalOpen={isModalOpen}
+          onCloseModal={() => setIsModalOpen(false)}
+        />
+
+        {/* Genre Strip */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="font-ui text-xs tracking-widest uppercase text-ns-ink-muted whitespace-nowrap">
+              Browse by genre
+            </span>
+            <div className="flex-1 h-px bg-ns-border" />
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {CATEGORIES.map((category) => {
+              const isActive = selectedCategory === category.value;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.value)}
+                  className={`
+                    flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
+                    rounded-full border text-xs font-ui font-medium tracking-wide
+                    transition-all duration-200
+                    ${isActive
+                      ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                      : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
+                    }
+                  `}
+                >
+                  <span
+                    className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`}
+                    aria-hidden="true"
                   >
-                    <span className="text-sm">
-                      {selectedCategory === category.value ? "•" : ""}
-                    </span>
-                    {category.name}
-                    {selectedCategory === category.value && (
-                      <span className="ml-auto text-sm opacity-70">→</span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    {category.symbol}
+                  </span>
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Main Content - Centered container */}
-        <div className="flex-1 container mx-auto px-4 max-w-7xl">
-          {/* Header */}
-          <StoriesHeader
-            user={user}
-            onNewStory={handleNewStory}
-            isModalOpen={isModalOpen}
-            onCloseModal={() => setIsModalOpen(false)}
-          />
-
-          {/* Stories Content - Directly under welcome message */}
-          <div>
-            {/* Mobile Category Selector */}
-            <div className="md:hidden mb-4">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green"
-              >
-                {CATEGORIES.map((category) => (
-                  <option key={category.id} value={category.value}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500 dark:text-gray-400">Loading stories...</div>
-              </div>
-            ) : currentStories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FaBook className="text-6xl text-gray-300 dark:text-gray-600 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  No stories found
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  {selectedCategory === "all"
-                    ? "No stories have been published yet."
-                    : `No stories found in this category yet.`}
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Story Grid  */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {currentStories.map((story) => (
+        {/* Stories Content */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <span className="text-ns-ink-muted font-ui text-sm">Loading stories…</span>
+          </div>
+        ) : currentStories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FaBook className="text-5xl text-ns-ink-muted mb-4 opacity-30" />
+            <h3 className="font-heading text-title font-medium text-ns-ink mb-2">
+              No stories found
+            </h3>
+            <p className="text-ns-ink-secondary font-ui text-sm">
+              {selectedCategory === "all"
+                ? "No stories have been published yet."
+                : "No stories found in this category yet."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Story Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {currentStories.map((story) => (
                 <div
                   key={story.id}
                   onClick={() => handleStoryClick(story)}
                   className="group cursor-pointer"
                 >
                   {/* Cover Image */}
-                  <div className="relative aspect-[2/3] rounded-lg overflow-hidden mb-2 bg-gray-200 dark:bg-gray-800">
+                  <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
                     {story.coverImageUrl ? (
                       <img
                         src={story.coverImageUrl}
@@ -196,13 +187,13 @@ const AllStories: React.FC = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <FaBook className="text-4xl text-gray-400" />
+                        <FaBook className="text-4xl text-ns-ink-muted opacity-30" />
                       </div>
                     )}
-                    {/* Overlay on hover */}
+                    {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-300 flex flex-col justify-between p-3 opacity-0 group-hover:opacity-100">
                       <div className="text-white text-xs space-y-2">
-                        <p className="line-clamp-4 leading-relaxed">
+                        <p className="line-clamp-4 leading-relaxed font-body">
                           {story.description}
                         </p>
                         {story.tags && story.tags.length > 0 && (
@@ -210,7 +201,7 @@ const AllStories: React.FC = () => {
                             {story.tags.slice(0, 3).map((tag, index) => (
                               <span
                                 key={index}
-                                className="bg-dark-green/80 dark:bg-light-green/80 text-white text-xs px-1.5 py-0.5 rounded"
+                                className="bg-ns-accent/80 text-white text-xs px-1.5 py-0.5 rounded font-ui"
                               >
                                 {tag}
                               </span>
@@ -218,9 +209,9 @@ const AllStories: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div className="text-white text-xs flex items-center justify-between">
+                      <div className="text-white text-xs flex items-center justify-between font-ui">
                         <span className="flex items-center gap-1">
-                          <FaEye />{" "}
+                          <FaEye />
                           {story.views >= 1000
                             ? `${(story.views / 1000).toFixed(1)}K`
                             : story.views}
@@ -233,42 +224,38 @@ const AllStories: React.FC = () => {
                   </div>
 
                   {/* Story Info */}
-                  <div className="space-y-1">
-                    <h3 className="font-medium text-sm line-clamp-2 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
+                  <div className="space-y-0.5">
+                    <h3 className="font-ui font-medium text-sm line-clamp-2 text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
                       {story.title}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-ns-ink-muted font-ui">
                       {story.author}
                     </p>
                   </div>
                 </div>
               ))}
-                </div>
+            </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center gap-2 mt-8">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (pageNumber) => (
-                        <button
-                          key={pageNumber}
-                          onClick={() => handlePageChange(pageNumber)}
-                          className={`w-8 h-8 rounded-lg transition-colors duration-200 ${
-                            currentPage === pageNumber
-                              ? "bg-dark-green dark:bg-light-green text-white"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-              </>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-10">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    onClick={() => handlePageChange(pageNumber)}
+                    className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
+                      currentPage === pageNumber
+                        ? "bg-ns-accent text-white shadow-ns-sm"
+                        : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </>
   );

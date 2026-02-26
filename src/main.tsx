@@ -41,8 +41,8 @@ const HelpSupport = lazy(() => import("./routes/Help/HelpSupport"));
 const UserProfile = lazy(() => import("./routes/Profile/UserProfile"));
 
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
+  <div className="flex items-center justify-center min-h-screen bg-ns-bg">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ns-accent"></div>
   </div>
 );
 
@@ -337,5 +337,5 @@ createRoot(document.getElementById("root")!).render(
         </AuthProvider>
       </ThemeProvider>
     </Web3Provider>
-  </SEOProvider>
+  </SEOProvider>,
 );

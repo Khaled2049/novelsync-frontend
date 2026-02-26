@@ -35,21 +35,21 @@ Firebase Hosting/Functions are optimized for the Firebase CLI. Terraform handles
 
 ### Terraform (`terraform/`)
 
-| File | Purpose |
-|------|---------|
-| `versions.tf` | Terraform >= 1.5.0, Google provider ~> 5.0 |
-| `variables.tf` | Input variables (project_id, region, secret_names, etc.) |
-| `backend.tf` | GCS state backend (`story-6f89f-terraform-state`) |
-| `main.tf` | API enablement (7 APIs), Cloud Run data source |
-| `secrets.tf` | Secret Manager secrets via `for_each`, import blocks for existing secrets |
-| `iam.tf` | IAM bindings for App Engine SA and GitHub Actions SA |
-| `firestore.tf` | Firestore configuration (extensible) |
-| `outputs.tf` | Backend URL, service accounts, secrets list |
+| File           | Purpose                                                                   |
+| -------------- | ------------------------------------------------------------------------- |
+| `versions.tf`  | Terraform >= 1.5.0, Google provider ~> 5.0                                |
+| `variables.tf` | Input variables (project_id, region, secret_names, etc.)                  |
+| `backend.tf`   | GCS state backend (`story-6f89f-terraform-state`)                         |
+| `main.tf`      | API enablement (7 APIs), Cloud Run data source                            |
+| `secrets.tf`   | Secret Manager secrets via `for_each`, import blocks for existing secrets |
+| `iam.tf`       | IAM bindings for App Engine SA and GitHub Actions SA                      |
+| `firestore.tf` | Firestore configuration (extensible)                                      |
+| `outputs.tf`   | Backend URL, service accounts, secrets list                               |
 
 ### GitHub Actions (`.github/workflows/`)
 
-| File | Purpose |
-|------|---------|
+| File         | Purpose                                                                 |
+| ------------ | ----------------------------------------------------------------------- |
 | `deploy.yml` | Production deployment: Terraform apply, build frontend, deploy Firebase |
 
 ## One-Time Setup
@@ -119,38 +119,38 @@ Go to Settings > Secrets and variables > Actions and add:
 
 **WIF Configuration:**
 
-| Secret | Value |
-|--------|-------|
-| `WIF_PROVIDER` | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
-| `WIF_SERVICE_ACCOUNT` | `github-actions@story-6f89f.iam.gserviceaccount.com` |
+| Secret                | Value                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `WIF_PROVIDER`        | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+| `WIF_SERVICE_ACCOUNT` | `github-actions@story-6f89f.iam.gserviceaccount.com`                                                   |
 
 **Runtime Secrets** (synced to GCP Secret Manager by the workflow):
 
-| Secret | Value |
-|--------|-------|
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `EMAIL_FROM` | Sender email address |
+| Secret                    | Value                         |
+| ------------------------- | ----------------------------- |
+| `SMTP_USER`               | SMTP username                 |
+| `SMTP_PASS`               | SMTP password                 |
+| `EMAIL_FROM`              | Sender email address          |
 | `MAGIC_LINK_REDIRECT_URL` | `https://story-6f89f.web.app` |
-| `REPLICATE_API_TOKEN` | Replicate API token |
+| `REPLICATE_API_TOKEN`     | Replicate API token           |
 
 **Build-time Secrets** (injected as env vars during `yarn build`):
 
-| Secret | Value |
-|--------|-------|
-| `VITE_FIREBASE_API_KEY` | Firebase API key |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `story-6f89f.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | `story-6f89f` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `story-6f89f.appspot.com` |
-| `VITE_FIREBASE_MESSAGE_SENDER_ID` | Sender ID |
-| `VITE_FIREBASE_APP_ID` | App ID |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Measurement ID |
-| `VITE_THIRDWEB_CLIENT_ID` | Thirdweb client ID |
-| `VITE_USDC_TOKEN_ADDRESS` | USDC token address |
-| `VITE_TIPPING_CONTRACT_ADDRESS` | Tipping contract address |
-| `VITE_CHAIN_ID` | Chain ID |
-| `VITE_MAX_AI_USAGE` | Max AI usage |
-| `VITE_APP_NAME` | App display name |
+| Secret                            | Value                         |
+| --------------------------------- | ----------------------------- |
+| `VITE_FIREBASE_API_KEY`           | Firebase API key              |
+| `VITE_FIREBASE_AUTH_DOMAIN`       | `story-6f89f.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID`        | `story-6f89f`                 |
+| `VITE_FIREBASE_STORAGE_BUCKET`    | `story-6f89f.appspot.com`     |
+| `VITE_FIREBASE_MESSAGE_SENDER_ID` | Sender ID                     |
+| `VITE_FIREBASE_APP_ID`            | App ID                        |
+| `VITE_FIREBASE_MEASUREMENT_ID`    | Measurement ID                |
+| `VITE_THIRDWEB_CLIENT_ID`         | Thirdweb client ID            |
+| `VITE_USDC_TOKEN_ADDRESS`         | USDC token address            |
+| `VITE_TIPPING_CONTRACT_ADDRESS`   | Tipping contract address      |
+| `VITE_CHAIN_ID`                   | Chain ID                      |
+| `VITE_MAX_AI_USAGE`               | Max AI usage                  |
+| `VITE_APP_NAME`                   | App display name              |
 
 ### 5. Test Terraform Locally
 
@@ -191,6 +191,7 @@ The workflow syncs GitHub secrets to GCP on each deploy, only adding a new versi
 Terraform creates the secret shells. Existing secrets (SMTP_USER, SMTP_PASS, EMAIL_FROM, MAGIC_LINK_REDIRECT_URL) are imported via `import` blocks in `secrets.tf`. New secrets (REPLICATE_API_TOKEN) are created by Terraform.
 
 To add a new secret:
+
 1. Add the name to `secret_names` in `terraform/variables.tf`
 2. Add import block in `secrets.tf` if it already exists in GCP
 3. Add `sync_secret` and `cleanup_secret` lines in `deploy.yml`
@@ -200,20 +201,20 @@ To add a new secret:
 
 ### GitHub Actions Service Account
 
-| Role | Purpose | Scope |
-|------|---------|-------|
-| `roles/firebase.admin` | Deploy hosting, functions, rules | Project |
-| `roles/cloudfunctions.developer` | Deploy cloud functions | Project |
-| `roles/secretmanager.secretVersionAdder` | Add new secret versions | Project |
-| `roles/secretmanager.secretAccessor` | Read secrets for sync verification | Project |
-| `roles/storage.objectAdmin` | Manage Terraform state | GCS bucket only |
+| Role                                     | Purpose                            | Scope           |
+| ---------------------------------------- | ---------------------------------- | --------------- |
+| `roles/firebase.admin`                   | Deploy hosting, functions, rules   | Project         |
+| `roles/cloudfunctions.developer`         | Deploy cloud functions             | Project         |
+| `roles/secretmanager.secretVersionAdder` | Add new secret versions            | Project         |
+| `roles/secretmanager.secretAccessor`     | Read secrets for sync verification | Project         |
+| `roles/storage.objectAdmin`              | Manage Terraform state             | GCS bucket only |
 
 ### App Engine Default SA (Cloud Functions runtime)
 
-| Role | Purpose | Scope |
-|------|---------|-------|
-| `roles/secretmanager.secretAccessor` | Read secrets at runtime | Per-secret |
-| `roles/run.invoker` | Call Cloud Run backend | Backend service |
+| Role                                 | Purpose                 | Scope           |
+| ------------------------------------ | ----------------------- | --------------- |
+| `roles/secretmanager.secretAccessor` | Read secrets at runtime | Per-secret      |
+| `roles/run.invoker`                  | Call Cloud Run backend  | Backend service |
 
 ## Troubleshooting
 
@@ -295,3 +296,120 @@ cd terraform
 terraform plan -destroy
 terraform destroy
 ```
+
+# Running Locally with Production Data
+
+This guide explains how to run the app locally against production Firebase services (Firestore, Auth, Storage) instead of the emulator.
+
+## Prerequisites
+
+1. **Google Cloud CLI** installed (`gcloud`)
+2. **Service account key** with access to your Firebase project
+
+## Step 1: Get a Service Account Key
+
+1. Go to [Firebase Console](https://console.firebase.google.com) > Project Settings > Service Accounts
+2. Click **Generate new private key**
+3. Save it as `functions/key.json` (already in `.gitignore`)
+
+## Step 2: Set Environment Variables
+
+**`functions/.env`** — set the agent service URL:
+
+```
+AGENT_SERVICE_URL=https://novelsync-agents-ukvrbnaddq-uc.a.run.app
+```
+
+**`functions/.env.local`** — set SMTP and any secrets:
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM=your-email@gmail.com
+MAGIC_LINK_REDIRECT_URL=http://localhost:5173/auth/complete-signup
+```
+
+**Shell environment** — set the credentials path before running:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=./functions/key.json
+```
+
+## Step 3: Disable Emulator Connections in the Frontend
+
+The frontend (`src/config/firebase.ts`) auto-connects to emulators when `MODE === "development"`. To hit production instead, you need to skip the emulator connections.
+
+**Option A: Use a production build preview**
+
+```bash
+npm run build && npm run preview
+```
+
+This runs in production mode so emulator connections are skipped entirely.
+
+**Option B: Add an environment flag**
+
+Create a `.env.local` file in the project root:
+
+```
+VITE_USE_EMULATORS=false
+```
+
+Then update `src/config/firebase.ts` to check for it:
+
+```typescript
+if (import.meta.env.MODE === "development" && import.meta.env.VITE_USE_EMULATORS !== "false") {
+```
+
+This lets you run `npm run dev` normally but skip emulator connections.
+
+## Step 4: Run Functions Locally (Without the Emulator)
+
+Use the Firebase Functions shell, which does **not** set `FUNCTIONS_EMULATOR=true`:
+
+```bash
+cd functions
+GOOGLE_APPLICATION_CREDENTIALS=./key.json npx firebase functions:shell
+```
+
+Or run the compiled functions directly with `ts-node` / `node`:
+
+```bash
+cd functions
+GOOGLE_APPLICATION_CREDENTIALS=./key.json npx ts-node src/index.ts
+```
+
+Both approaches will:
+
+- Use your service account key to authenticate with production Firestore/Auth/Storage
+- Read `AGENT_SERVICE_URL` from `functions/.env` and call the real Cloud Run service
+- Skip the `isLocalDevelopment` code path since `FUNCTIONS_EMULATOR` is not set
+
+## Step 5: Start the Frontend
+
+```bash
+# Option A: dev mode (requires Option B from Step 3)
+npm run dev
+
+# Option B: production build preview (no code changes needed)
+npm run build && npm run preview
+```
+
+## Summary
+
+| What          | Emulator Mode  | Production Mode                           |
+| ------------- | -------------- | ----------------------------------------- |
+| Firestore     | localhost:8080 | Production                                |
+| Auth          | localhost:9099 | Production                                |
+| Storage       | localhost:9199 | Production                                |
+| Functions     | localhost:5001 | `functions:shell` or direct               |
+| Agent Service | localhost:8000 | Cloud Run URL from `.env`                 |
+| Frontend      | `npm run dev`  | `npm run dev` + flag or `npm run preview` |
+
+## Warnings
+
+- **You are writing to production data.** Be careful with destructive operations.
+- **Never commit `key.json`** — it's already in `functions/.gitignore`.
+- **Revert `isLocalDevelopment`** in `agentService.ts` if you hardcoded it to `false` — with this setup you don't need to.
