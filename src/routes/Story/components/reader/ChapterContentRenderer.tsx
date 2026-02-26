@@ -11,7 +11,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
   content,
   onWordClick,
 }) => {
-  const handleWordClick = useCallback(
+  const handleWordDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLSpanElement>) => {
       const target = e.currentTarget;
       const word = target.dataset.word;
@@ -42,8 +42,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
                   <span key={wordIndex}>
                     <span
                       data-word={word.replace(/[.,!?;:'"""'']/g, "")}
-                      onClick={handleWordClick}
-                      className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900 rounded px-0.5 transition-colors"
+                      onDoubleClick={handleWordDoubleClick}
                     >
                       {word}
                     </span>
@@ -132,7 +131,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
         }
       });
     },
-    [handleWordClick]
+    [handleWordDoubleClick]
   );
 
   return <div className="select-text">{renderContent(content)}</div>;

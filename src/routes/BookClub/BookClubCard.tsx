@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { IClub } from "@/types/IClub";
-import { Clock, UserPlus, Users, X, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUpRight } from "lucide-react";
 
 interface BookClubCardProps {
   club: IClub;
   joined: boolean;
+  index: number;
   onEdit: () => void;
   onDelete: () => void;
   onJoin: (clubId: string) => void;
@@ -18,6 +19,7 @@ const BookClubCard = ({
   onEdit,
   onDelete,
   onLeave,
+  index,
 }: BookClubCardProps) => {
   const navigate = useNavigate();
 
@@ -31,98 +33,106 @@ const BookClubCard = ({
   };
 
   return (
-    <div
+    <article
       onClick={handleCardClick}
-      className="flex flex-col h-full bg-white dark:bg-neutral-900 rounded-2xl shadow-sm hover:shadow-xl border border-neutral-200 dark:border-neutral-800 transition-all duration-300 overflow-hidden group relative cursor-pointer"
+      className="group relative cursor-pointer border-b border-neutral-200 dark:border-neutral-800 py-8 md:py-10 transition-colors duration-300 hover:border-dark-green dark:hover:border-light-green"
     >
-      {/* Decorative Top Banner */}
-      <div className="h-3 w-full bg-gradient-to-r from-dark-green to-emerald-400 dark:from-light-green dark:to-emerald-600" />
+      {/* Left accent bar */}
+      <div className="absolute left-0 top-0 h-full w-[2px] bg-dark-green dark:bg-light-green origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" />
 
-      {/* Admin Actions (Absolute Positioned for cleaner UI) */}
-      <div className="absolute top-5 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-        <button
-          onClick={(e) => handleButtonClick(e, onEdit)}
-          className="p-2 bg-white/90 dark:bg-black/50 backdrop-blur-sm text-neutral-600 dark:text-neutral-300 rounded-full hover:text-dark-green hover:bg-neutral-100 dark:hover:text-light-green border border-transparent hover:border-neutral-200"
-          title="Edit Club"
-        >
-          <Edit size={14} />
-        </button>
-        <button
-          onClick={(e) => handleButtonClick(e, onDelete)}
-          className="p-2 bg-white/90 dark:bg-black/50 backdrop-blur-sm text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 border border-transparent hover:border-red-100"
-          title="Delete Club"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
+      <div className="flex items-start gap-5 md:gap-8 pl-5 md:pl-7">
+        {/* Index number */}
+        <span className="font-mono text-[11px] text-neutral-300 dark:text-neutral-700 pt-2 shrink-0 select-none">
+          {String(index + 1).padStart(2, "0")}
+        </span>
 
-      <div className="p-6 flex flex-col flex-grow">
-        {/* Category Badge */}
-        <div className="mb-4">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 uppercase tracking-wider">
-            {club.category}
-          </span>
-        </div>
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Category overline */}
+          <p className="font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-dark-green dark:text-light-green mb-2">
+            {club.category || "General"}
+          </p>
 
-        {/* Title */}
-        <h2 className="text-2xl font-serif font-bold text-neutral-900 dark:text-white mb-3 line-clamp-2 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
-          {club.name}
-        </h2>
+          {/* Club name */}
+          <h2 className="font-heading text-2xl md:text-[2rem] lg:text-[2.5rem] font-light italic leading-[1.15] text-neutral-900 dark:text-neutral-50 mb-3 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors duration-300">
+            {club.name}
+          </h2>
 
-        {/* Description */}
-        <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed mb-6 line-clamp-3 flex-grow">
-          {club.description}
-        </p>
+          {/* Description */}
+          <p className="font-body text-[0.9rem] md:text-base text-neutral-500 dark:text-neutral-400 leading-relaxed line-clamp-2 max-w-2xl mb-5">
+            {club.description}
+          </p>
 
-        {/* Stats Row */}
-        <div className="flex items-center justify-between py-4 border-t border-neutral-100 dark:border-neutral-800 mb-4">
-          <div className="flex items-center text-neutral-500 dark:text-neutral-400 text-sm">
-            <Users
-              size={16}
-              className="mr-2 text-dark-green dark:text-light-green"
-            />
+          {/* Metadata row */}
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] font-ui text-neutral-400 dark:text-neutral-600">
             <span>
               {club.members.length}{" "}
               {club.members.length === 1 ? "member" : "members"}
             </span>
-          </div>
-          <div className="flex items-center text-neutral-500 dark:text-neutral-400 text-sm">
-            <Clock
-              size={16}
-              className="mr-2 text-dark-green dark:text-light-green"
-            />
+            <span className="w-[3px] h-[3px] rounded-full bg-neutral-300 dark:bg-neutral-700" />
             <span>{club.activity}</span>
+            {club.bookOfTheMonth?.volumeInfo.title && (
+              <>
+                <span className="w-[3px] h-[3px] rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                <span className="italic truncate max-w-[200px]">
+                  Reading: {club.bookOfTheMonth.volumeInfo.title}
+                </span>
+              </>
+            )}
+            {club.meetUp && (
+              <>
+                <span className="w-[3px] h-[3px] rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                <span>{club.meetUp}</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Primary Action Button */}
-        <div className="mt-auto">
-          {!joined ? (
+        {/* Right: actions */}
+        <div className="shrink-0 flex flex-col items-end justify-between gap-4 self-stretch py-1">
+          {/* Admin actions */}
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
-              onClick={(e) => handleButtonClick(e, () => onJoin(club.id))}
-              className="w-full py-3 px-4 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-semibold flex items-center justify-center hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200 shadow-sm"
+              onClick={(e) => handleButtonClick(e, onEdit)}
+              className="p-1.5 text-neutral-400 hover:text-dark-green dark:hover:text-light-green transition-colors"
+              title="Edit Club"
             >
-              <UserPlus size={18} className="mr-2" />
-              Join Club
+              <Edit size={13} />
             </button>
-          ) : (
             <button
-              onClick={(e) => handleButtonClick(e, () => onLeave(club.id))}
-              className="w-full py-3 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 font-medium flex items-center justify-center hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors duration-200"
+              onClick={(e) => handleButtonClick(e, onDelete)}
+              className="p-1.5 text-neutral-400 hover:text-red-500 transition-colors"
+              title="Delete Club"
             >
-              <span className="flex items-center group-hover:hidden">
-                <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+              <Trash2 size={13} />
+            </button>
+          </div>
+
+          {/* Join / Member + arrow */}
+          <div className="flex items-center gap-3 mt-auto">
+            {!joined ? (
+              <button
+                onClick={(e) => handleButtonClick(e, () => onJoin(club.id))}
+                className="text-[11px] font-ui font-semibold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors duration-200"
+              >
+                Join
+              </button>
+            ) : (
+              <button
+                onClick={(e) => handleButtonClick(e, () => onLeave(club.id))}
+                className="text-[11px] font-ui font-semibold tracking-[0.12em] uppercase text-dark-green dark:text-light-green border border-dark-green dark:border-light-green px-4 py-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-700 transition-colors duration-200"
+              >
                 Member
-              </span>
-              <span className="hidden group-hover:flex items-center">
-                <X size={18} className="mr-2" />
-                Leave Club
-              </span>
-            </button>
-          )}
+              </button>
+            )}
+            <ArrowUpRight
+              size={16}
+              className="text-neutral-300 dark:text-neutral-700 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors duration-300"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

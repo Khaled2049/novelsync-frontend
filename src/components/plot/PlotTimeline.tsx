@@ -9,6 +9,7 @@ import {
   Users,
   MapPin,
   GripVertical,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,12 +65,12 @@ function ensureEventDefaults(
   };
 }
 
-// Get tension color for badge
+// Tension color — semantic heat map
 function getTensionColor(level: number): string {
-  if (level <= 3) return "bg-green-500";
-  if (level <= 5) return "bg-yellow-500";
+  if (level <= 3) return "bg-emerald-500";
+  if (level <= 5) return "bg-amber-500";
   if (level <= 7) return "bg-orange-500";
-  return "bg-red-500";
+  return "bg-rose-500";
 }
 
 const PlotTimeline: React.FC = () => {
@@ -86,10 +87,8 @@ const PlotTimeline: React.FC = () => {
     event: PlotEvent;
   } | null>(null);
 
-  // New state for tension chart visibility
   const [showTensionChart, setShowTensionChart] = useState(false);
 
-  // Placeholder state for characters and places (would come from their respective services)
   const [characters] = useState<Character[]>([]);
   const [places] = useState<Place[]>([]);
 
@@ -101,7 +100,6 @@ const PlotTimeline: React.FC = () => {
     if (!storyId) return;
 
     const plots = await plotService.getPlots(storyId);
-    // Migrate events to ensure they have all required fields
     const migratedPlots = plots.map((plot) => ({
       ...plot,
       events: plot.events.map((event, index) =>
@@ -112,10 +110,6 @@ const PlotTimeline: React.FC = () => {
 
     const data = await plotService.loadTemplateData();
     setTemplates(data);
-
-    // TODO: Load characters and places from their respective services
-    // setCharacters(await characterService.getCharacters(storyId));
-    // setPlaces(await placeService.getPlaces(storyId));
   };
 
   const addPlotLine = async () => {
@@ -287,14 +281,11 @@ const PlotTimeline: React.FC = () => {
     }
   };
 
-  // Handle drag and drop reordering
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination } = result;
 
-    // Dropped outside the list
     if (!destination) return;
 
-    // Same position
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -307,13 +298,11 @@ const PlotTimeline: React.FC = () => {
 
     if (!plotLine) return;
 
-    // Reorder within the same plot line
     if (source.droppableId === destination.droppableId) {
       const newEvents = Array.from(plotLine.events);
       const [removed] = newEvents.splice(source.index, 1);
       newEvents.splice(destination.index, 0, removed);
 
-      // Update orderIndex for all events
       const updatedEvents = newEvents.map((event, index) => ({
         ...event,
         orderIndex: index,
@@ -329,7 +318,6 @@ const PlotTimeline: React.FC = () => {
         plotLines.map((pl) => (pl.id === plotLineId ? updatedPlotLine : pl)),
       );
 
-      // Persist to backend
       if (storyId) {
         await plotService.updatePlot(storyId, updatedPlotLine);
       }
@@ -337,33 +325,44 @@ const PlotTimeline: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 bg-neutral-50 dark:bg-black transition-colors duration-200">
-      <div className="flex flex-wrap gap-2 mb-4">
+    <div className="h-full flex flex-col bg-ns-bg">
+
+      {/* ── Toolbar ── */}
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-3 border-b border-ns-border bg-ns-surface">
+        {/* Page title */}
+        <span className="font-heading italic text-lg text-ns-ink mr-2 hidden sm:block">
+          Plot Timeline
+        </span>
+
+        <div className="w-px h-5 bg-ns-border hidden sm:block" />
+
         <button
           onClick={addPlotLine}
-          className="py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
-          Add Plot
+          <PlusCircle className="w-3.5 h-3.5" />
+          Add Plot Line
         </button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="flex items-center text-black dark:text-white border-black/20 dark:border-white/20 hover:bg-black/10 dark:hover:bg-neutral-50/10 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
+              className="inline-flex items-center gap-1.5 h-auto px-3 py-1.5 bg-transparent border border-ns-border text-ns-ink-secondary font-ui text-xs font-normal rounded-ns hover:bg-ns-surface-hover hover:text-ns-ink transition-all duration-150 shadow-none"
             >
-              <Book className="mr-2 h-4 w-4 text-dark-green dark:text-light-green" />
-              Plot Templates
-              <ChevronDown className="ml-2 h-4 w-4 text-black dark:text-white" />
+              <Book className="w-3.5 h-3.5" />
+              Templates
+              <ChevronDown className="w-3 h-3 ml-0.5 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border border-black/20 dark:border-white/20 bg-neutral-50 dark:bg-black shadow-lg rounded-md p-1 min-w-[200px]">
+          <DropdownMenuContent className="border border-ns-border bg-ns-elevated shadow-ns-lg rounded-ns-lg p-1 min-w-[200px]">
             {templates.map((template, idx) => (
               <DropdownMenuItem
                 key={idx}
                 onSelect={() => addPlotLineFromTemplate(template)}
-                className="px-4 py-2 hover:bg-black/10 dark:hover:bg-neutral-50/10 rounded-sm cursor-pointer transition-colors duration-150 ease-in-out text-black dark:text-white"
+                className="px-3 py-2 hover:bg-ns-surface-hover rounded-ns cursor-pointer font-ui text-sm text-ns-ink"
               >
-                <span className="font-serif">{template.name}</span>
+                <span className="font-heading italic">{template.name}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -371,215 +370,257 @@ const PlotTimeline: React.FC = () => {
 
         <button
           onClick={() => setShowTensionChart(!showTensionChart)}
-          className={`py-2 px-4 rounded-sm flex items-center gap-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 font-ui text-xs font-medium rounded-ns border transition-all duration-150 ${
             showTensionChart
-              ? "bg-dark-green dark:bg-light-green text-white"
-              : "bg-black/10 dark:bg-neutral-50/10 text-black dark:text-white hover:bg-black/20 dark:hover:bg-neutral-50/20"
+              ? "bg-ns-accent border-ns-accent text-white"
+              : "border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
           }`}
         >
-          <TrendingUp className="h-4 w-4" />
+          <TrendingUp className="w-3.5 h-3.5" />
           Tension Curve
+        </button>
+
+        {/* Generate — pushed to right */}
+        <button
+          onClick={generateText}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-ns-gold/40 text-ns-gold font-ui text-xs font-medium rounded-ns hover:bg-ns-gold/5 active:scale-[0.97] transition-all duration-150"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          Generate Ideas
         </button>
       </div>
 
-      {/* Tension Curve Chart */}
-      <AnimatePresence>
-        {showTensionChart && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6 overflow-hidden"
-          >
-            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-              <TensionCurveChart plotLines={plotLines} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Scrollable Content ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-4 max-w-5xl mx-auto">
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="space-y-6">
-          {plotLines.map((plotLine) => (
-            <div
-              key={plotLine.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-            >
-              {/* Plot Line Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-light-green dark:bg-dark-green text-white">
+          {/* Tension Curve Chart */}
+          <AnimatePresence>
+            {showTensionChart && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 border border-ns-border rounded-ns-lg bg-ns-elevated shadow-ns-sm">
+                  <TensionCurveChart plotLines={plotLines} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Plot Lines */}
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="space-y-4">
+              {plotLines.map((plotLine) => (
                 <div
-                  className="flex items-center gap-2 cursor-pointer flex-1"
-                  onClick={() => openEditPlotlineModal(plotLine)}
+                  key={plotLine.id}
+                  className="border border-ns-border rounded-ns-lg overflow-hidden shadow-ns-sm"
                 >
-                  <h3 className="font-semibold">{plotLine.name}</h3>
-                  <span className="text-xs opacity-70">
-                    ({plotLine.events.length} event
-                    {plotLine.events.length !== 1 ? "s" : ""})
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => addEvent(plotLine.id)}
-                    className="flex items-center gap-1 px-3 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors text-sm"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Event
-                  </button>
-                  <button
-                    onClick={() => removePlotline(plotLine.id)}
-                    className="p-1.5 rounded hover:bg-white/20 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+                  {/* Plot Line Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-ns-accent text-white">
+                    <div
+                      className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"
+                      onClick={() => openEditPlotlineModal(plotLine)}
+                    >
+                      <h3 className="font-heading italic text-base font-normal truncate">
+                        {plotLine.name}
+                      </h3>
+                      <span className="font-ui text-xs opacity-60 flex-shrink-0">
+                        {plotLine.events.length} event
+                        {plotLine.events.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => addEvent(plotLine.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ns bg-white/20 hover:bg-white/30 font-ui text-xs transition-colors"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        Add Event
+                      </button>
+                      <button
+                        onClick={() => removePlotline(plotLine.id)}
+                        className="p-1.5 rounded-ns hover:bg-white/20 transition-colors"
+                        aria-label="Delete plot line"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Events List */}
-              <Droppable droppableId={plotLine.id}>
-                {(provided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`p-4 min-h-[80px] ${
-                      droppableSnapshot.isDraggingOver
-                        ? "bg-dark-green/5 dark:bg-light-green/5"
-                        : "bg-gray-50 dark:bg-gray-900"
-                    }`}
-                  >
-                    {plotLine.events.length === 0 ? (
-                      <div className="flex items-center justify-center h-16 text-gray-400 dark:text-gray-500 text-sm">
-                        No events yet. Click "Add Event" to create one.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {plotLine.events.map((event, index) => {
-                          const migratedEvent = ensureEventDefaults(
-                            event,
-                            index,
-                          );
+                  {/* Events Drop Zone */}
+                  <Droppable droppableId={plotLine.id}>
+                    {(
+                      provided: DroppableProvided,
+                      droppableSnapshot: DroppableStateSnapshot,
+                    ) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`p-3 min-h-[80px] transition-colors duration-150 ${
+                          droppableSnapshot.isDraggingOver
+                            ? "bg-ns-accent-subtle"
+                            : "bg-ns-bg"
+                        }`}
+                      >
+                        {plotLine.events.length === 0 ? (
+                          <div className="flex items-center justify-center h-16 font-ui text-xs text-ns-ink-muted">
+                            No events yet — click "Add Event" to create one
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {plotLine.events.map((event, index) => {
+                              const migratedEvent = ensureEventDefaults(
+                                event,
+                                index,
+                              );
 
-                          return (
-                            <Draggable
-                              key={migratedEvent.id}
-                              draggableId={migratedEvent.id}
-                              index={index}
-                            >
-                              {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  style={provided.draggableProps.style}
-                                  className={`flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:shadow-md hover:border-dark-green dark:hover:border-light-green transition-all ${
-                                    snapshot.isDragging
-                                      ? "shadow-xl ring-2 ring-dark-green dark:ring-light-green"
-                                      : ""
-                                  }`}
-                                  onClick={() =>
-                                    openEditEventModal(
-                                      plotLine.id,
-                                      migratedEvent,
-                                    )
-                                  }
+                              return (
+                                <Draggable
+                                  key={migratedEvent.id}
+                                  draggableId={migratedEvent.id}
+                                  index={index}
                                 >
-                                  {/* Drag Handle */}
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing flex-shrink-0"
-                                  >
-                                    <GripVertical className="w-5 h-5" />
-                                  </div>
-
-                                  {/* Event Number */}
-                                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500 w-8 flex-shrink-0">
-                                    #{index + 1}
-                                  </span>
-
-                                  {/* Event Name & Content */}
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-gray-900 dark:text-white truncate">
-                                      {migratedEvent.name}
-                                    </h4>
-                                    {migratedEvent.content && (
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                        {migratedEvent.content}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  {/* Metadata Badges */}
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    {/* Tension Badge */}
-                                    <span
-                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTensionColor(
-                                        migratedEvent.tensionLevel,
-                                      )} text-white`}
-                                    >
-                                      {migratedEvent.tensionLevel}
-                                    </span>
-
-                                    {/* Story Beat */}
-                                    <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                      {migratedEvent.storyBeat.replace(
-                                        "_",
-                                        " ",
-                                      )}
-                                    </span>
-
-                                    {/* Pacing */}
-                                    <span
-                                      className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
-                                        migratedEvent.pacing === "slow"
-                                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                                          : migratedEvent.pacing === "fast"
-                                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                  {(
+                                    provided: DraggableProvided,
+                                    snapshot: DraggableStateSnapshot,
+                                  ) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      style={provided.draggableProps.style}
+                                      className={`flex items-center gap-3 bg-ns-elevated border rounded-ns p-3 cursor-pointer transition-all duration-150 ${
+                                        snapshot.isDragging
+                                          ? "border-ns-accent shadow-ns-xl ring-1 ring-ns-accent"
+                                          : "border-ns-border hover:border-ns-border-strong hover:shadow-ns"
                                       }`}
+                                      onClick={() =>
+                                        openEditEventModal(
+                                          plotLine.id,
+                                          migratedEvent,
+                                        )
+                                      }
                                     >
-                                      {migratedEvent.pacing}
-                                    </span>
+                                      {/* Drag Handle */}
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-ns-ink-muted hover:text-ns-ink cursor-grab active:cursor-grabbing flex-shrink-0"
+                                      >
+                                        <GripVertical className="w-4 h-4" />
+                                      </div>
 
-                                    {/* Characters Count */}
-                                    {migratedEvent.characterIds.length > 0 && (
-                                      <span className="hidden lg:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                                        <Users className="w-3 h-3" />
-                                        {migratedEvent.characterIds.length}
+                                      {/* Index */}
+                                      <span className="font-ui text-[10px] text-ns-ink-muted tabular-nums w-5 flex-shrink-0 text-right">
+                                        {index + 1}
                                       </span>
-                                    )}
 
-                                    {/* Location */}
-                                    {migratedEvent.locationId && (
-                                      <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                                        <MapPin className="w-3 h-3" />
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
-                        {provided.placeholder}
+                                      {/* Name & Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-ui text-sm font-medium text-ns-ink truncate">
+                                          {migratedEvent.name}
+                                        </p>
+                                        {migratedEvent.content && (
+                                          <p className="font-ui text-xs text-ns-ink-secondary truncate mt-0.5">
+                                            {migratedEvent.content}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      {/* Badges */}
+                                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {/* Tension */}
+                                        <span
+                                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-ui text-[10px] font-semibold text-white ${getTensionColor(
+                                            migratedEvent.tensionLevel,
+                                          )}`}
+                                        >
+                                          {migratedEvent.tensionLevel}
+                                        </span>
+
+                                        {/* Story Beat */}
+                                        <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full font-ui text-[10px] bg-ns-accent-subtle text-ns-accent capitalize">
+                                          {migratedEvent.storyBeat.replace(
+                                            "_",
+                                            " ",
+                                          )}
+                                        </span>
+
+                                        {/* Pacing */}
+                                        <span
+                                          className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full font-ui text-[10px] capitalize ${
+                                            migratedEvent.pacing === "slow"
+                                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                              : migratedEvent.pacing === "fast"
+                                                ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300"
+                                                : "bg-ns-surface text-ns-ink-secondary"
+                                          }`}
+                                        >
+                                          {migratedEvent.pacing}
+                                        </span>
+
+                                        {/* Characters */}
+                                        {migratedEvent.characterIds.length >
+                                          0 && (
+                                          <span className="hidden lg:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-ui text-[10px] bg-ns-accent-subtle text-ns-accent">
+                                            <Users className="w-3 h-3" />
+                                            {migratedEvent.characterIds.length}
+                                          </span>
+                                        )}
+
+                                        {/* Location */}
+                                        {migratedEvent.locationId && (
+                                          <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full font-ui text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                            <MapPin className="w-3 h-3" />
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
+                        )}
                       </div>
                     )}
+                  </Droppable>
+                </div>
+              ))}
+
+              {/* Empty state */}
+              {plotLines.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 gap-4 animate-ns-fade-in">
+                  <div className="w-16 h-16 rounded-full bg-ns-accent-subtle flex items-center justify-center">
+                    <Book className="w-7 h-7 text-ns-accent opacity-60" />
                   </div>
-                )}
-              </Droppable>
+                  <div className="text-center space-y-1.5">
+                    <p className="font-heading italic text-xl text-ns-ink-secondary">
+                      No plot lines yet
+                    </p>
+                    <p className="font-ui text-sm text-ns-ink-muted">
+                      Add a plot line or choose a template to structure your
+                      story
+                    </p>
+                  </div>
+                  <button
+                    onClick={addPlotLine}
+                    className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 shadow-ns-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Plot Line
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
-
-          {plotLines.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Book className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No plot lines yet.</p>
-              <p className="text-sm">
-                Click "Add Plot" or choose a template to get started.
-              </p>
-            </div>
-          )}
+          </DragDropContext>
         </div>
-      </DragDropContext>
+      </div>
 
+      {/* ── Modals ── */}
       <PlotLineEditModal
         isOpen={isPlotLineModalOpen}
         onClose={closeEditPlotLineModal}
@@ -597,15 +638,6 @@ const PlotTimeline: React.FC = () => {
         characters={characters}
         places={places}
       />
-
-      <div className="flex mt-4">
-        <button
-          onClick={generateText}
-          className="py-2 px-4 rounded-sm bg-dark-green dark:bg-light-green text-white flex items-center justify-center hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-black"
-        >
-          Generate Plot Ideas
-        </button>
-      </div>
     </div>
   );
 };

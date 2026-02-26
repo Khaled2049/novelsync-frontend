@@ -1,11 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  MessageCircle,
-  Edit2,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+import { MessageCircle, Edit2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { IPostComment } from "@/types/IPostComment";
 import { IUser } from "@/types/IUser";
 import VoteButtons from "@/components/VoteButtons";
@@ -32,12 +26,8 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [upvoteCount, setUpvoteCount] = useState(comment.upvoteCount || 0);
-    const [downvoteCount, setDownvoteCount] = useState(
-      comment.downvoteCount || 0
-    );
-    const [userVote, setUserVote] = useState<"up" | "down" | null>(
-      comment.userVote || null
-    );
+    const [downvoteCount, setDownvoteCount] = useState(comment.downvoteCount || 0);
+    const [userVote, setUserVote] = useState<"up" | "down" | null>(comment.userVote || null);
     const [isVoting, setIsVoting] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -53,7 +43,7 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
         await onEdit(comment.id, editedContent.trim());
         setIsEditing(false);
         setError(null);
-      } catch (err) {
+      } catch {
         setError("Failed to update comment");
       } finally {
         setIsLoading(false);
@@ -69,15 +59,8 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
         setIsReplying(false);
         setError(null);
       } catch (err: any) {
-        // Check if it's a rate limit error
-        if (
-          err?.code === "RATE_LIMIT_EXCEEDED" ||
-          err?.message?.includes("daily limit")
-        ) {
-          setError(
-            err.message ||
-              "You have reached the daily comment limit. Please try again tomorrow."
-          );
+        if (err?.code === "RATE_LIMIT_EXCEEDED" || err?.message?.includes("daily limit")) {
+          setError(err.message || "You have reached the daily comment limit. Please try again tomorrow.");
         } else {
           setError("Failed to post reply");
         }
@@ -89,26 +72,17 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
     const handleVote = async (voteType: "up" | "down" | null) => {
       if (!currentUser || isVoting) return;
 
-      // Optimistic update
       const previousVote = userVote;
       const previousUpvotes = upvoteCount;
       const previousDownvotes = downvoteCount;
 
-      // Calculate new counts optimistically
       let newUpvotes = previousUpvotes;
       let newDownvotes = previousDownvotes;
 
-      if (previousVote === "up") {
-        newUpvotes -= 1;
-      } else if (previousVote === "down") {
-        newDownvotes -= 1;
-      }
-
-      if (voteType === "up") {
-        newUpvotes += 1;
-      } else if (voteType === "down") {
-        newDownvotes += 1;
-      }
+      if (previousVote === "up") newUpvotes -= 1;
+      else if (previousVote === "down") newDownvotes -= 1;
+      if (voteType === "up") newUpvotes += 1;
+      else if (voteType === "down") newDownvotes += 1;
 
       setUpvoteCount(newUpvotes);
       setDownvoteCount(newDownvotes);
@@ -116,15 +90,9 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
       setIsVoting(true);
 
       try {
-        await voteService.voteComment(
-          comment.postId,
-          comment.id,
-          currentUser.uid,
-          voteType
-        );
+        await voteService.voteComment(comment.postId, comment.id, currentUser.uid, voteType);
       } catch (error) {
         console.error("Error voting on comment:", error);
-        // Revert optimistic update on error
         setUpvoteCount(previousUpvotes);
         setDownvoteCount(previousDownvotes);
         setUserVote(previousVote);
@@ -143,161 +111,159 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
       const diffDays = Math.floor(diffMs / 86400000);
 
       if (diffMins < 1) return "Just now";
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      if (diffDays < 7) return `${diffDays}d ago`;
+      if (diffMins < 60) return `${diffMins}m`;
+      if (diffHours < 24) return `${diffHours}h`;
+      if (diffDays < 7) return `${diffDays}d`;
       return d.toLocaleDateString();
     };
 
-    const marginLeftClass = depth > 0 ? `ml-${Math.min(depth * 4, 16)}` : "";
     const hasReplies = replies.length > 0;
 
     return (
       <div
-        className={`${marginLeftClass} mt-1`}
-        style={depth > 0 ? { marginLeft: `${depth * 0.75}rem` } : undefined}
+        className="mt-1.5"
+        style={depth > 0 ? { marginLeft: `${depth * 0.875}rem` } : undefined}
       >
-        <div className="flex items-start gap-1">
-          {/* Collapse/Expand Button */}
-          {hasReplies && (
+        <div className="flex items-start gap-1.5">
+          {/* Collapse toggle */}
+          {hasReplies ? (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="mt-0.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
-              aria-label={isCollapsed ? "Expand comment" : "Collapse comment"}
+              className="mt-1 text-ns-ink-muted hover:text-ns-ink transition-colors flex-shrink-0"
+              aria-label={isCollapsed ? "Expand" : "Collapse"}
             >
-              {isCollapsed ? (
-                <ChevronRight size={12} />
-              ) : (
-                <ChevronDown size={12} />
-              )}
+              {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
             </button>
+          ) : (
+            <div className="w-[11px]" />
           )}
-          {!hasReplies && <div className="w-3" />}
 
           <div className="flex-1 min-w-0">
-            <div className="py-1.5 px-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
-              {/* Error Message */}
+            <div className="px-3 py-2 rounded-ns bg-ns-surface border border-ns-border">
               {error && (
-                <div className="mb-1 text-xs text-red-500 dark:text-red-400">
-                  {error}
-                </div>
+                <p className="mb-1 text-[10px] font-ui text-ns-destructive">{error}</p>
               )}
 
               {/* Comment Header */}
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-gray-900 dark:text-gray-100 text-xs">
-                    {comment.authorName}
-                  </span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                    {formatDate(comment.createdAt)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-ui font-semibold text-ns-ink text-xs">{comment.authorName}</span>
+                <span className="font-ui text-[10px] text-ns-ink-muted">{formatDate(comment.createdAt)}</span>
               </div>
 
-              {/* Comment Content */}
+              {/* Content */}
               {!isCollapsed && (
                 <>
                   {isEditing ? (
-                    <div className="mt-1">
+                    <div className="mt-1 space-y-1.5">
                       <textarea
                         value={editedContent}
                         onChange={(e) => setEditedContent(e.target.value)}
-                        className="w-full p-1.5 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-dark-green dark:focus:ring-light-green transition-all disabled:opacity-50 text-xs"
                         rows={2}
                         disabled={isLoading}
+                        className="
+                          w-full px-2 py-1.5 rounded-ns
+                          bg-ns-elevated border border-ns-border
+                          text-ns-ink font-body text-xs leading-relaxed
+                          focus:outline-none focus:border-ns-accent/50
+                          transition-colors disabled:opacity-50 resize-none
+                        "
                       />
-                      <div className="flex gap-1.5 mt-1.5">
+                      <div className="flex gap-1.5">
                         <button
                           onClick={handleEdit}
-                          className="px-2 py-0.5 text-[10px] font-medium rounded bg-dark-green dark:bg-light-green text-white dark:text-black hover:bg-light-green dark:hover:bg-dark-green disabled:opacity-50 transition-colors"
                           disabled={isLoading}
+                          className="px-2.5 py-0.5 text-[10px] font-ui font-medium rounded-full bg-ns-accent text-white hover:bg-ns-accent-hover disabled:opacity-40 transition-colors"
                         >
-                          {isLoading ? "Saving..." : "Save"}
+                          {isLoading ? "Saving…" : "Save"}
                         </button>
                         <button
                           onClick={() => setIsEditing(false)}
-                          className="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-500 dark:bg-gray-600 text-white hover:bg-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                           disabled={isLoading}
+                          className="px-2.5 py-0.5 text-[10px] font-ui font-medium rounded-full bg-ns-surface-hover text-ns-ink-secondary hover:text-ns-ink disabled:opacity-40 transition-colors"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-800 dark:text-gray-200">
+                    <p className="font-body text-xs text-ns-ink leading-relaxed whitespace-pre-wrap">
                       {comment.content}
                     </p>
                   )}
 
-                  {/* Comment Actions */}
-                  <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-3 text-[10px]">
-                      <VoteButtons
-                        upvoteCount={upvoteCount}
-                        downvoteCount={downvoteCount}
-                        userVote={userVote}
-                        onVote={handleVote}
-                        isLoading={isVoting}
-                        disabled={!currentUser}
-                        size="sm"
-                      />
-                      {depth < MAX_DEPTH && (
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 mt-2">
+                    <VoteButtons
+                      upvoteCount={upvoteCount}
+                      downvoteCount={downvoteCount}
+                      userVote={userVote}
+                      onVote={handleVote}
+                      isLoading={isVoting}
+                      disabled={!currentUser}
+                      size="sm"
+                    />
+                    {depth < MAX_DEPTH && (
+                      <button
+                        onClick={() => setIsReplying(!isReplying)}
+                        disabled={isLoading}
+                        className="flex items-center gap-1 font-ui text-[10px] text-ns-ink-muted hover:text-ns-accent transition-colors"
+                      >
+                        <MessageCircle size={10} />
+                        Reply
+                      </button>
+                    )}
+                    {currentUser?.uid === comment.authorId && (
+                      <>
                         <button
-                          onClick={() => setIsReplying(!isReplying)}
-                          className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                          onClick={() => setIsEditing(true)}
                           disabled={isLoading}
+                          className="flex items-center gap-1 font-ui text-[10px] text-ns-ink-muted hover:text-ns-ink transition-colors"
                         >
-                          <MessageCircle size={12} />
-                          <span>Reply</span>
+                          <Edit2 size={10} />
+                          Edit
                         </button>
-                      )}
-                      {currentUser?.uid === comment.authorId && (
-                        <>
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                            disabled={isLoading}
-                          >
-                            <Edit2 size={12} />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => onDelete(comment.id)}
-                            className="flex items-center gap-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                            disabled={isLoading}
-                          >
-                            <Trash2 size={12} />
-                            <span>Delete</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        <button
+                          onClick={() => onDelete(comment.id)}
+                          disabled={isLoading}
+                          className="flex items-center gap-1 font-ui text-[10px] text-ns-ink-muted hover:text-ns-destructive transition-colors"
+                        >
+                          <Trash2 size={10} />
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Reply Form */}
                   {isReplying && (
-                    <div className="mt-2">
+                    <div className="mt-2 space-y-1.5">
                       <textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
-                        placeholder="Write a reply..."
-                        className="w-full p-1.5 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-1 focus:ring-dark-green dark:focus:ring-light-green transition-all disabled:opacity-50 text-xs"
+                        placeholder="Write a reply…"
                         rows={2}
                         disabled={isLoading}
+                        className="
+                          w-full px-2 py-1.5 rounded-ns
+                          bg-ns-elevated border border-ns-border
+                          text-ns-ink placeholder:text-ns-ink-muted
+                          font-body text-xs leading-relaxed
+                          focus:outline-none focus:border-ns-accent/50
+                          transition-colors disabled:opacity-50 resize-none
+                        "
                       />
-                      <div className="flex gap-1.5 mt-1.5">
+                      <div className="flex gap-1.5">
                         <button
                           onClick={handleReply}
-                          className="px-2 py-0.5 text-[10px] font-medium rounded bg-dark-green dark:bg-light-green text-white dark:text-black hover:bg-light-green dark:hover:bg-dark-green disabled:opacity-50 transition-colors"
                           disabled={isLoading}
+                          className="px-2.5 py-0.5 text-[10px] font-ui font-medium rounded-full bg-ns-accent text-white hover:bg-ns-accent-hover disabled:opacity-40 transition-colors"
                         >
-                          {isLoading ? "Posting..." : "Reply"}
+                          {isLoading ? "Posting…" : "Reply"}
                         </button>
                         <button
                           onClick={() => setIsReplying(false)}
-                          className="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-500 dark:bg-gray-600 text-white hover:bg-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                           disabled={isLoading}
+                          className="px-2.5 py-0.5 text-[10px] font-ui font-medium rounded-full bg-ns-surface-hover text-ns-ink-secondary hover:text-ns-ink disabled:opacity-40 transition-colors"
                         >
                           Cancel
                         </button>
@@ -307,19 +273,14 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
                 </>
               )}
 
-              {/* Collapsed View */}
+              {/* Collapsed preview */}
               {isCollapsed && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
-                    {comment.authorName}
-                  </span>
-                  <span className="text-[10px]">
-                    {formatDate(comment.createdAt)}
-                  </span>
+                <div className="flex items-center gap-1.5 font-ui text-xs text-ns-ink-muted">
+                  <span className="text-ns-ink font-medium">{comment.authorName}</span>
+                  <span className="text-[10px]">{formatDate(comment.createdAt)}</span>
                   {hasReplies && (
                     <span className="text-[10px]">
-                      • {replies.length}{" "}
-                      {replies.length === 1 ? "reply" : "replies"}
+                      · {replies.length} {replies.length === 1 ? "reply" : "replies"}
                     </span>
                   )}
                 </div>

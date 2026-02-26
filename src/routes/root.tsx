@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SEOHead } from "@/components/SEO/SEOHead";
 import { APP_NAME } from "@/config/seo";
+import { LANDING_IMAGES } from "@/config/landingImages";
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -54,19 +55,19 @@ const bestWork = [
   {
     title: "Ember Crown",
     genre: "Epic Fantasy",
-    image: "/images/landing/best-work-ember.png",
+    image: LANDING_IMAGES.bestWorkEmber,
     engagement: "18.4K reads",
   },
   {
     title: "Orbit of Ash",
     genre: "Science Fiction",
-    image: "/images/landing/best-work-orbit.png",
+    image: LANDING_IMAGES.bestWorkOrbit,
     engagement: "12.7K reads",
   },
   {
     title: "Neon Moon",
     genre: "Science Fiction",
-    image: "/images/landing/best-work-neon.png",
+    image: LANDING_IMAGES.bestWorkNeon,
     engagement: "10.2K reads",
   },
 ];
@@ -185,7 +186,7 @@ export default function HomePage() {
           {/* Background image with parallax */}
           <motion.div className="absolute inset-0 z-0" style={{ y: heroImgY }}>
             <img
-              src="/images/landing/hero-editorial.png"
+              src={LANDING_IMAGES.heroEditorial}
               alt=""
               className="h-[120%] w-full object-cover object-center"
             />
@@ -367,7 +368,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/ai-copilot.png"
+                  src={LANDING_IMAGES.aiCopilot}
                   alt="AI writing copilot"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -393,7 +394,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/community-workshop.png"
+                  src={LANDING_IMAGES.communityWorkshop}
                   alt="Community feedback on drafts"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -418,7 +419,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/challenge-arena.png"
+                  src={LANDING_IMAGES.challengeArena}
                   alt="Writing challenge board"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -444,7 +445,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/context-editor.png"
+                  src={LANDING_IMAGES.contextEditor}
                   alt="Context-aware writing editor"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -470,7 +471,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/book-clubs.png"
+                  src={LANDING_IMAGES.bookClubs}
                   alt="Book club reading session"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -496,7 +497,7 @@ export default function HomePage() {
             >
               <div className="overflow-hidden">
                 <img
-                  src="/images/landing/mina-brainstorm.png"
+                  src={LANDING_IMAGES.minaBrainstorm}
                   alt="Mina brainstorming AI concept"
                   className="h-52 w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
@@ -524,7 +525,7 @@ export default function HomePage() {
           {/* Full-bleed background image */}
           <motion.div variants={fadeIn} className="absolute inset-0">
             <img
-              src="/images/landing/crypto-tipping.png"
+              src={LANDING_IMAGES.cryptoTipping}
               alt=""
               className="w-full h-full object-cover"
             />

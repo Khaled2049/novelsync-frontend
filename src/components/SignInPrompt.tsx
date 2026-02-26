@@ -15,14 +15,11 @@ const SignInPrompt = ({
   iconSize = 40,
 }: SignInPromptProps) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-ns-bg px-4">
+    <div className="mt-10 flex items-center justify-center bg-ns-bg px-4">
       <div className="text-center max-w-lg mx-auto w-full">
         <div className="bg-ns-elevated p-8 md:p-10 rounded-ns-2xl shadow-ns border border-ns-border">
           <div className="bg-ns-accent/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Icon
-              size={iconSize}
-              className="text-ns-accent"
-            />
+            <Icon size={iconSize} className="text-ns-accent" />
           </div>
           <h2 className="text-3xl md:text-4xl font-heading font-medium text-ns-ink mb-4">
             {title}

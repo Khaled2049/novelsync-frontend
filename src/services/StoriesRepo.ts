@@ -15,8 +15,9 @@ import {
 } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { Chapter, Story, StoryMetadata } from "@/types/IStory";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref } from "firebase/storage";
 import { storage } from "../config/firebase";
+import { storageService } from "./StorageService";
 
 const WORD_LIMIT = 5000;
 const CHAPTER_LIMIT = 50;
@@ -584,28 +585,33 @@ class StoriesRepo {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
       const story = await this.getStory(storyId);
-      if (!story) {
-        throw new Error("Story not found");
+      if (!story) throw new Error("Story not found");
+
+      // Delete the old image from Storage before replacing it
+      if (story.coverImageUrl) {
+        await storageService.deleteCoverImage(story.coverImageUrl);
       }
 
       let coverImageUrl = "";
 
       if (imageFile) {
-        const storageRef = ref(
-          storage,
-          `book-covers/${story.userId}/${storyId}-${Date.now()}`
+        // User-selected file or AI-generated File object
+        coverImageUrl = await storageService.uploadCoverImage(
+          imageFile,
+          story.userId,
+          storyId
         );
-        await uploadBytes(storageRef, imageFile);
-        coverImageUrl = await getDownloadURL(storageRef);
-      } else if (previewUrl) {
-        // If only previewUrl is provided (e.g., from AI generation), use it directly
-        coverImageUrl = previewUrl;
+      } else if (previewUrl?.startsWith("data:")) {
+        // AI-generated data URL — convert to File before uploading
+        const file = storageService.dataUrlToFile(previewUrl);
+        coverImageUrl = await storageService.uploadCoverImage(
+          file,
+          story.userId,
+          storyId
+        );
       }
 
-      await updateDoc(storyRef, {
-        coverImageUrl,
-        updatedAt: new Date(),
-      });
+      await updateDoc(storyRef, { coverImageUrl, updatedAt: new Date() });
     } catch (error) {
       console.error("Error updating cover image:", error);
       throw error;

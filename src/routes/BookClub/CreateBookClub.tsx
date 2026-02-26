@@ -2,20 +2,22 @@ import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { IClub } from "../../types/IClub";
 import { IUser } from "../../types/IUser";
-import { Book, X, Users, MapPin, Tag } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { IBook } from "../../types/IBook";
 import BookSearch from "../../components/BookSearch";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+
+const CATEGORIES = [
+  "Fantasy",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Literary Fiction",
+  "Non-Fiction",
+  "Thriller",
+  "Historical",
+  "Horror",
+  "Biography",
+];
 
 const CreateBookClub = ({
   user,
@@ -37,6 +39,7 @@ const CreateBookClub = ({
       },
     },
   });
+
   const [newClub, setNewClub] = useState<IClub>({
     id: "",
     name: "",
@@ -67,6 +70,10 @@ const CreateBookClub = ({
       ...newClub,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleCategorySelect = (cat: string) => {
+    setNewClub({ ...newClub, category: cat });
   };
 
   const handleBookSelect = (book: IBook) => {
@@ -101,159 +108,151 @@ const CreateBookClub = ({
     onCreate(clubWithDefaults);
   };
 
-  return (
-    <Card className="shadow-lg">
-      <CardHeader className="border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-dark-green/10 dark:bg-light-green/10">
-              <Book className="w-6 h-6 text-dark-green dark:text-light-green" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-heading text-black dark:text-white">
-                Create New Book Club
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Start a community around your favorite books
-              </CardDescription>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCancel}
-            className="h-8 w-8"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
+  const fieldLabelClass =
+    "block font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-400 dark:text-neutral-600 mb-3";
 
-      <CardContent className="pt-6">
-        <div className="space-y-6">
+  const underlineInputClass =
+    "w-full bg-transparent border-0 border-b border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 pb-2.5 focus:outline-none focus:border-dark-green dark:focus:border-light-green transition-colors duration-200 placeholder:text-neutral-300 dark:placeholder:text-neutral-700";
+
+  return (
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 px-5 py-10 md:px-10">
+      {/* Back */}
+      <button
+        onClick={onCancel}
+        className="flex items-center gap-2 font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-neutral-400 dark:text-neutral-600 hover:text-neutral-900 dark:hover:text-white transition-colors duration-200 mb-12"
+      >
+        <ArrowLeft size={14} />
+        All Clubs
+      </button>
+
+      <div className="max-w-xl mx-auto">
+        {/* Masthead */}
+        <p className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-dark-green dark:text-light-green mb-5">
+          Found a New Club
+        </p>
+        <h1 className="font-heading text-5xl md:text-[3.75rem] font-light italic leading-[1.1] text-neutral-900 dark:text-white mb-16">
+          Start Something<br />Worth Reading For.
+        </h1>
+
+        <div className="space-y-14">
           {/* Club Name */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="name"
-              className="text-base font-semibold text-black dark:text-white flex items-center gap-2"
-            >
-              <Users className="w-4 h-4 text-dark-green dark:text-light-green" />
-              Club Name
-            </Label>
-            <Input
-              id="name"
+          <div>
+            <label className={fieldLabelClass}>Club Name</label>
+            <input
               name="name"
               value={newClub.name}
               onChange={handleInputChange}
-              placeholder="e.g., Fantasy Book Lovers"
-              className="h-11 text-base focus-visible:ring-2 focus-visible:ring-dark-green dark:focus-visible:ring-light-green"
+              placeholder="e.g., The Midnight Readers"
+              className={`${underlineInputClass} text-2xl font-heading italic`}
+              autoComplete="off"
             />
           </div>
 
-          {/* Club Description */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="description"
-              className="text-base font-semibold text-black dark:text-white"
-            >
-              Club Description
-            </Label>
-            <Textarea
-              id="description"
+          {/* Description */}
+          <div>
+            <label className={fieldLabelClass}>About This Club</label>
+            <textarea
               name="description"
               value={newClub.description}
               onChange={handleInputChange}
-              placeholder="Tell us about your book club. What genres do you read? What makes your club special?"
-              className="min-h-[120px] text-base resize-none focus-visible:ring-2 focus-visible:ring-dark-green dark:focus-visible:ring-light-green"
+              placeholder="What brings you all together? What do you hope to discover?"
+              className={`${underlineInputClass} font-body text-base resize-none min-h-[72px]`}
+              rows={3}
             />
           </div>
 
-          {/* Category and Meetup in a grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label
-                htmlFor="category"
-                className="text-base font-semibold text-black dark:text-white flex items-center gap-2"
-              >
-                <Tag className="w-4 h-4 text-dark-green dark:text-light-green" />
-                Category
-              </Label>
-              <Input
-                id="category"
-                name="category"
-                value={newClub.category}
-                onChange={handleInputChange}
-                placeholder="e.g., Fantasy, Mystery, Romance"
-                className="h-11 text-base focus-visible:ring-2 focus-visible:ring-dark-green dark:focus-visible:ring-light-green"
-              />
+          {/* Category */}
+          <div>
+            <label className={fieldLabelClass}>Genre &amp; Category</label>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => handleCategorySelect(cat)}
+                  className={`px-3.5 py-1.5 font-ui text-[11px] font-medium tracking-wide border transition-colors duration-150 ${
+                    newClub.category === cat
+                      ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white"
+                      : "border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 hover:border-neutral-700 dark:hover:border-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
+            <input
+              name="category"
+              value={newClub.category}
+              onChange={handleInputChange}
+              placeholder="Or type your own genre..."
+              className={`${underlineInputClass} text-sm font-body`}
+              autoComplete="off"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="meetUp"
-                className="text-base font-semibold text-black dark:text-white flex items-center gap-2"
-              >
-                <MapPin className="w-4 h-4 text-dark-green dark:text-light-green" />
-                Meetup Location
-              </Label>
-              <Input
-                id="meetUp"
-                name="meetUp"
-                value={newClub.meetUp}
-                onChange={handleInputChange}
-                placeholder="e.g., Online, New York, London"
-                className="h-11 text-base focus-visible:ring-2 focus-visible:ring-dark-green dark:focus-visible:ring-light-green"
-              />
-            </div>
+          {/* Meetup */}
+          <div>
+            <label className={fieldLabelClass}>Meetup Location</label>
+            <input
+              name="meetUp"
+              value={newClub.meetUp}
+              onChange={handleInputChange}
+              placeholder="Online, or a city near you..."
+              className={`${underlineInputClass} text-base font-body`}
+              autoComplete="off"
+            />
           </div>
 
           {/* Book of the Month */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2">
-              <Book className="w-5 h-5 text-dark-green dark:text-light-green" />
-              <Label className="text-base font-semibold text-black dark:text-white">
-                Book of the Month
-              </Label>
-            </div>
+          <div>
+            <label className={fieldLabelClass}>Opening Read</label>
+            <p className="font-body text-sm text-neutral-400 dark:text-neutral-600 mb-5">
+              Choose the first book your club will read together.
+            </p>
             <BookSearch onBookSelect={handleBookSelect} />
+
             {bookOfTheMonth.volumeInfo.title && (
-              <div className="mt-4 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Selected Book:
-                </p>
-                <p className="text-base font-semibold text-black dark:text-white">
-                  {bookOfTheMonth.volumeInfo.title}
-                </p>
-                {bookOfTheMonth.volumeInfo.authors && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    by {bookOfTheMonth.volumeInfo.authors.join(", ")}
-                  </p>
+              <div className="mt-6 flex items-start gap-4 border-l-2 border-dark-green dark:border-light-green pl-4">
+                {bookOfTheMonth.volumeInfo.imageLinks?.thumbnail && (
+                  <img
+                    src={bookOfTheMonth.volumeInfo.imageLinks.thumbnail}
+                    alt={bookOfTheMonth.volumeInfo.title}
+                    className="w-11 h-16 object-cover shadow-md shrink-0"
+                  />
                 )}
+                <div>
+                  <p className="font-heading italic text-lg text-neutral-900 dark:text-white leading-snug">
+                    {bookOfTheMonth.volumeInfo.title}
+                  </p>
+                  {bookOfTheMonth.volumeInfo.authors && (
+                    <p className="font-ui text-[11px] tracking-wide text-neutral-500 dark:text-neutral-500 mt-1">
+                      by {bookOfTheMonth.volumeInfo.authors.join(", ")}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="w-full sm:w-auto"
-          >
-            Cancel
-          </Button>
-          <Button
+        {/* Actions */}
+        <div className="mt-20 pt-8 border-t border-neutral-200 dark:border-neutral-800 flex items-center gap-8">
+          <button
             onClick={handleCreateClub}
-            className="w-full sm:w-auto bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green"
             disabled={!newClub.name.trim()}
+            className="font-ui text-[12px] font-bold tracking-[0.14em] uppercase px-8 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-dark-green dark:hover:bg-light-green transition-colors duration-200"
           >
-            Create Club
-          </Button>
+            Found This Club
+          </button>
+          <button
+            onClick={onCancel}
+            className="font-ui text-[11px] font-semibold tracking-[0.14em] uppercase text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors duration-200"
+          >
+            Never mind
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

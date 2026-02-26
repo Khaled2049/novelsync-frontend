@@ -39,18 +39,18 @@ const tabs: Tab[] = [
     path: "/explore/book-lists",
   },
   {
-    id: "Announcements",
-    label: "Announcements",
-    icon: <Megaphone className="w-5 h-5" />,
-    component: <Announcements />,
-    path: "/explore/announcements",
-  },
-  {
     id: "competitions",
     label: "Competitions",
     icon: <Trophy className="w-5 h-5" />,
     component: <Competitions />,
     path: "/explore/competitions",
+  },
+  {
+    id: "Announcements",
+    label: "Announcements",
+    icon: <Megaphone className="w-5 h-5" />,
+    component: <Announcements />,
+    path: "/explore/announcements",
   },
 ];
 
@@ -58,11 +58,11 @@ const StoriesLayout = () => {
   const location = useLocation();
 
   return (
-    <div className="h-full bg-neutral-50 dark:bg-black ">
-      <div className="container mx-auto px-2 sm:px-4">
-        <div className="w-full mb-4 sm:mb-8">
+    <div className="min-h-full bg-neutral-50 dark:bg-black overflow-x-hidden">
+      <div className="container mx-auto px-2 sm:px-4 pb-6">
+        <div className="w-full mb-2 sm:mb-4">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-            <div className="flex flex-col space-y-2 sm:space-y-4 py-2 sm:py-4">
+            <div className="flex flex-col space-y-2 sm:space-y-4 py-2 sm:py-3">
               {/* Main navigation */}
               <nav className="flex justify-start sm:justify-center space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-2 sm:mx-0 px-2 sm:px-0 touch-pan-x">
                 {tabs.map((tab) => (

@@ -6,7 +6,7 @@ import SignInPrompt from "../../components/SignInPrompt";
 import PostFeed from "./components/PostFeed";
 import BookClubs from "../BookClub";
 import FeedNavigation, { FeedType } from "./components/FeedNavigation";
-import MobileTabs from "./components/MobileTabs";
+import { APP_NAME } from "@/config/seo";
 
 const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -21,7 +21,7 @@ const Home: React.FC = () => {
   if (!user) {
     return (
       <SignInPrompt
-        title="Welcome to Novel Sync"
+        title={`Welcome to ${APP_NAME}`}
         description="Connect with authors, discover stories, and join book clubs. Sign in to start your reading journey."
       />
     );
@@ -29,36 +29,21 @@ const Home: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Loader
-          className="animate-spin text-ns-accent"
-          size={48}
-        />
+      <div className="flex justify-center items-center py-16">
+        <Loader className="animate-spin text-ns-accent" size={36} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-ns-bg">
-      {/* Mobile Tabs - Only visible on mobile */}
-      <MobileTabs activeFeed={activeFeed} onFeedChange={setActiveFeed} />
+    <div className="max-w-2xl mx-auto px-4 pb-12">
+      <FeedNavigation activeFeed={activeFeed} onFeedChange={setActiveFeed} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto p-4 lg:p-6">
-          {/* Feed Navigation - Hidden on mobile */}
-          <FeedNavigation
-            activeFeed={activeFeed}
-            onFeedChange={setActiveFeed}
-          />
-
-          {activeFeed === "book-clubs" ? (
-            <BookClubs />
-          ) : (
-            <PostFeed currentUser={user} feedType={activeFeed} />
-          )}
-        </div>
-      </div>
+      {activeFeed === "book-clubs" ? (
+        <BookClubs />
+      ) : (
+        <PostFeed currentUser={user} feedType={activeFeed} />
+      )}
     </div>
   );
 };

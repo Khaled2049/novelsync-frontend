@@ -21,8 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Upload, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { storiesRepo } from "@/services/StoriesRepo";
-import { storage } from "@/config/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storageService } from "@/services/StorageService";
 import { generateCover } from "@/services/imageGenerationService";
 
 interface StoryMetadataModalProps {
@@ -107,12 +106,12 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     try {
       let coverImageUrl = "";
       if (coverImage) {
-        const storageRef = ref(
-          storage,
-          `book-covers/${userId}/${title}-${Date.now()}`
+        // Upload to Firebase Storage with a temp path (story ID not yet known)
+        coverImageUrl = await storageService.uploadCoverImage(
+          coverImage,
+          userId,
+          `new-${Date.now()}`
         );
-        await uploadBytes(storageRef, coverImage);
-        coverImageUrl = await getDownloadURL(storageRef);
       }
 
       const newStoryId = await storiesRepo.createStory(

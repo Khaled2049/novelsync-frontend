@@ -1,5 +1,6 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import * as nodemailer from "nodemailer";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
@@ -56,10 +57,16 @@ export const onInviteApproved = onDocumentUpdated(
 
     logger.info(`Processing approved invite for: ${email}`);
 
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+
     try {
       // Generate the magic link
+      const redirectUrl = isEmulator
+        ? (process.env.LOCAL_REDIRECT_URL ?? magicLinkRedirectUrl.value())
+        : magicLinkRedirectUrl.value();
+
       const actionCodeSettings: admin.auth.ActionCodeSettings = {
-        url: magicLinkRedirectUrl.value(),
+        url: redirectUrl,
         handleCodeInApp: true,
       };
 
@@ -68,16 +75,8 @@ export const onInviteApproved = onDocumentUpdated(
         actionCodeSettings
       );
 
-      logger.info(`Generated magic link for: ${email}`);
-      
-      // In emulator mode, log the magic link prominently for easy testing
-      const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
       if (isEmulator) {
-        logger.info("=".repeat(80));
-        logger.info(`[EMULATOR MODE] Magic link for ${email}:`);
-        logger.info(magicLink);
-        logger.info("=".repeat(80));
-        logger.info(`Copy the link above to test the signup flow in your browser.`);
+        logger.info(`[EMULATOR] Magic link for ${email}: ${magicLink}`);
       }
 
       // Send email (skip in emulator if SMTP not configured)
@@ -151,38 +150,32 @@ If you didn't request this invite, you can safely ignore this email.
 
           logger.info(`Magic link email sent to: ${email}`);
         } catch (emailError) {
-          logger.warn(`Failed to send email (this is OK in emulator mode):`, emailError);
+          logger.warn(`Failed to send email to ${email}:`, emailError);
           if (!isEmulator) {
             throw emailError; // Re-throw in production
           }
         }
-      } else {
-        logger.info(`[EMULATOR] Skipping email send (SMTP not configured). Magic link logged above.`);
       }
 
       // Update the invite document
       const updateData: any = {
         status: "sent",
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        linkSentCount: admin.firestore.FieldValue.increment(1),
+        sentAt: FieldValue.serverTimestamp(),
+        linkSentCount: FieldValue.increment(1),
       };
-      
-      // In emulator mode, store magic link in document for easy access
+
       if (isEmulator) {
         updateData.magicLink = magicLink;
-        logger.info(`[EMULATOR] Magic link also stored in Firestore document for easy access`);
       }
-      
-      await documentRef.update(updateData);
 
-      logger.info(`Invite document updated to "sent" for: ${email}`);
+      await documentRef.update(updateData);
     } catch (error) {
       logger.error(`Failed to process invite for ${email}:`, error);
 
       // Update document with error status (optional - keeps it at approved for retry)
       // await documentRef.update({
       //   lastError: (error as Error).message,
-      //   lastErrorAt: admin.firestore.FieldValue.serverTimestamp(),
+      //   lastErrorAt: FieldValue.serverTimestamp(),
       // });
     }
   }
