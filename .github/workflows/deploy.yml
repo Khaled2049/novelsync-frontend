@@ -181,14 +181,13 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Set Firebase param
+      - name: Set param and deploy
         run: |
-          firebase functions:params:set AGENT_SERVICE_URL="${{ needs.terraform-apply.outputs.backend_url }}" \
-            --project=${{ env.PROJECT_ID }}
-
-      - name: Deploy Hosting, Functions & Rules
-        run: |
-          firebase deploy --only hosting,functions,firestore:rules,firestore:indexes,storage --project=${{ env.PROJECT_ID }} --force
+          export AGENT_SERVICE_URL="${{ needs.terraform-apply.outputs.backend_url }}"
+          firebase deploy \
+            --only hosting,functions,firestore:rules,firestore:indexes,storage \
+            --project=${{ env.PROJECT_ID }} \
+            --force
 
       - name: Wait for deployment to stabilize
         run: sleep 10
