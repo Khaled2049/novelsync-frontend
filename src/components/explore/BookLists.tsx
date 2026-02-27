@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Grid,
@@ -15,19 +15,55 @@ import {
   Globe,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { bookListService } from "@/services/BookListService";
+import { storiesRepo } from "@/services/StoriesRepo";
 import { IBookList, IBookListItem } from "@/types/IBookList";
-import axiosInstance from "@/api";
+import { StoryMetadata } from "@/types/IStory";
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const VisibilityBadge = ({
+  isPublic,
+  size = "sm",
+}: {
+  isPublic: boolean;
+  size?: "xs" | "sm";
+}) => {
+  const base =
+    size === "xs"
+      ? "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-ui font-semibold"
+      : "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui font-semibold";
+  return isPublic ? (
+    <span className={`${base} bg-ns-accent/10 text-ns-accent`}>
+      <Globe className={size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3"} />
+      Public
+    </span>
+  ) : (
+    <span
+      className={`${base} bg-ns-surface text-ns-ink-muted border border-ns-border`}
+    >
+      <Lock className={size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3"} />
+      Private
+    </span>
+  );
+};
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 const BookLists = () => {
   const { user, loading: authLoading } = useAuthContext();
+  const navigate = useNavigate();
   const [bookLists, setBookLists] = useState<IBookList[]>([]);
   const [userBookLists, setUserBookLists] = useState<IBookList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"title" | "author" | "date">("title");
+  const [sortBy, setSortBy] = useState<"title" | "author" | "chapters">(
+    "title",
+  );
   const [filterGenre, setFilterGenre] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isCreatingList, setIsCreatingList] = useState(false);
@@ -37,1134 +73,706 @@ const BookLists = () => {
   const [editingListName, setEditingListName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSearchingBooks, setIsSearchingBooks] = useState(false);
   const [showBookSearch, setShowBookSearch] = useState(false);
   const [bookSearchQuery, setBookSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [platformStories, setPlatformStories] = useState<StoryMetadata[]>([]);
+  const [platformLoading, setPlatformLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12); // 12 items per page
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const itemsPerPage = 12;
 
-  const selectedList = bookLists.find((list) => list.id === selectedListId);
+  const selectedList = bookLists.find((l) => l.id === selectedListId);
 
-  // Fetch book lists on mount
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchBookLists();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
+    if (!authLoading) fetchBookLists();
   }, [authLoading, user]);
 
-  const fetchBookLists = async () => {
-    if (!user) return;
+  useEffect(() => {
+    if (showBookSearch && platformStories.length === 0) {
+      setPlatformLoading(true);
+      storiesRepo
+        .getPublishedStories()
+        .then(setPlatformStories)
+        .catch(() => setError("Failed to load stories."))
+        .finally(() => setPlatformLoading(false));
+    }
+  }, [showBookSearch]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterGenre, sortBy, selectedListId]);
+
+  const fetchBookLists = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch user's lists and all public lists (including user's private lists)
-      const [userLists, allLists] = await Promise.all([
-        bookListService.getUserBookLists(user.uid),
-        bookListService.getAllBookLists(user.uid),
-      ]);
-
-      setUserBookLists(userLists);
-
-      // Combine lists, prioritizing user's lists first
-      const combinedLists = [
-        ...userLists,
-        ...allLists.filter(
-          (list) => !userLists.some((ul) => ul.id === list.id)
-        ),
-      ];
-      setBookLists(combinedLists);
-
-      // Auto-select first list if available
-      if (combinedLists.length > 0 && !selectedListId) {
-        setSelectedListId(combinedLists[0].id);
+      if (user) {
+        const [userLists, allLists] = await Promise.all([
+          bookListService.getUserBookLists(user.uid),
+          bookListService.getAllBookLists(user.uid),
+        ]);
+        setUserBookLists(userLists);
+        const combined = [
+          ...userLists,
+          ...allLists.filter((l) => !userLists.some((ul) => ul.id === l.id)),
+        ];
+        setBookLists(combined);
+        if (combined.length > 0 && !selectedListId)
+          setSelectedListId(combined[0].id);
+      } else {
+        const allLists = await bookListService.getAllBookLists("");
+        setBookLists(allLists);
+        if (allLists.length > 0 && !selectedListId)
+          setSelectedListId(allLists[0].id);
       }
-    } catch (err) {
-      console.error("Error fetching book lists:", err);
-      setError("Failed to load book lists. Please try again.");
+    } catch {
+      setError("Failed to load book lists.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Book search with debounce
-  const searchBooks = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      setIsSearchingBooks(true);
-      const response = await axiosInstance.get("/searchBooks", {
-        params: {
-          q: query,
-          maxResults: 10,
-        },
-      });
-      setSearchResults(response.data.items || []);
-    } catch (err) {
-      console.error("Error searching books:", err);
-      setError("Failed to search books. Please try again.");
-    } finally {
-      setIsSearchingBooks(false);
-    }
-  }, []);
-
-  const debouncedSearch = useCallback(
-    (query: string) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = setTimeout(() => {
-        searchBooks(query);
-      }, 300);
-    },
-    [searchBooks]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+  const transformStoryData = (story: StoryMetadata): IBookListItem => {
+    const item: IBookListItem = {
+      id: story.id,
+      title: story.title,
+      author: story.author,
     };
-  }, []);
-
-  // Transform Google Books API result to IBookListItem
-  const transformBookData = (book: any): IBookListItem => {
-    const volumeInfo = book.volumeInfo || {};
-    return {
-      id: book.id,
-      title: volumeInfo.title || "Unknown Title",
-      author: volumeInfo.authors?.join(", ") || "Unknown Author",
-      coverUrl:
-        volumeInfo.imageLinks?.thumbnail ||
-        volumeInfo.imageLinks?.smallThumbnail,
-      publishedDate: volumeInfo.publishedDate,
-      genre: volumeInfo.categories?.[0],
-      volumeInfo: volumeInfo,
-    };
+    if (story.coverImageUrl) item.coverUrl = story.coverImageUrl;
+    if (story.category) item.genre = story.category;
+    if (story.chapterCount !== undefined)
+      item.chapterCount = story.chapterCount;
+    if (story.description) item.description = story.description;
+    return item;
   };
 
-  // Get unique genres from all books in selected list
+  const filteredPlatformStories = useCallback((): StoryMetadata[] => {
+    const q = bookSearchQuery.toLowerCase().trim();
+    if (!q) return platformStories;
+    return platformStories.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.author.toLowerCase().includes(q) ||
+        s.category?.toLowerCase().includes(q),
+    );
+  }, [platformStories, bookSearchQuery]);
+
   const genres = selectedList
     ? [
         "all",
         ...new Set(
           selectedList.books
-            .map((book) => book.genre)
-            .filter((genre): genre is string => Boolean(genre))
+            .map((b) => b.genre)
+            .filter((g): g is string => Boolean(g)),
         ),
       ]
     : ["all"];
 
-  // Filter and sort books
   const getFilteredAndSortedBooks = (): IBookListItem[] => {
     if (!selectedList) return [];
-
-    let filtered = selectedList.books.filter((book) => {
-      const matchesSearch =
-        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGenre = filterGenre === "all" || book.genre === filterGenre;
-      return matchesSearch && matchesGenre;
+    let filtered = selectedList.books.filter((b) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        (b.title.toLowerCase().includes(q) ||
+          b.author.toLowerCase().includes(q)) &&
+        (filterGenre === "all" || b.genre === filterGenre)
+      );
     });
-
     filtered.sort((a, b) => {
       if (sortBy === "title") return a.title.localeCompare(b.title);
       if (sortBy === "author") return a.author.localeCompare(b.author);
-      if (sortBy === "date")
-        return (a.publishedDate || "").localeCompare(b.publishedDate || "");
+      if (sortBy === "chapters")
+        return (b.chapterCount ?? 0) - (a.chapterCount ?? 0);
       return 0;
     });
-
     return filtered;
   };
 
-  // Create new list
+  // ── Mutations ────────────────────────────────────────────────────────────
+
   const handleCreateList = async () => {
     if (!user || !newListName.trim()) return;
-
     try {
       setError(null);
       const listId = await bookListService.createBookList(
         user.uid,
         user.username || user.displayName || "Unknown User",
         newListName.trim(),
-        newListIsPublic
+        newListIsPublic,
       );
-
-      // Refresh lists
       await fetchBookLists();
-
       setSelectedListId(listId);
       setNewListName("");
       setNewListIsPublic(true);
       setIsCreatingList(false);
     } catch (err: any) {
-      console.error("Error creating list:", err);
-      setError(err.message || "Failed to create list. Please try again.");
+      setError(err.message || "Failed to create list.");
     }
   };
 
-  // Toggle list privacy
   const handleTogglePrivacy = async (listId: string) => {
     if (!user) return;
-
     const list = bookLists.find((l) => l.id === listId);
-    if (!list || list.userId !== user.uid) {
-      setError("You can only change privacy of your own lists.");
-      return;
-    }
-
+    if (!list || list.userId !== user.uid) return;
     try {
       setError(null);
       await bookListService.updateListPrivacy(listId, user.uid, !list.isPublic);
-
-      // Refresh lists
       await fetchBookLists();
     } catch (err: any) {
-      console.error("Error updating list privacy:", err);
-      setError(
-        err.message || "Failed to update list privacy. Please try again."
-      );
+      setError(err.message || "Failed to update privacy.");
     }
   };
 
-  // Delete list
   const handleDeleteList = async (listId: string) => {
     if (!user) return;
-
     const list = bookLists.find((l) => l.id === listId);
-    if (!list) return;
-
-    // Check ownership
-    if (list.userId !== user.uid) {
-      setError("You can only delete your own lists.");
-      return;
-    }
-
+    if (!list || list.userId !== user.uid) return;
     if (bookLists.length === 1) {
-      setError("Cannot delete the last list");
+      setError("Cannot delete the last list.");
       return;
     }
-
-    if (!confirm("Are you sure you want to delete this list?")) {
-      return;
-    }
-
+    if (!confirm("Delete this list?")) return;
     try {
       setError(null);
       await bookListService.deleteBookList(listId, user.uid);
-
-      // Refresh lists
       await fetchBookLists();
-
-      // Select another list if current was deleted
-      const remainingLists = bookLists.filter((l) => l.id !== listId);
-      if (remainingLists.length > 0) {
-        setSelectedListId(remainingLists[0].id);
-      } else {
-        setSelectedListId(null);
-      }
+      const remaining = bookLists.filter((l) => l.id !== listId);
+      setSelectedListId(remaining.length > 0 ? remaining[0].id : null);
     } catch (err: any) {
-      console.error("Error deleting list:", err);
-      setError(err.message || "Failed to delete list. Please try again.");
+      setError(err.message || "Failed to delete list.");
     }
   };
 
-  // Rename list
   const handleRenameList = async (listId: string) => {
     if (!user || !editingListName.trim()) return;
-
     const list = bookLists.find((l) => l.id === listId);
-    if (!list || list.userId !== user.uid) {
-      setError("You can only rename your own lists.");
-      return;
-    }
-
+    if (!list || list.userId !== user.uid) return;
     try {
       setError(null);
       await bookListService.updateBookList(listId, user.uid, {
         title: editingListName.trim(),
       });
-
-      // Refresh lists
       await fetchBookLists();
-
       setEditingListId(null);
       setEditingListName("");
     } catch (err: any) {
-      console.error("Error renaming list:", err);
-      setError(err.message || "Failed to rename list. Please try again.");
+      setError(err.message || "Failed to rename list.");
     }
   };
 
-  // Add book to list
-  const handleAddBook = async (book: any) => {
+  const handleAddStory = async (story: StoryMetadata) => {
     if (!user || !selectedListId) return;
-
     const list = bookLists.find((l) => l.id === selectedListId);
     if (!list || list.userId !== user.uid) {
-      setError("You can only add books to your own lists.");
+      setError("You can only add stories to your own lists.");
       return;
     }
-
+    if (list.books.some((b) => b.id === story.id)) {
+      setError("Already in this list.");
+      return;
+    }
     try {
       setError(null);
-      const bookItem = transformBookData(book);
-      await bookListService.addBookToList(selectedListId, user.uid, bookItem);
-
-      // Refresh lists
+      await bookListService.addBookToList(
+        selectedListId,
+        user.uid,
+        transformStoryData(story),
+      );
       await fetchBookLists();
-
       setShowBookSearch(false);
       setBookSearchQuery("");
-      setSearchResults([]);
     } catch (err: any) {
-      console.error("Error adding book:", err);
-      setError(err.message || "Failed to add book. Please try again.");
+      setError(err.message || "Failed to add story.");
     }
   };
 
-  // Remove book from list
   const handleRemoveBook = async (bookId: string) => {
     if (!user || !selectedListId) return;
-
     const list = bookLists.find((l) => l.id === selectedListId);
-    if (!list || list.userId !== user.uid) {
-      setError("You can only remove books from your own lists.");
-      return;
-    }
-
-    if (!confirm("Remove this book from the list?")) {
-      return;
-    }
-
+    if (!list || list.userId !== user.uid) return;
+    if (!confirm("Remove this story from the list?")) return;
     try {
       setError(null);
       await bookListService.removeBookFromList(
         selectedListId,
         user.uid,
-        bookId
+        bookId,
       );
-
-      // Refresh lists
       await fetchBookLists();
     } catch (err: any) {
-      console.error("Error removing book:", err);
-      setError(err.message || "Failed to remove book. Please try again.");
+      setError(err.message || "Failed to remove story.");
     }
   };
 
-  // Move book between lists
-  const handleMoveBook = async (bookId: string, targetListId: string) => {
-    if (!user || !selectedListId) return;
-
-    const sourceList = bookLists.find((l) => l.id === selectedListId);
-    const targetList = bookLists.find((l) => l.id === targetListId);
-
-    if (!sourceList || !targetList) return;
-
-    // Both lists must be owned by user
-    if (sourceList.userId !== user.uid || targetList.userId !== user.uid) {
-      setError("You can only move books between your own lists.");
-      return;
-    }
-
-    const book = sourceList.books.find((b) => b.id === bookId);
-    if (!book) return;
-
-    try {
-      setError(null);
-
-      // Remove from source list
-      await bookListService.removeBookFromList(
-        selectedListId,
-        user.uid,
-        bookId
-      );
-
-      // Add to target list
-      await bookListService.addBookToList(targetListId, user.uid, book);
-
-      // Refresh lists
-      await fetchBookLists();
-    } catch (err: any) {
-      console.error("Error moving book:", err);
-      setError(err.message || "Failed to move book. Please try again.");
-    }
-  };
-
-  // Move book up/down in list
   const handleMoveBookPosition = async (
     bookId: string,
-    direction: "up" | "down"
+    direction: "up" | "down",
   ) => {
-    if (!user || !selectedList) return;
-
-    if (selectedList.userId !== user.uid) {
-      setError("You can only reorder books in your own lists.");
-      return;
-    }
-
-    const currentIndex = selectedList.books.findIndex((b) => b.id === bookId);
-    if (currentIndex === -1) return;
-    if (direction === "up" && currentIndex === 0) return;
-    if (direction === "down" && currentIndex === selectedList.books.length - 1)
-      return;
-
+    if (!user || !selectedList || selectedList.userId !== user.uid) return;
+    const idx = selectedList.books.findIndex((b) => b.id === bookId);
+    if (idx === -1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === selectedList.books.length - 1) return;
     const newBooks = [...selectedList.books];
-    const targetIndex =
-      direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    [newBooks[currentIndex], newBooks[targetIndex]] = [
-      newBooks[targetIndex],
-      newBooks[currentIndex],
-    ];
-
+    const target = direction === "up" ? idx - 1 : idx + 1;
+    [newBooks[idx], newBooks[target]] = [newBooks[target], newBooks[idx]];
     try {
       setError(null);
       await bookListService.updateBookOrder(
         selectedListId!,
         user.uid,
-        newBooks
+        newBooks,
       );
-
-      // Refresh lists
       await fetchBookLists();
     } catch (err: any) {
-      console.error("Error reordering books:", err);
-      setError(err.message || "Failed to reorder books. Please try again.");
+      setError(err.message || "Failed to reorder.");
     }
   };
 
-  const filteredBooks = getFilteredAndSortedBooks();
-  const isOwner = selectedList ? selectedList.userId === user?.uid : false;
-  const userListsIds = new Set(userBookLists.map((l) => l.id));
+  // ── Derived ──────────────────────────────────────────────────────────────
 
-  // Pagination calculations
+  const filteredBooks = getFilteredAndSortedBooks();
+  const isOwner = selectedList?.userId === user?.uid;
+  const userListsIds = new Set(userBookLists.map((l) => l.id));
   const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+  const paginatedBooks = filteredBooks.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+  const otherLists = bookLists.filter((l) => !userListsIds.has(l.id));
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterGenre, sortBy, selectedListId]);
+  // ── States ───────────────────────────────────────────────────────────────
 
-  // Show loading state
   if (authLoading || loading) {
     return (
-      <div className="p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
-        <Loader2
-          className="animate-spin text-dark-green dark:text-light-green"
-          size={32}
-        />
-      </div>
-    );
-  }
-
-  // Show auth required message
-  if (!user) {
-    return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="text-center py-12">
-          <BookOpen
-            className="mx-auto mb-4 text-gray-400 dark:text-gray-600"
-            size={48}
-          />
-          <h2 className="text-2xl font-bold mb-2 text-black dark:text-white">
-            Authentication Required
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please sign in to create and manage book lists.
-          </p>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-ns-accent" size={28} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-screen bg-neutral-50 dark:bg-black">
-      <h1 className="text-3xl font-bold mb-6 text-black dark:text-white">
-        Book Lists
-      </h1>
+    <div className="text-ns-ink">
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        {/* Page title */}
+        <h1 className="font-heading text-display text-ns-ink leading-none mb-8">
+          Reading Lists
+        </h1>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded">
-          {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-2 float-right font-bold hover:text-red-900 dark:hover:text-red-200"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      <div className="flex gap-6">
-        {/* Sidebar - Lists */}
-        <div className="w-64 flex-shrink-0">
-          <div className="mb-4">
+        {/* Error banner */}
+        {error && (
+          <div className="mb-6 flex items-start gap-3 px-4 py-3 bg-ns-destructive/10 border border-ns-destructive/30 text-ns-destructive rounded-ns text-sm font-ui">
+            <span className="flex-1">{error}</span>
             <button
-              onClick={() => setIsCreatingList(true)}
-              className="w-full flex items-center gap-2 px-4 py-2 bg-dark-green dark:bg-light-green text-white rounded hover:opacity-90 transition-opacity"
+              onClick={() => setError(null)}
+              className="flex-shrink-0 hover:opacity-70"
             >
-              <Plus size={18} /> New List
+              <X className="w-4 h-4" />
             </button>
           </div>
+        )}
 
-          {isCreatingList && (
-            <div className="mb-4 p-3 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900">
-              <input
-                type="text"
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateList();
-                  if (e.key === "Escape") {
-                    setIsCreatingList(false);
-                    setNewListName("");
-                    setNewListIsPublic(true);
-                  }
-                }}
-                placeholder="List name"
-                className="w-full px-2 py-1 border border-gray-200 dark:border-neutral-700 rounded mb-2 bg-white dark:bg-neutral-900 text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-dark-green dark:focus:border-light-green"
-                autoFocus
-              />
-              <label className="flex items-center gap-2 mb-2 text-sm cursor-pointer text-black dark:text-white">
+        <div className="flex gap-8">
+          {/* ── Sidebar ── */}
+          <aside className="w-60 flex-shrink-0 space-y-6">
+            {/* New list button */}
+            {user && (
+              <button
+                onClick={() => setIsCreatingList(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-ns-accent hover:bg-ns-accent-hover text-white text-sm font-ui font-medium rounded-ns transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                New List
+              </button>
+            )}
+
+            {/* Create form */}
+            {isCreatingList && (
+              <div className="p-4 bg-ns-elevated border border-ns-border rounded-ns-lg space-y-3">
                 <input
-                  type="checkbox"
-                  checked={newListIsPublic}
-                  onChange={(e) => setNewListIsPublic(e.target.checked)}
-                  className="cursor-pointer"
-                />
-                <span className="flex items-center gap-1">
-                  <Globe
-                    size={14}
-                    className="text-dark-green dark:text-light-green"
-                  />
-                  Make public
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCreateList}
-                  className="px-3 py-1 bg-dark-green dark:bg-light-green text-white rounded text-sm hover:opacity-90 transition-opacity"
-                >
-                  Create
-                </button>
-                <button
-                  onClick={() => {
-                    setIsCreatingList(false);
-                    setNewListName("");
-                    setNewListIsPublic(true);
+                  type="text"
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateList();
+                    if (e.key === "Escape") {
+                      setIsCreatingList(false);
+                      setNewListName("");
+                    }
                   }}
-                  className="px-3 py-1 bg-gray-300 dark:bg-neutral-700 text-black dark:text-white rounded text-sm hover:bg-gray-400 dark:hover:bg-neutral-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* My Lists Section */}
-          {userBookLists.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                My Lists
-              </h3>
-              <div className="space-y-2">
-                {userBookLists.map((list) => (
-                  <div
-                    key={list.id}
-                    className={`p-3 rounded cursor-pointer border transition-colors ${
-                      selectedListId === list.id
-                        ? "bg-dark-green/10 dark:bg-light-green/20 border-dark-green dark:border-light-green"
-                        : "border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900"
+                  placeholder="List name"
+                  className="w-full px-3 py-1.5 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent"
+                  autoFocus
+                />
+                {/* Visibility toggle */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setNewListIsPublic(true)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-ns text-xs font-ui font-medium transition-colors border ${
+                      newListIsPublic
+                        ? "bg-ns-accent/10 border-ns-accent text-ns-accent"
+                        : "bg-ns-surface border-ns-border text-ns-ink-muted hover:bg-ns-surface-hover"
                     }`}
                   >
-                    {editingListId === list.id ? (
-                      <div>
-                        <input
-                          type="text"
-                          value={editingListName}
-                          onChange={(e) => setEditingListName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRenameList(list.id);
-                            if (e.key === "Escape") {
-                              setEditingListId(null);
-                              setEditingListName("");
-                            }
-                          }}
-                          className="w-full px-2 py-1 border border-gray-200 dark:border-neutral-700 rounded mb-2 bg-white dark:bg-neutral-900 text-black dark:text-white focus:outline-none focus:border-dark-green dark:focus:border-light-green"
-                          autoFocus
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleRenameList(list.id)}
-                            className="px-2 py-1 bg-dark-green dark:bg-light-green text-white rounded text-xs hover:opacity-90 transition-opacity"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingListId(null);
-                              setEditingListName("");
-                            }}
-                            className="px-2 py-1 bg-gray-300 dark:bg-neutral-700 text-black dark:text-white rounded text-xs hover:bg-gray-400 dark:hover:bg-neutral-600 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div
-                          onClick={() => setSelectedListId(list.id)}
-                          className="flex justify-between items-start"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium flex items-center gap-1 text-black dark:text-white">
-                              {list.title}
-                              {list.isPublic ? (
-                                <span title="Public">
-                                  <Globe
-                                    size={14}
-                                    className="text-dark-green dark:text-light-green"
-                                  />
-                                </span>
-                              ) : (
-                                <span title="Private">
-                                  <Lock
-                                    size={14}
-                                    className="text-gray-500 dark:text-gray-400"
-                                  />
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {list.books.length} books
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePrivacy(list.id);
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
-                              title={
-                                list.isPublic ? "Make private" : "Make public"
-                              }
-                            >
-                              {list.isPublic ? (
-                                <Globe
-                                  size={14}
-                                  className="text-dark-green dark:text-light-green"
-                                />
-                              ) : (
-                                <Lock
-                                  size={14}
-                                  className="text-gray-500 dark:text-gray-400"
-                                />
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingListId(list.id);
-                                setEditingListName(list.title);
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
-                            >
-                              <Edit2
-                                size={14}
-                                className="text-gray-600 dark:text-gray-400"
-                              />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteList(list.id);
-                              }}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-                            >
-                              <Trash2
-                                size={14}
-                                className="text-red-600 dark:text-red-400"
-                              />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Other Users' Lists Section */}
-          {bookLists.filter((l) => !userListsIds.has(l.id)).length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Other Users' Lists
-              </h3>
-              <div className="space-y-2">
-                {bookLists
-                  .filter((l) => !userListsIds.has(l.id))
-                  .map((list) => (
-                    <div
-                      key={list.id}
-                      className={`p-3 rounded cursor-pointer border transition-colors ${
-                        selectedListId === list.id
-                          ? "bg-light-green/10 dark:bg-light-green/20 border-light-green dark:border-light-green"
-                          : "border-gray-200 dark:border-neutral-700 hover:bg-gray-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900"
-                      }`}
-                      onClick={() => setSelectedListId(list.id)}
-                    >
-                      <div className="font-medium flex items-center gap-1 text-black dark:text-white">
-                        {list.title}
-                        {list.isPublic && (
-                          <span title="Public">
-                            <Globe
-                              size={14}
-                              className="text-dark-green dark:text-light-green"
-                            />
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        by {list.username}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {list.books.length} books
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {bookLists.length === 0 && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-              No book lists yet. Create your first list!
-            </div>
-          )}
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1">
-          {selectedList ? (
-            <>
-              {/* List Header */}
-              <div className="mb-4 pb-4 border-b border-gray-200 dark:border-neutral-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-2 text-black dark:text-white">
-                      {selectedList.title}
-                      {selectedList.isPublic ? (
-                        <span title="Public">
-                          <Globe
-                            size={20}
-                            className="text-dark-green dark:text-light-green"
-                          />
-                        </span>
-                      ) : (
-                        <span title="Private">
-                          <Lock
-                            size={20}
-                            className="text-gray-500 dark:text-gray-400"
-                          />
-                        </span>
-                      )}
-                    </h2>
-                    {!isOwner && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        by {selectedList.username}
-                      </p>
-                    )}
-                  </div>
-                  {isOwner && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleTogglePrivacy(selectedList.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
-                          selectedList.isPublic
-                            ? "bg-dark-green/10 dark:bg-light-green/20 text-dark-green dark:text-light-green hover:bg-dark-green/20 dark:hover:bg-light-green/30"
-                            : "bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700"
-                        }`}
-                        title={
-                          selectedList.isPublic ? "Make private" : "Make public"
-                        }
-                      >
-                        {selectedList.isPublic ? (
-                          <>
-                            <Globe size={16} />
-                            <span>Public</span>
-                          </>
-                        ) : (
-                          <>
-                            <Lock size={16} />
-                            <span>Private</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setShowBookSearch(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-dark-green dark:bg-light-green text-white rounded hover:opacity-90 transition-opacity"
-                      >
-                        <Plus size={18} /> Add Book
-                      </button>
-                    </div>
-                  )}
+                    <Globe className="w-3 h-3" /> Public
+                  </button>
+                  <button
+                    onClick={() => setNewListIsPublic(false)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-ns text-xs font-ui font-medium transition-colors border ${
+                      !newListIsPublic
+                        ? "bg-ns-surface-hover border-ns-border-strong text-ns-ink"
+                        : "bg-ns-surface border-ns-border text-ns-ink-muted hover:bg-ns-surface-hover"
+                    }`}
+                  >
+                    <Lock className="w-3 h-3" /> Private
+                  </button>
                 </div>
-              </div>
-
-              {/* Book Search Modal */}
-              {showBookSearch && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50">
-                  <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-200 dark:border-neutral-700">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-black dark:text-white">
-                        Search Books
-                      </h3>
-                      <button
-                        onClick={() => {
-                          setShowBookSearch(false);
-                          setBookSearchQuery("");
-                          setSearchResults([]);
-                        }}
-                        className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                      >
-                        <X size={24} />
-                      </button>
-                    </div>
-                    <div className="mb-4">
-                      <input
-                        type="text"
-                        value={bookSearchQuery}
-                        onChange={(e) => {
-                          setBookSearchQuery(e.target.value);
-                          debouncedSearch(e.target.value);
-                        }}
-                        placeholder="Search for books..."
-                        className="w-full px-4 py-2 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-dark-green dark:focus:border-light-green"
-                      />
-                    </div>
-                    {isSearchingBooks && (
-                      <div className="text-center py-4">
-                        <Loader2
-                          className="animate-spin mx-auto text-dark-green dark:text-light-green"
-                          size={24}
-                        />
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      {searchResults.map((book) => (
-                        <div
-                          key={book.id}
-                          className="flex items-center gap-4 p-3 border border-gray-200 dark:border-neutral-700 rounded hover:bg-gray-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
-                          onClick={() => handleAddBook(book)}
-                        >
-                          {book.volumeInfo?.imageLinks?.thumbnail && (
-                            <img
-                              src={book.volumeInfo.imageLinks.thumbnail}
-                              alt={book.volumeInfo.title}
-                              className="w-16 h-24 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-black dark:text-white">
-                              {book.volumeInfo?.title || "Unknown Title"}
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {book.volumeInfo?.authors?.join(", ") ||
-                                "Unknown Author"}
-                            </p>
-                          </div>
-                          <button className="px-3 py-1 bg-dark-green dark:bg-light-green text-white rounded text-sm hover:opacity-90 transition-opacity">
-                            Add
-                          </button>
-                        </div>
-                      ))}
-                      {!isSearchingBooks &&
-                        bookSearchQuery &&
-                        searchResults.length === 0 && (
-                          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                            No books found. Try a different search.
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Controls */}
-              <div className="mb-6 space-y-4">
-                {/* Search */}
                 <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Search
-                      className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500"
-                      size={20}
+                  <button
+                    onClick={handleCreateList}
+                    className="flex-1 py-1.5 bg-ns-accent hover:bg-ns-accent-hover text-white rounded-ns text-xs font-ui font-medium transition-colors"
+                  >
+                    Create
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsCreatingList(false);
+                      setNewListName("");
+                      setNewListIsPublic(true);
+                    }}
+                    className="flex-1 py-1.5 bg-ns-surface hover:bg-ns-surface-hover border border-ns-border text-ns-ink rounded-ns text-xs font-ui transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* My Lists */}
+            {userBookLists.length > 0 && (
+              <div>
+                <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2 px-1">
+                  My Lists
+                </p>
+                <div className="space-y-1">
+                  {userBookLists.map((list) => (
+                    <ListItem
+                      key={list.id}
+                      list={list}
+                      isSelected={selectedListId === list.id}
+                      isEditing={editingListId === list.id}
+                      editingName={editingListName}
+                      onSelect={() => setSelectedListId(list.id)}
+                      onEditStart={() => {
+                        setEditingListId(list.id);
+                        setEditingListName(list.title);
+                      }}
+                      onEditChange={setEditingListName}
+                      onEditSave={() => handleRenameList(list.id)}
+                      onEditCancel={() => {
+                        setEditingListId(null);
+                        setEditingListName("");
+                      }}
+                      onDelete={() => handleDeleteList(list.id)}
                     />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other users' lists */}
+            {otherLists.length > 0 && (
+              <div>
+                <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2 px-1">
+                  Community Lists
+                </p>
+                <div className="space-y-1">
+                  {otherLists.map((list) => (
+                    <button
+                      key={list.id}
+                      onClick={() => setSelectedListId(list.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-ns transition-colors ${
+                        selectedListId === list.id
+                          ? "bg-ns-surface-hover"
+                          : "hover:bg-ns-surface"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span
+                          className={`text-sm font-ui font-medium truncate ${
+                            selectedListId === list.id
+                              ? "text-ns-ink"
+                              : "text-ns-ink-secondary"
+                          }`}
+                        >
+                          {list.title}
+                        </span>
+                        <VisibilityBadge isPublic={list.isPublic} size="xs" />
+                      </div>
+                      <p className="text-xs font-ui text-ns-ink-muted truncate">
+                        by {list.username} · {list.books.length} stories
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {bookLists.length === 0 && (
+              <p className="text-sm font-ui text-ns-ink-muted text-center py-4">
+                No lists yet. Create your first!
+              </p>
+            )}
+          </aside>
+
+          {/* ── Main content ── */}
+          <div className="flex-1 min-w-0">
+            {selectedList ? (
+              <>
+                {/* List header */}
+                <div className="mb-6 pb-5 border-b border-ns-border">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h2 className="font-heading text-3xl text-ns-ink leading-none">
+                          {selectedList.title}
+                        </h2>
+                        <VisibilityBadge isPublic={selectedList.isPublic} />
+                      </div>
+                      <p className="mt-1.5 text-sm font-ui text-ns-ink-muted">
+                        {!isOwner && `by ${selectedList.username} · `}
+                        {selectedList.books.length}{" "}
+                        {selectedList.books.length === 1 ? "story" : "stories"}
+                      </p>
+                    </div>
+
+                    {isOwner && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Privacy toggle */}
+                        <button
+                          onClick={() => handleTogglePrivacy(selectedList.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-ui font-medium border border-ns-border rounded-ns bg-ns-surface hover:bg-ns-surface-hover text-ns-ink transition-colors"
+                          title={
+                            selectedList.isPublic
+                              ? "Make private"
+                              : "Make public"
+                          }
+                        >
+                          {selectedList.isPublic ? (
+                            <>
+                              <Globe className="w-3.5 h-3.5 text-ns-accent" />{" "}
+                              Make private
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3.5 h-3.5 text-ns-ink-muted" />{" "}
+                              Make public
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowBookSearch(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-ui font-medium bg-ns-accent hover:bg-ns-accent-hover text-white rounded-ns transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Story
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ns-ink-muted pointer-events-none" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search books by title or author..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-dark-green dark:focus:border-light-green"
+                      placeholder="Search stories…"
+                      className="w-full pl-9 pr-4 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors"
                     />
                   </div>
-                </div>
-
-                {/* Filters and View Toggle */}
-                <div className="flex gap-4 items-center">
-                  <div className="flex gap-2 items-center">
-                    <label className="text-sm font-medium text-black dark:text-white">
-                      Sort by:
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) =>
-                        setSortBy(e.target.value as "title" | "author" | "date")
-                      }
-                      className="px-3 py-1 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-black dark:text-white focus:outline-none focus:border-dark-green dark:focus:border-light-green"
-                    >
-                      <option value="title">Title</option>
-                      <option value="author">Author</option>
-                      <option value="date">Date</option>
-                    </select>
-                  </div>
-
-                  <div className="flex gap-2 items-center">
-                    <label className="text-sm font-medium text-black dark:text-white">
-                      Genre:
-                    </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) =>
+                      setSortBy(
+                        e.target.value as "title" | "author" | "chapters",
+                      )
+                    }
+                    className="px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink focus:outline-none focus:ring-1 focus:ring-ns-accent cursor-pointer"
+                  >
+                    <option value="title">Sort: Title</option>
+                    <option value="author">Sort: Author</option>
+                    <option value="chapters">Sort: Chapters</option>
+                  </select>
+                  {genres.length > 1 && (
                     <select
                       value={filterGenre}
                       onChange={(e) => setFilterGenre(e.target.value)}
-                      className="px-3 py-1 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-black dark:text-white focus:outline-none focus:border-dark-green dark:focus:border-light-green"
+                      className="px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink focus:outline-none focus:ring-1 focus:ring-ns-accent cursor-pointer"
                     >
-                      {genres.map((genre) => (
-                        <option key={genre} value={genre}>
-                          {genre === "all" ? "All Genres" : genre}
+                      {genres.map((g) => (
+                        <option key={g} value={g}>
+                          {g === "all" ? "All categories" : g}
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div className="ml-auto flex gap-2">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-2 rounded transition-colors ${
-                        viewMode === "grid"
-                          ? "bg-dark-green dark:bg-light-green text-white"
-                          : "bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-neutral-600"
-                      }`}
-                    >
-                      <Grid size={20} />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-2 rounded transition-colors ${
-                        viewMode === "list"
-                          ? "bg-dark-green dark:bg-light-green text-white"
-                          : "bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-neutral-600"
-                      }`}
-                    >
-                      <List size={20} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Books Display */}
-              {filteredBooks.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  {selectedList.books.length === 0
-                    ? isOwner
-                      ? "This list is empty. Add some books!"
-                      : "This list is empty."
-                    : "No books found. Try adjusting your search or filters."}
-                </div>
-              ) : viewMode === "grid" ? (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    {paginatedBooks.map((book) => (
-                      <div
-                        key={book.id}
-                        className="border rounded p-2 hover:shadow-md transition-shadow"
+                  )}
+                  <div className="flex gap-1">
+                    {(["grid", "list"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setViewMode(mode)}
+                        className={`p-2 rounded-ns transition-colors ${
+                          viewMode === mode
+                            ? "bg-ns-accent text-white"
+                            : "bg-ns-surface border border-ns-border text-ns-ink-muted hover:bg-ns-surface-hover"
+                        }`}
                       >
-                        {book.coverUrl ? (
-                          <img
-                            src={book.coverUrl}
-                            alt={book.title}
-                            className="aspect-[2/3] w-full object-cover mb-2 rounded"
-                          />
+                        {mode === "grid" ? (
+                          <Grid size={16} />
                         ) : (
-                          <div className="aspect-[2/3] bg-gray-200 mb-2 flex items-center justify-center text-gray-400 rounded">
-                            <BookOpen size={20} />
-                          </div>
+                          <List size={16} />
                         )}
-                        <h3 className="font-semibold text-xs mb-1 line-clamp-2">
-                          {book.title}
-                        </h3>
-                        <p className="text-xs text-gray-600 mb-1 line-clamp-1">
-                          {book.author}
-                        </p>
-
-                        {isOwner && (
-                          <div className="flex gap-1 mt-2">
-                            <select
-                              onChange={(e) =>
-                                handleMoveBook(book.id, e.target.value)
-                              }
-                              className="text-xs px-1 py-0.5 border border-gray-200 dark:border-neutral-700 rounded flex-1 text-[10px] bg-white dark:bg-neutral-900 text-black dark:text-white"
-                              defaultValue=""
-                            >
-                              <option value="" disabled>
-                                Move...
-                              </option>
-                              {userBookLists
-                                .filter((list) => list.id !== selectedListId)
-                                .map((list) => (
-                                  <option key={list.id} value={list.id}>
-                                    {list.title}
-                                  </option>
-                                ))}
-                            </select>
-                            <button
-                              onClick={() => handleRemoveBook(book.id)}
-                              className="p-0.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                              title="Remove book"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      </button>
                     ))}
                   </div>
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) => Math.max(1, prev - 1))
-                        }
-                        disabled={currentPage === 1}
-                        className="p-2 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1)
-                          .filter(
-                            (page) =>
-                              page === 1 ||
-                              page === totalPages ||
-                              (page >= currentPage - 1 &&
-                                page <= currentPage + 1)
-                          )
-                          .map((page, index, array) => {
-                            const showEllipsis =
-                              index > 0 && array[index - 1] !== page - 1;
-                            return (
-                              <span
-                                key={page}
-                                className="flex items-center gap-1"
-                              >
-                                {showEllipsis && (
-                                  <span className="px-2">...</span>
-                                )}
-                                <button
-                                  onClick={() => setCurrentPage(page)}
-                                  className={`px-3 py-1 border rounded ${
-                                    currentPage === page
-                                      ? "bg-blue-500 text-white"
-                                      : "hover:bg-gray-100"
-                                  }`}
-                                >
-                                  {page}
-                                </button>
-                              </span>
-                            );
-                          })}
-                      </div>
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(totalPages, prev + 1)
-                          )
-                        }
-                        disabled={currentPage === totalPages}
-                        className="p-2 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                      <span className="text-sm text-gray-600 ml-2">
-                        Page {currentPage} of {totalPages} (
-                        {filteredBooks.length} books)
-                      </span>
+                </div>
+
+                {/* Empty state */}
+                {filteredBooks.length === 0 && (
+                  <div className="py-20 text-center">
+                    <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-ns-surface border border-ns-border flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 text-ns-ink-muted" />
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {paginatedBooks.map((book, index) => {
-                      const actualIndex = startIndex + index;
-                      return (
-                        <div
-                          key={book.id}
-                          className="border border-gray-200 dark:border-neutral-700 rounded p-4 hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-4 transition-colors bg-white dark:bg-neutral-900"
-                        >
-                          {book.coverUrl ? (
-                            <img
-                              src={book.coverUrl}
-                              alt={book.title}
-                              className="w-10 h-14 object-cover flex-shrink-0 rounded"
-                            />
-                          ) : (
-                            <div className="w-10 h-14 bg-gray-200 dark:bg-neutral-800 flex-shrink-0 flex items-center justify-center text-xs text-gray-400 dark:text-gray-600 rounded">
-                              <BookOpen size={16} />
-                            </div>
-                          )}
+                    <p className="font-ui text-sm text-ns-ink-secondary">
+                      {selectedList.books.length === 0
+                        ? isOwner
+                          ? "This list is empty. Add some stories!"
+                          : "This list is empty."
+                        : "No stories match your search."}
+                    </p>
+                  </div>
+                )}
 
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm line-clamp-1 text-black dark:text-white">
-                              {book.title}
-                            </h3>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
-                              {book.author}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">
-                              {book.publishedDate}{" "}
-                              {book.genre && `• ${book.genre}`}
-                            </p>
+                {/* Grid view */}
+                {filteredBooks.length > 0 && viewMode === "grid" && (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {paginatedBooks.map((book) => (
+                        <div key={book.id} className="group relative">
+                          <div
+                            onClick={() => navigate(`/story/${book.id}`)}
+                            className="aspect-[2/3] rounded-ns overflow-hidden bg-ns-surface border border-ns-border mb-2 cursor-pointer"
+                          >
+                            {book.coverUrl ? (
+                              <img
+                                src={book.coverUrl}
+                                alt={book.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-ns-ink-muted">
+                                <BookOpen className="w-8 h-8" />
+                              </div>
+                            )}
+                            {/* Remove overlay */}
+                            {isOwner && (
+                              <button
+                                onClick={() => handleRemoveBook(book.id)}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ns-destructive"
+                                title="Remove"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
+                          <p
+                            onClick={() => navigate(`/story/${book.id}`)}
+                            className="text-xs font-ui font-medium text-ns-ink line-clamp-2 leading-snug cursor-pointer hover:text-ns-accent transition-colors"
+                          >
+                            {book.title}
+                          </p>
+                          <p className="text-[11px] font-ui text-ns-ink-muted mt-0.5 line-clamp-1">
+                            {book.author}
+                          </p>
+                          {book.chapterCount !== undefined && (
+                            <p className="text-[11px] font-ui text-ns-ink-muted">
+                              {book.chapterCount}{" "}
+                              {book.chapterCount === 1 ? "ch." : "chs."}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {totalPages > 1 && (
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredBooks.length}
+                        onPageChange={setCurrentPage}
+                      />
+                    )}
+                  </>
+                )}
 
-                          {isOwner && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex flex-col gap-1">
+                {/* List view */}
+                {filteredBooks.length > 0 && viewMode === "list" && (
+                  <>
+                    <div className="divide-y divide-ns-border">
+                      {paginatedBooks.map((book, index) => {
+                        const actualIndex = startIndex + index;
+                        return (
+                          <div
+                            key={book.id}
+                            className="flex items-center gap-4 py-4 group"
+                          >
+                            {/* Cover */}
+                            <div
+                              onClick={() => navigate(`/story/${book.id}`)}
+                              className="w-10 h-14 flex-shrink-0 rounded bg-ns-surface border border-ns-border overflow-hidden cursor-pointer"
+                            >
+                              {book.coverUrl ? (
+                                <img
+                                  src={book.coverUrl}
+                                  alt={book.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-ns-ink-muted">
+                                  <BookOpen className="w-4 h-4" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div
+                              onClick={() => navigate(`/story/${book.id}`)}
+                              className="flex-1 min-w-0 cursor-pointer"
+                            >
+                              <p className="text-sm font-ui font-medium text-ns-ink line-clamp-1 hover:text-ns-accent transition-colors">
+                                {book.title}
+                              </p>
+                              <p className="text-xs font-ui text-ns-ink-muted mt-0.5">
+                                by {book.author}
+                                {book.chapterCount !== undefined &&
+                                  ` · ${book.chapterCount} ${book.chapterCount === 1 ? "chapter" : "chapters"}`}
+                                {book.genre && ` · ${book.genre}`}
+                              </p>
+                            </div>
+
+                            {/* Owner controls */}
+                            {isOwner && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() =>
                                     handleMoveBookPosition(book.id, "up")
                                   }
                                   disabled={actualIndex === 0}
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded disabled:opacity-30 transition-colors text-gray-600 dark:text-gray-400"
+                                  className="p-1.5 rounded-ns hover:bg-ns-surface-hover disabled:opacity-30 transition-colors text-ns-ink-muted"
                                 >
-                                  <ChevronUp size={14} />
+                                  <ChevronUp className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() =>
@@ -1173,120 +781,357 @@ const BookLists = () => {
                                   disabled={
                                     actualIndex === filteredBooks.length - 1
                                   }
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded disabled:opacity-30 transition-colors text-gray-600 dark:text-gray-400"
+                                  className="p-1.5 rounded-ns hover:bg-ns-surface-hover disabled:opacity-30 transition-colors text-ns-ink-muted"
                                 >
-                                  <ChevronDown size={14} />
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveBook(book.id)}
+                                  className="p-1.5 rounded-ns hover:bg-ns-destructive/10 text-ns-ink-muted hover:text-ns-destructive transition-colors ml-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-
-                              <select
-                                onChange={(e) =>
-                                  handleMoveBook(book.id, e.target.value)
-                                }
-                                className="text-sm px-3 py-1 border border-gray-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-black dark:text-white focus:outline-none focus:border-dark-green dark:focus:border-light-green"
-                                defaultValue=""
-                              >
-                                <option value="" disabled>
-                                  Move to...
-                                </option>
-                                {userBookLists
-                                  .filter((list) => list.id !== selectedListId)
-                                  .map((list) => (
-                                    <option key={list.id} value={list.id}>
-                                      {list.title}
-                                    </option>
-                                  ))}
-                              </select>
-
-                              <button
-                                onClick={() => handleRemoveBook(book.id)}
-                                className="p-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                              >
-                                <X size={20} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) => Math.max(1, prev - 1))
-                        }
-                        disabled={currentPage === 1}
-                        className="p-2 border border-gray-200 dark:border-neutral-700 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-neutral-900 text-black dark:text-white transition-colors"
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1)
-                          .filter(
-                            (page) =>
-                              page === 1 ||
-                              page === totalPages ||
-                              (page >= currentPage - 1 &&
-                                page <= currentPage + 1)
-                          )
-                          .map((page, index, array) => {
-                            const showEllipsis =
-                              index > 0 && array[index - 1] !== page - 1;
-                            return (
-                              <span
-                                key={page}
-                                className="flex items-center gap-1"
-                              >
-                                {showEllipsis && (
-                                  <span className="px-2 text-gray-600 dark:text-gray-400">
-                                    ...
-                                  </span>
-                                )}
-                                <button
-                                  onClick={() => setCurrentPage(page)}
-                                  className={`px-3 py-1 border border-gray-200 dark:border-neutral-700 rounded transition-colors ${
-                                    currentPage === page
-                                      ? "bg-dark-green dark:bg-light-green text-white"
-                                      : "hover:bg-gray-100 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 text-black dark:text-white"
-                                  }`}
-                                >
-                                  {page}
-                                </button>
-                              </span>
-                            );
-                          })}
-                      </div>
-                      <button
-                        onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(totalPages, prev + 1)
-                          )
-                        }
-                        disabled={currentPage === totalPages}
-                        className="p-2 border border-gray-200 dark:border-neutral-700 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-neutral-900 text-black dark:text-white transition-colors"
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                      <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                        Page {currentPage} of {totalPages} (
-                        {filteredBooks.length} books)
-                      </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              Select a book list to view its contents.
-            </div>
-          )}
+                    {totalPages > 1 && (
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredBooks.length}
+                        onPageChange={setCurrentPage}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-16 h-16 mb-6 rounded-full bg-ns-surface border border-ns-border flex items-center justify-center">
+                  <BookOpen className="w-7 h-7 text-ns-ink-muted" />
+                </div>
+                <p className="font-ui text-sm text-ns-ink-secondary">
+                  Select a list to view its stories.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* ── Add Story Modal ── */}
+      {showBookSearch && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/60"
+          onClick={() => {
+            setShowBookSearch(false);
+            setBookSearchQuery("");
+          }}
+        >
+          <div
+            className="w-full max-w-xl mx-4 bg-ns-elevated rounded-ns-xl shadow-ns-xl flex flex-col max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-ns-border">
+              <h3 className="font-heading text-xl text-ns-ink">Add Story</h3>
+              <button
+                onClick={() => {
+                  setShowBookSearch(false);
+                  setBookSearchQuery("");
+                }}
+                className="p-1.5 rounded-ns text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Search input */}
+            <div className="px-6 py-3 border-b border-ns-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ns-ink-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={bookSearchQuery}
+                  onChange={(e) => setBookSearchQuery(e.target.value)}
+                  placeholder="Search by title, author, or category…"
+                  className="w-full pl-9 pr-4 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Results */}
+            <div className="overflow-y-auto flex-1 px-2 py-2">
+              {platformLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="animate-spin text-ns-accent" size={24} />
+                </div>
+              ) : filteredPlatformStories().length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="font-ui text-sm text-ns-ink-secondary">
+                    {bookSearchQuery
+                      ? "No stories found."
+                      : "No published stories available."}
+                  </p>
+                </div>
+              ) : (
+                filteredPlatformStories().map((story) => {
+                  const added =
+                    selectedList?.books.some((b) => b.id === story.id) ?? false;
+                  return (
+                    <button
+                      key={story.id}
+                      onClick={() => !added && handleAddStory(story)}
+                      disabled={added}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-ns text-left transition-colors ${
+                        added
+                          ? "opacity-50 cursor-default"
+                          : "hover:bg-ns-surface-hover"
+                      }`}
+                    >
+                      <div className="w-9 h-12 flex-shrink-0 rounded bg-ns-surface border border-ns-border overflow-hidden">
+                        {story.coverImageUrl ? (
+                          <img
+                            src={story.coverImageUrl}
+                            alt={story.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-ns-ink-muted">
+                            <BookOpen className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-ui font-medium text-ns-ink line-clamp-1">
+                          {story.title}
+                        </p>
+                        <p className="text-xs font-ui text-ns-ink-muted">
+                          by {story.author}
+                          {story.chapterCount !== undefined &&
+                            ` · ${story.chapterCount} ${story.chapterCount === 1 ? "chapter" : "chapters"}`}
+                          {story.category && ` · ${story.category}`}
+                        </p>
+                      </div>
+                      <span
+                        className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-ui font-medium transition-colors ${
+                          added
+                            ? "bg-ns-surface text-ns-ink-muted border border-ns-border"
+                            : "bg-ns-accent/10 text-ns-accent border border-ns-accent/20 hover:bg-ns-accent hover:text-white"
+                        }`}
+                      >
+                        {added ? (
+                          <>
+                            <Check className="w-3 h-3" /> Added
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3 h-3" /> Add
+                          </>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── List Item (sidebar) ─────────────────────────────────────────────────────
+
+interface ListItemProps {
+  list: IBookList;
+  isSelected: boolean;
+  isEditing: boolean;
+  editingName: string;
+  onSelect: () => void;
+  onEditStart: () => void;
+  onEditChange: (v: string) => void;
+  onEditSave: () => void;
+  onEditCancel: () => void;
+  onDelete: () => void;
+}
+
+const ListItem = ({
+  list,
+  isSelected,
+  isEditing,
+  editingName,
+  onSelect,
+  onEditStart,
+  onEditChange,
+  onEditSave,
+  onEditCancel,
+  onDelete,
+}: ListItemProps) => {
+  if (isEditing) {
+    return (
+      <div className="px-3 py-2 rounded-ns bg-ns-surface-hover border border-ns-border space-y-2">
+        <input
+          type="text"
+          value={editingName}
+          onChange={(e) => onEditChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onEditSave();
+            if (e.key === "Escape") onEditCancel();
+          }}
+          className="w-full px-2 py-1 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink focus:outline-none focus:ring-1 focus:ring-ns-accent"
+          autoFocus
+        />
+        <div className="flex gap-1.5">
+          <button
+            onClick={onEditSave}
+            className="flex-1 py-1 text-xs font-ui font-medium bg-ns-accent hover:bg-ns-accent-hover text-white rounded-ns transition-colors"
+          >
+            Save
+          </button>
+          <button
+            onClick={onEditCancel}
+            className="flex-1 py-1 text-xs font-ui bg-ns-surface hover:bg-ns-surface-hover border border-ns-border text-ns-ink rounded-ns transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`group relative flex items-center gap-0 rounded-ns transition-colors overflow-hidden ${
+        isSelected ? "bg-ns-surface-hover" : "hover:bg-ns-surface"
+      }`}
+    >
+      {/* Left accent bar */}
+      <div
+        className={`absolute left-0 top-2 bottom-2 w-[2px] rounded-full transition-colors ${
+          isSelected
+            ? list.isPublic
+              ? "bg-ns-accent"
+              : "bg-ns-border-strong"
+            : "bg-transparent"
+        }`}
+      />
+
+      <button
+        onClick={onSelect}
+        className="flex-1 text-left pl-4 pr-2 py-2.5 min-w-0"
+      >
+        <div className="flex items-center gap-2 mb-0.5">
+          <span
+            className={`text-sm font-ui font-medium truncate ${
+              isSelected ? "text-ns-ink" : "text-ns-ink-secondary"
+            }`}
+          >
+            {list.title}
+          </span>
+          {/* Visibility dot */}
+          <span
+            className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${
+              list.isPublic ? "bg-ns-accent" : "bg-ns-ink-muted"
+            }`}
+            title={list.isPublic ? "Public" : "Private"}
+          />
+        </div>
+        <p className="text-[11px] font-ui text-ns-ink-muted">
+          {list.isPublic ? "Public" : "Private"} · {list.books.length}{" "}
+          {list.books.length === 1 ? "story" : "stories"}
+        </p>
+      </button>
+
+      {/* Actions */}
+      <div className="flex gap-0.5 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditStart();
+          }}
+          className="p-1.5 rounded-ns text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors"
+        >
+          <Edit2 className="w-3 h-3" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-1.5 rounded-ns text-ns-ink-muted hover:text-ns-destructive hover:bg-ns-destructive/10 transition-colors"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
     </div>
   );
 };
+
+// ─── Pagination ──────────────────────────────────────────────────────────────
+
+const Pagination = ({
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (p: number) => void;
+}) => (
+  <div className="mt-8 flex items-center justify-center gap-1.5">
+    <button
+      onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+      disabled={currentPage === 1}
+      className="p-2 rounded-ns border border-ns-border bg-ns-surface hover:bg-ns-surface-hover text-ns-ink disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+    >
+      <ChevronLeft className="w-4 h-4" />
+    </button>
+
+    {Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter(
+        (p) =>
+          p === 1 ||
+          p === totalPages ||
+          (p >= currentPage - 1 && p <= currentPage + 1),
+      )
+      .map((p, i, arr) => (
+        <span key={p} className="flex items-center gap-1.5">
+          {i > 0 && arr[i - 1] !== p - 1 && (
+            <span className="px-1 text-ns-ink-muted text-sm">…</span>
+          )}
+          <button
+            onClick={() => onPageChange(p)}
+            className={`min-w-[32px] h-8 px-2 rounded-ns text-sm font-ui transition-colors border ${
+              currentPage === p
+                ? "bg-ns-accent text-white border-ns-accent"
+                : "bg-ns-surface border-ns-border text-ns-ink hover:bg-ns-surface-hover"
+            }`}
+          >
+            {p}
+          </button>
+        </span>
+      ))}
+
+    <button
+      onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+      disabled={currentPage === totalPages}
+      className="p-2 rounded-ns border border-ns-border bg-ns-surface hover:bg-ns-surface-hover text-ns-ink disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+    >
+      <ChevronRight className="w-4 h-4" />
+    </button>
+
+    <span className="ml-2 text-xs font-ui text-ns-ink-muted">
+      {currentPage} / {totalPages} · {totalItems} stories
+    </span>
+  </div>
+);
 
 export default BookLists;

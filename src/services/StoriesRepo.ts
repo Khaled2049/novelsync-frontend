@@ -44,6 +44,7 @@ class StoriesRepo {
         description: data.description,
         chapterCount: data.chapterCount,
         isPublished: data.isPublished,
+        createdAt: data.createdAt.toDate(),
         updatedAt: data.updatedAt.toDate(),
         author: data.author,
         views: data.views,
@@ -57,7 +58,7 @@ class StoriesRepo {
     const q = query(
       this.storiesCollection,
       orderBy("updatedAt", "desc"),
-      where("isPublished", "==", true)
+      where("isPublished", "==", true),
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => {
@@ -69,6 +70,7 @@ class StoriesRepo {
         chapterCount: data.chapterCount,
         isPublished: data.isPublished,
         updatedAt: data.updatedAt.toDate(),
+        createdAt: data.createdAt.toDate(),
         author: data.author,
         views: data.views,
         likes: data.likes,
@@ -79,13 +81,15 @@ class StoriesRepo {
     });
   }
 
-  async getPublishedStoriesByCategory(category: string): Promise<StoryMetadata[]> {
+  async getPublishedStoriesByCategory(
+    category: string,
+  ): Promise<StoryMetadata[]> {
     try {
       const q = query(
         this.storiesCollection,
         where("isPublished", "==", true),
         where("category", "==", category),
-        orderBy("updatedAt", "desc")
+        orderBy("updatedAt", "desc"),
       );
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => {
@@ -96,6 +100,7 @@ class StoriesRepo {
           description: data.description,
           chapterCount: data.chapterCount,
           isPublished: data.isPublished,
+          createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate(),
           author: data.author,
           views: data.views,
@@ -110,7 +115,7 @@ class StoriesRepo {
       if (error?.code === "failed-precondition") {
         console.error(
           "Firestore index required. Please create a composite index for: isPublished, category, updatedAt",
-          error
+          error,
         );
         // Return empty array if index is missing - user will need to create the index
         return [];
@@ -134,7 +139,7 @@ class StoriesRepo {
     const q = query(
       this.storiesCollection,
       orderBy("updatedAt", "desc"),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => {
@@ -145,6 +150,7 @@ class StoriesRepo {
         description: data.description,
         chapterCount: data.chapterCount,
         isPublished: data.isPublished,
+        createdAt: data.createdAt?.toDate() ?? new Date(),
         updatedAt: data.updatedAt.toDate(),
         author: data.author,
         views: data.views,
@@ -221,7 +227,7 @@ class StoriesRepo {
           });
         } else {
           console.log(
-            "We get it you really like this story. No more likes allowed."
+            "We get it you really like this story. No more likes allowed.",
           );
         }
       }
@@ -294,7 +300,7 @@ class StoriesRepo {
   }
 
   async getStoryRatingStats(
-    storyId: string
+    storyId: string,
   ): Promise<{ averageRating: number; ratingsCount: number }> {
     try {
       const ratingsCollection = this.getStoryRatingsCollection(storyId);
@@ -328,7 +334,7 @@ class StoriesRepo {
   async submitStoryRating(
     storyId: string,
     userId: string,
-    rating: number
+    rating: number,
   ): Promise<void> {
     try {
       // Validate rating
@@ -378,7 +384,7 @@ class StoriesRepo {
       language: string;
       copyright: string;
       coverImageUrl: string;
-    }
+    },
   ): Promise<string> {
     const newStoryRef = doc(this.storiesCollection);
     const author = await this.getUserInfo(userId);
@@ -414,7 +420,7 @@ class StoriesRepo {
   async updateStory(
     storyId: string,
     title: string,
-    description: string
+    description: string,
   ): Promise<void> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
@@ -429,6 +435,19 @@ class StoriesRepo {
     }
   }
 
+  async updateStoryMetadata(
+    storyId: string,
+    data: {
+      title: string;
+      description: string;
+      category?: string;
+      tags?: string[];
+    },
+  ): Promise<void> {
+    const storyRef = doc(this.storiesCollection, storyId);
+    await updateDoc(storyRef, { ...data, updatedAt: new Date() });
+  }
+
   async addChapter(storyId: string, chapterTitle: string): Promise<string> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
@@ -439,7 +458,7 @@ class StoriesRepo {
 
       if (story.chapterCount >= CHAPTER_LIMIT) {
         throw new Error(
-          `Chapter limit reached. Current chapter count: ${story.chapterCount}`
+          `Chapter limit reached. Current chapter count: ${story.chapterCount}`,
         );
       }
 
@@ -472,12 +491,12 @@ class StoriesRepo {
     try {
       const chaptersCollection = collection(
         doc(this.storiesCollection, storyId),
-        "chapters"
+        "chapters",
       );
       const q = query(chaptersCollection, orderBy("order"));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as Chapter)
+        (doc) => ({ id: doc.id, ...doc.data() }) as Chapter,
       );
     } catch (error) {
       console.error("Error getting chapters:", error);
@@ -487,13 +506,13 @@ class StoriesRepo {
 
   async getChapter(
     storyId: string,
-    chapterId: string
+    chapterId: string,
   ): Promise<Chapter | null> {
     const chapterRef = doc(
       this.storiesCollection,
       storyId,
       "chapters",
-      chapterId
+      chapterId,
     );
     const chapterSnap = await getDoc(chapterRef);
     if (chapterSnap.exists()) {
@@ -506,19 +525,19 @@ class StoriesRepo {
     storyId: string,
     chapterId: string,
     title: string,
-    content: string
+    content: string,
   ): Promise<void> {
     try {
       const chapterRef = doc(
         this.storiesCollection,
         storyId,
         "chapters",
-        chapterId
+        chapterId,
       );
       const wordCount = this.countWords(content);
       if (wordCount > WORD_LIMIT) {
         throw new Error(
-          `Chapter exceeds ${WORD_LIMIT} word limit. Current word count: ${wordCount}`
+          `Chapter exceeds ${WORD_LIMIT} word limit. Current word count: ${wordCount}`,
         );
       }
 
@@ -543,7 +562,7 @@ class StoriesRepo {
       this.storiesCollection,
       storyId,
       "chapters",
-      chapterId
+      chapterId,
     );
     await deleteDoc(chapterRef);
 
@@ -580,7 +599,7 @@ class StoriesRepo {
   async updateStoryCoverImage(
     storyId: string,
     imageFile: File | null,
-    previewUrl: string | null
+    previewUrl: string | null,
   ): Promise<void> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
@@ -599,7 +618,7 @@ class StoriesRepo {
         coverImageUrl = await storageService.uploadCoverImage(
           imageFile,
           story.userId,
-          storyId
+          storyId,
         );
       } else if (previewUrl?.startsWith("data:")) {
         // AI-generated data URL — convert to File before uploading
@@ -607,7 +626,7 @@ class StoriesRepo {
         coverImageUrl = await storageService.uploadCoverImage(
           file,
           story.userId,
-          storyId
+          storyId,
         );
       }
 

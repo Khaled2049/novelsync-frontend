@@ -2,14 +2,7 @@ import { Link } from "react-router-dom";
 import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
-import {
-  Settings,
-  Shield,
-  HelpCircle,
-  BookOpen,
-  LogOut,
-  X,
-} from "lucide-react";
+import { Shield, HelpCircle, BookOpen, LogOut, X } from "lucide-react";
 import { WalletConnectButton } from "../WalletConnectButton";
 
 interface MobileMenuProps {
@@ -39,7 +32,6 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   ];
 
   const userMenuItems = [
-    { icon: Settings, label: "Settings", to: "/settings" },
     { icon: Shield, label: "Privacy Policy", to: "/privacy-policy" },
     { icon: HelpCircle, label: "Help & Support", to: "/help" },
     { icon: BookOpen, label: "My Stories", to: "/user-stories" },

@@ -339,10 +339,9 @@ service cloud.firestore {
     
     // Rules for book lists
     match /bookLists/{listId} {
-      // Allow authenticated users to read all book lists (application code filters to show only public lists or user's own lists)
-      // NOTE: This allows reading all lists including private ones, but the application filters in memory.
-      // For better security, consider using composite queries with isPublic/userId filters.
-      allow read: if request.auth != null;
+      // Public lists are readable by anyone; private lists only by authenticated users
+      // (application code uses where("isPublic","==",true) for unauthenticated queries)
+      allow read: if resource.data.isPublic == true || request.auth != null;
       
       // Allow authenticated users to create book lists (must set their own userId)
       allow create: if request.auth != null && 

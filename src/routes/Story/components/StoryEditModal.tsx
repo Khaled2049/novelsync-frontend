@@ -1,0 +1,219 @@
+import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import { X } from "lucide-react";
+import { StoryMetadata } from "@/types/IStory";
+
+interface StoryEditModalProps {
+  story: Pick<StoryMetadata, "id" | "title" | "description" | "category" | "tags">;
+  onSave: (
+    id: string,
+    data: { title: string; description: string; category?: string; tags?: string[] }
+  ) => Promise<void>;
+  onClose: () => void;
+}
+
+export const StoryEditModal = ({ story, onSave, onClose }: StoryEditModalProps) => {
+  const [title, setTitle] = useState(story.title);
+  const [description, setDescription] = useState(story.description ?? "");
+  const [category, setCategory] = useState(story.category ?? "");
+  const [tags, setTags] = useState<string[]>(story.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleEsc = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  const addTag = (raw: string) => {
+    const value = raw.trim().replace(/,+$/, "").trim();
+    if (!value || tags.includes(value) || tags.length >= 10) return;
+    setTags((prev) => [...prev, value]);
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === "Backspace" && tagInput === "" && tags.length > 0) {
+      setTags((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const handleSave = async () => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setError("Title is required.");
+      titleRef.current?.focus();
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(story.id, {
+        title: trimmedTitle,
+        description: description.trim(),
+        category: category.trim() || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+      });
+      onClose();
+    } catch {
+      setError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFieldKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleSave();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg mx-4 bg-ns-elevated rounded-ns-xl shadow-ns-xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ns-border">
+          <h2 className="font-heading text-xl text-ns-ink">Edit story details</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-ns text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto space-y-5">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
+              Title
+            </label>
+            <input
+              ref={titleRef}
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={handleFieldKeyDown}
+              className="w-full px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors"
+              placeholder="Story title"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors resize-none"
+              placeholder="A short description of your story..."
+            />
+          </div>
+
+          {/* Category + Tags */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
+                Category
+              </label>
+              <input
+                type="text"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                onKeyDown={handleFieldKeyDown}
+                className="w-full px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors"
+                placeholder="e.g. Fantasy, Romance…"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
+                Tags{" "}
+                <span className="normal-case font-normal tracking-normal opacity-60">
+                  ({tags.length}/10)
+                </span>
+              </label>
+              <div className="min-h-[38px] px-2 py-1 flex flex-wrap gap-1.5 bg-ns-surface border border-ns-border rounded-ns focus-within:ring-1 focus-within:ring-ns-accent focus-within:border-ns-accent transition-colors">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui bg-ns-accent/10 text-ns-accent"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="hover:text-ns-accent/70 transition-colors leading-none"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                {tags.length < 10 && (
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => tagInput.trim() && addTag(tagInput)}
+                    className="flex-1 min-w-[60px] text-sm font-ui bg-transparent text-ns-ink placeholder-ns-ink-muted outline-none py-0.5"
+                    placeholder={tags.length === 0 ? "Add tags…" : ""}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-xs font-ui text-ns-destructive">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-ns-border">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 text-sm font-ui text-ns-ink hover:bg-ns-surface-hover rounded-ns transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 text-sm font-ui font-medium text-white bg-ns-accent hover:bg-ns-accent-hover rounded-ns transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

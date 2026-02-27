@@ -1,13 +1,13 @@
 import { Timestamp } from "firebase/firestore";
 
 export interface IBookListItem {
-  id: string; // Google Books volumeId
+  id: string; // Platform story ID
   title: string;
-  author: string; // From authors array, joined
-  coverUrl?: string; // From imageLinks.thumbnail
-  publishedDate?: string;
-  genre?: string;
-  volumeInfo?: any; // Full Google Books volumeInfo for reference
+  author: string;
+  coverUrl?: string;
+  genre?: string; // Mapped from story category
+  chapterCount?: number;
+  description?: string;
 }
 
 export interface IBookList {

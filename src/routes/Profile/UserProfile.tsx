@@ -1,34 +1,121 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { useEarnings } from "@/hooks/useEarnings";
+import { useWallet, useChain } from "@thirdweb-dev/react";
 import { storiesRepo } from "@/services/StoriesRepo";
+import { userService } from "@/services/UserService";
 import { StoryMetadata } from "@/types/IStory";
 import { EditableField } from "@/components/ui/editable-field";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
 import {
   User,
   DollarSign,
   BookOpen,
-  TrendingUp,
   Wallet,
   Loader2,
   AlertCircle,
-  Users,
+  Bell,
+  Shield,
+  Globe,
+  Copy,
+  CheckCircle2,
+  Trash2,
+  Sun,
+  Moon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Section =
+  | "profile"
+  | "wallet"
+  | "notifications"
+  | "privacy"
+  | "appearance"
+  | "account";
 
 interface StoryEarnings extends StoryMetadata {
-  earnings: {
-    eth: string;
-    usdc: string;
-  };
+  earnings: { eth: string; usdc: string };
 }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const Toggle = ({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) => (
+  <button
+    role="switch"
+    aria-checked={checked}
+    onClick={() => onChange(!checked)}
+    className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 cursor-pointer ${
+      checked ? "bg-ns-accent" : "bg-ns-border"
+    }`}
+  >
+    <span
+      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+        checked ? "translate-x-5" : "translate-x-0"
+      }`}
+    />
+  </button>
+);
+
+const Card = ({
+  title,
+  children,
+  className = "",
+}: {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={`bg-ns-elevated border border-ns-border rounded-ns-xl p-6 mb-5 ${className}`}
+  >
+    {title && (
+      <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-5">
+        {title}
+      </p>
+    )}
+    {children}
+  </div>
+);
+
+const Row = ({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center justify-between gap-6 py-4 border-b border-ns-border last:border-0">
+    <div>
+      <p className="text-sm font-ui font-medium text-ns-ink">{label}</p>
+      {description && (
+        <p className="text-xs font-ui text-ns-ink-muted mt-0.5">{description}</p>
+      )}
+    </div>
+    <div className="flex-shrink-0">{children}</div>
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const UserProfile: React.FC = () => {
   const { user, updateProfile } = useAuthContext();
-  const { walletAddress, loading: walletLoading } = useUserWalletAddress(
-    user?.uid
-  );
+  const { theme, toggleTheme } = useTheme();
+  const wallet = useWallet();
+  const chain = useChain();
+  const { walletAddress: savedWalletAddress, loading: walletLoading } =
+    useUserWalletAddress(user?.uid);
   const {
     lifetimeEarnings,
     fetchLifetimeEarnings,
@@ -36,99 +123,140 @@ const UserProfile: React.FC = () => {
     loading: earningsLoading,
     error: earningsError,
   } = useEarnings();
+
+  const [activeSection, setActiveSection] = useState<Section>("profile");
   const [stories, setStories] = useState<StoryEarnings[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch lifetime earnings when wallet address is available
+  // Live wallet state
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Settings state (local only — no backend for notifications/privacy yet)
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: false,
+    marketing: false,
+  });
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: "public",
+    showEmail: false,
+  });
+
   useEffect(() => {
-    if (walletAddress) {
-      fetchLifetimeEarnings(walletAddress);
+    if (wallet) {
+      wallet
+        .getAddress()
+        .then(setConnectedAddress)
+        .catch(() => setConnectedAddress(null));
+    } else {
+      setConnectedAddress(null);
     }
-  }, [walletAddress, fetchLifetimeEarnings]);
+  }, [wallet]);
 
-  const loadUserData = useCallback(async () => {
+  useEffect(() => {
+    if (savedWalletAddress) fetchLifetimeEarnings(savedWalletAddress);
+  }, [savedWalletAddress, fetchLifetimeEarnings]);
+
+  const loadStories = useCallback(async () => {
     if (!user?.uid) return;
-
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch user stories
       const userStories = await storiesRepo.getUserStories(user.uid);
-
-      // Fetch earnings for each story
-      const storiesWithEarnings = await Promise.all(
-        userStories.map(async (story) => {
-          const earnings = await fetchStoryEarnings(story.id);
-          return {
-            ...story,
-            earnings,
-          };
-        })
+      const withEarnings = await Promise.all(
+        userStories.map(async (story) => ({
+          ...story,
+          earnings: await fetchStoryEarnings(story.id),
+        }))
       );
-
-      setStories(storiesWithEarnings);
-    } catch (err) {
-      console.error("Error loading user data:", err);
-      setError("Failed to load profile data");
+      setStories(withEarnings);
+    } catch {
+      setError("Failed to load profile data.");
     } finally {
       setLoading(false);
     }
   }, [user?.uid, fetchStoryEarnings]);
 
   useEffect(() => {
-    if (user?.uid) {
-      loadUserData();
-    }
-  }, [user?.uid, loadUserData]);
+    if (user?.uid) loadStories();
+  }, [user?.uid, loadStories]);
 
-  // Calculate follower/following counts (excluding "default" placeholder)
   const followersCount =
-    user?.followers?.filter((f) => f !== "default").length || 0;
+    user?.followers?.filter((f) => f !== "default").length ?? 0;
   const followingCount =
-    user?.following?.filter((f) => f !== "default").length || 0;
+    user?.following?.filter((f) => f !== "default").length ?? 0;
 
-  // Handle profile field saves
-  const handleSaveBio = async (value: string) => {
-    if (!user?.uid) return;
-    await updateProfile(user.uid, { bio: value });
+  const handleCopyAddress = async () => {
+    if (!connectedAddress) return;
+    try {
+      await navigator.clipboard.writeText(connectedAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
 
-  const handleSaveOccupation = async (value: string) => {
-    if (!user?.uid) return;
-    await updateProfile(user.uid, { occupation: value });
+  const handleSaveWallet = async () => {
+    if (!user?.uid || !connectedAddress) return;
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      await userService.updateUserWalletAddress(user.uid, connectedAddress);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      setSaveError(err.message || "Failed to save wallet address.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSaveLocation = async (value: string) => {
-    if (!user?.uid) return;
-    await updateProfile(user.uid, { location: value });
-  };
+  const isWalletConnected = !!wallet && !!connectedAddress;
+  const isCorrectNetwork = chain?.chainId === 11155111;
+  const addressSaved =
+    savedWalletAddress &&
+    connectedAddress?.toLowerCase() === savedWalletAddress.toLowerCase();
 
-  // Show loading if ANY data is still loading
+  const hasLifetimeEarnings =
+    parseFloat(lifetimeEarnings.eth) > 0 ||
+    parseFloat(lifetimeEarnings.usdc) > 0;
+
+  const totalEthEarnings = stories.reduce(
+    (sum, s) => sum + parseFloat(s.earnings.eth || "0"),
+    0
+  );
+  const totalUsdcEarnings = stories.reduce(
+    (sum, s) => sum + parseFloat(s.earnings.usdc || "0"),
+    0
+  );
+
+  // ── Loading / error states ──────────────────────────────────────────────────
+
   if (loading || walletLoading || earningsLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-ns-bg flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
-          <p className="text-sm text-black/60 dark:text-white/60">
-            Loading profile data...
-          </p>
+          <Loader2 className="w-8 h-8 animate-spin text-ns-accent mx-auto mb-3" />
+          <p className="text-sm font-ui text-ns-ink-muted">Loading profile…</p>
         </div>
       </div>
     );
   }
 
-  // Show error if there's any error
   if (error || earningsError) {
     return (
-      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-ns-bg flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-black dark:text-white">{error || earningsError}</p>
+          <AlertCircle className="w-10 h-10 text-ns-destructive mx-auto mb-3" />
+          <p className="font-ui text-ns-ink mb-4">{error || earningsError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            className="px-4 py-2 bg-ns-accent hover:bg-ns-accent-hover text-white text-sm font-ui rounded-ns transition-colors"
           >
             Retry
           </button>
@@ -137,286 +265,601 @@ const UserProfile: React.FC = () => {
     );
   }
 
-  const totalEthEarnings = stories.reduce(
-    (sum, story) => sum + parseFloat(story.earnings.eth || "0"),
-    0
-  );
-  const totalUsdcEarnings = stories.reduce(
-    (sum, story) => sum + parseFloat(story.earnings.usdc || "0"),
-    0
-  );
+  // ── Nav items ───────────────────────────────────────────────────────────────
 
-  // Check if we actually have lifetime earnings data
-  const hasLifetimeEarnings =
-    parseFloat(lifetimeEarnings.eth) > 0 ||
-    parseFloat(lifetimeEarnings.usdc) > 0;
+  const navItems: { id: Section; label: string; Icon: typeof User }[] = [
+    { id: "profile", label: "Profile", Icon: User },
+    { id: "wallet", label: "Wallet & Earnings", Icon: Wallet },
+    { id: "notifications", label: "Notifications", Icon: Bell },
+    { id: "privacy", label: "Privacy", Icon: Shield },
+    { id: "appearance", label: "Appearance", Icon: Globe },
+  ];
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200">
-      <div className="max-w-4xl mx-auto px-6 pt-24 pb-20">
-        {/* Profile Header */}
-        <div className="mb-12">
-          <div className="flex items-start gap-6 mb-8">
+    <div className="min-h-screen bg-ns-bg">
+
+      {/* ── Profile header ── */}
+      <div className="bg-ns-elevated border-b border-ns-border">
+        <div className="max-w-5xl mx-auto px-6 py-10">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
+
             {/* Avatar */}
-            {user?.photoURL && user.photoURL.trim() !== "" ? (
-              <img
-                src={user.photoURL}
-                alt="User Avatar"
-                className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-emerald-600/20 dark:border-emerald-400/20 shadow-lg"
-              />
-            ) : (
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 dark:from-emerald-400 dark:to-emerald-600 flex items-center justify-center shadow-lg">
-                <User className="w-16 h-16 md:w-20 md:h-20 text-white" />
-              </div>
-            )}
-
-            {/* User Info */}
-            <div className="flex-1 pt-2">
-              <h1 className="text-3xl md:text-4xl font-heading font-bold text-black dark:text-white mb-1">
-                {user?.displayName || "User"}
-              </h1>
-              <p className="text-black/60 dark:text-white/60 mb-4">
-                {user?.email}
-              </p>
-
-              {/* Social Stats */}
-              <div className="flex items-center gap-6 mb-4">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-black/40 dark:text-white/40" />
-                  <span className="text-sm text-black dark:text-white">
-                    <strong>{followersCount}</strong>{" "}
-                    <span className="text-black/60 dark:text-white/60">
-                      Followers
-                    </span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-black dark:text-white">
-                    <strong>{followingCount}</strong>{" "}
-                    <span className="text-black/60 dark:text-white/60">
-                      Following
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Wallet Address */}
-              {walletAddress && (
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-black/40 dark:text-white/40" />
-                  <p className="text-xs font-mono text-black/60 dark:text-white/60 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
-                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                  </p>
+            <div className="relative flex-shrink-0">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="w-20 h-20 rounded-full border-4 border-ns-bg shadow-ns-lg object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full border-4 border-ns-bg shadow-ns-lg bg-gradient-to-br from-ns-accent/20 via-ns-accent/10 to-ns-surface flex items-center justify-center">
+                  <User className="w-8 h-8 text-ns-accent/50" />
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Divider */}
-          <div className="border-t border-neutral-200 dark:border-neutral-800 my-8" />
-
-          {/* Editable Fields Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <EditableField
-                label="Bio"
-                value={user?.bio || ""}
-                onSave={handleSaveBio}
-                placeholder="Write something about yourself..."
-                multiline
-                maxLength={300}
-              />
+            {/* Identity */}
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="font-heading text-4xl text-ns-ink leading-none mb-1">
+                {user?.displayName || "Author"}
+              </h1>
+              <p className="font-ui text-sm text-ns-ink-muted mb-3">
+                {user?.email}
+              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-1.5">
+                <span className="text-sm font-ui">
+                  <strong className="text-ns-ink">{followersCount}</strong>{" "}
+                  <span className="text-ns-ink-muted">followers</span>
+                </span>
+                <span className="w-px h-3 bg-ns-border" />
+                <span className="text-sm font-ui">
+                  <strong className="text-ns-ink">{followingCount}</strong>{" "}
+                  <span className="text-ns-ink-muted">following</span>
+                </span>
+                <span className="w-px h-3 bg-ns-border" />
+                <span className="text-sm font-ui">
+                  <strong className="text-ns-ink">{stories.length}</strong>{" "}
+                  <span className="text-ns-ink-muted">
+                    {stories.length === 1 ? "story" : "stories"}
+                  </span>
+                </span>
+                {savedWalletAddress && (
+                  <>
+                    <span className="w-px h-3 bg-ns-border" />
+                    <span className="flex items-center gap-1.5 font-mono text-[11px] text-ns-ink-muted bg-ns-surface border border-ns-border px-2.5 py-0.5 rounded-full">
+                      <Wallet className="w-3 h-3" />
+                      {savedWalletAddress.slice(0, 6)}…
+                      {savedWalletAddress.slice(-4)}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
-            <EditableField
-              label="Occupation"
-              value={user?.occupation || ""}
-              onSave={handleSaveOccupation}
-              placeholder="What do you do?"
-              maxLength={50}
-            />
-            <EditableField
-              label="Location"
-              value={user?.location || ""}
-              onSave={handleSaveLocation}
-              placeholder="Where are you based?"
-              maxLength={50}
-            />
           </div>
         </div>
+      </div>
 
-        {/* Earnings Overview */}
-        {walletAddress && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
-                Earnings Overview
-              </h2>
-              <span className="text-xs text-black/40 dark:text-white/40">
-                From Smart Contract
-              </span>
-            </div>
-            {!hasLifetimeEarnings ? (
-              <div className="rounded-xl p-8 border-2 border-dashed border-neutral-200 dark:border-neutral-700 text-center">
-                <DollarSign className="w-12 h-12 text-black/20 dark:text-white/20 mx-auto mb-3" />
-                <p className="text-sm text-black/60 dark:text-white/60 mb-1">
-                  No tips received yet
-                </p>
-                <p className="text-xs text-black/40 dark:text-white/40">
-                  Share your stories to start earning!
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-xl p-6 border border-emerald-200/50 dark:border-emerald-800/50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <span className="text-sm font-medium text-black/60 dark:text-white/60">
-                      ETH Earnings
-                    </span>
-                  </div>
-                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                    {parseFloat(lifetimeEarnings.eth).toFixed(4)} ETH
-                  </p>
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    ≈ ${(parseFloat(lifetimeEarnings.eth) * 3000).toFixed(2)} USD
-                  </p>
-                </div>
+      {/* ── Body ── */}
+      <div className="max-w-5xl mx-auto px-6 py-8 flex gap-8 items-start">
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-6 border border-blue-200/50 dark:border-blue-800/50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 dark:bg-blue-400/10 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-sm font-medium text-black/60 dark:text-white/60">
-                      USDC Earnings
-                    </span>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                    {parseFloat(lifetimeEarnings.usdc).toFixed(2)} USDC
-                  </p>
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    ≈ ${parseFloat(lifetimeEarnings.usdc).toFixed(2)} USD
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Sidebar */}
+        <aside className="w-48 flex-shrink-0 sticky top-6">
+          <nav className="space-y-0.5">
+            {navItems.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveSection(id)}
+                className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-ns text-sm font-ui text-left transition-colors ${
+                  activeSection === id
+                    ? "bg-ns-surface-hover text-ns-ink font-medium"
+                    : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                }`}
+              >
+                {activeSection === id && (
+                  <span className="absolute left-0 top-2 bottom-2 w-[2px] bg-ns-accent rounded-full" />
+                )}
+                <Icon
+                  className={`w-4 h-4 flex-shrink-0 ${
+                    activeSection === id
+                      ? "text-ns-accent"
+                      : "text-ns-ink-muted"
+                  }`}
+                />
+                {label}
+              </button>
+            ))}
 
-        {/* Your Stories */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
-              Your Stories
-            </h2>
-            <Link
-              to="/user-stories"
-              className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+            <div className="my-3 border-t border-ns-border" />
+
+            <button
+              onClick={() => setActiveSection("account")}
+              className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-ns text-sm font-ui text-left transition-colors ${
+                activeSection === "account"
+                  ? "bg-ns-destructive/5 text-ns-destructive font-medium"
+                  : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-destructive"
+              }`}
             >
-              View All →
-            </Link>
-          </div>
+              {activeSection === "account" && (
+                <span className="absolute left-0 top-2 bottom-2 w-[2px] bg-ns-destructive rounded-full" />
+              )}
+              <Trash2 className="w-4 h-4 flex-shrink-0 text-ns-destructive/70" />
+              Account
+            </button>
+          </nav>
+        </aside>
 
-          {stories.length === 0 ? (
-            <div className="text-center py-12 rounded-xl border-2 border-dashed border-neutral-200 dark:border-neutral-700">
-              <BookOpen className="w-12 h-12 text-black/20 dark:text-white/20 mx-auto mb-4" />
-              <p className="text-black/60 dark:text-white/60 mb-1">
-                No stories yet
-              </p>
-              <p className="text-xs text-black/40 dark:text-white/40">
-                Start writing to earn tips!
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {stories.map((story) => {
-                const storyTotalEth = parseFloat(story.earnings.eth || "0");
-                const storyTotalUsdc = parseFloat(story.earnings.usdc || "0");
-                const hasEarnings = storyTotalEth > 0 || storyTotalUsdc > 0;
+        {/* Main content */}
+        <main className="flex-1 min-w-0">
 
-                return (
-                  <Link
-                    key={story.id}
-                    to={`/story/${story.id}`}
-                    className="block bg-neutral-50 dark:bg-neutral-900/50 rounded-xl p-5 border border-neutral-200 dark:border-neutral-800 hover:border-emerald-400/50 dark:hover:border-emerald-600/50 hover:shadow-md transition-all duration-200"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-base font-semibold text-black dark:text-white truncate">
-                            {story.title}
-                          </h3>
-                          {story.isPublished && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full flex-shrink-0">
-                              Published
-                            </span>
+          {/* ── Profile ── */}
+          {activeSection === "profile" && (
+            <>
+              <Card title="About">
+                <div className="space-y-5">
+                  <EditableField
+                    label="Bio"
+                    value={user?.bio || ""}
+                    onSave={(v) => updateProfile(user!.uid, { bio: v })}
+                    placeholder="Write something about yourself…"
+                    multiline
+                    maxLength={300}
+                  />
+                  <EditableField
+                    label="Occupation"
+                    value={user?.occupation || ""}
+                    onSave={(v) => updateProfile(user!.uid, { occupation: v })}
+                    placeholder="What do you do?"
+                    maxLength={50}
+                  />
+                  <EditableField
+                    label="Location"
+                    value={user?.location || ""}
+                    onSave={(v) => updateProfile(user!.uid, { location: v })}
+                    placeholder="Where are you based?"
+                    maxLength={50}
+                  />
+                </div>
+              </Card>
+
+              <Card title="Your Stories">
+                {stories.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <BookOpen className="w-10 h-10 text-ns-ink-muted/30 mx-auto mb-3" />
+                    <p className="font-ui text-sm text-ns-ink-secondary mb-3">
+                      No stories yet.
+                    </p>
+                    <Link
+                      to="/create"
+                      className="text-sm font-ui text-ns-accent hover:underline"
+                    >
+                      Write your first story →
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="divide-y divide-ns-border">
+                      {stories.slice(0, 5).map((story) => {
+                        const storyEth = parseFloat(story.earnings.eth || "0");
+                        const storyUsdc = parseFloat(
+                          story.earnings.usdc || "0"
+                        );
+                        return (
+                          <Link
+                            key={story.id}
+                            to={`/story/${story.id}`}
+                            className="flex items-center gap-3 py-3.5 -mx-6 px-6 hover:bg-ns-surface-hover transition-colors group"
+                          >
+                            {story.coverImageUrl ? (
+                              <img
+                                src={story.coverImageUrl}
+                                alt=""
+                                className="w-8 h-11 object-cover rounded flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-11 bg-ns-surface border border-ns-border rounded flex items-center justify-center flex-shrink-0">
+                                <BookOpen className="w-3.5 h-3.5 text-ns-ink-muted" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-ui font-medium text-ns-ink line-clamp-1 group-hover:text-ns-accent transition-colors">
+                                {story.title}
+                              </p>
+                              <p className="text-[11px] font-ui text-ns-ink-muted mt-0.5">
+                                {story.isPublished ? (
+                                  <span className="text-ns-accent">
+                                    Published
+                                  </span>
+                                ) : (
+                                  "Draft"
+                                )}
+                                {" · "}
+                                {story.chapterCount}{" "}
+                                {story.chapterCount === 1 ? "chapter" : "chapters"}
+                              </p>
+                            </div>
+                            {(storyEth > 0 || storyUsdc > 0) && (
+                              <div className="flex items-center gap-2 flex-shrink-0 text-xs font-ui">
+                                {storyEth > 0 && (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                    {storyEth.toFixed(4)} ETH
+                                  </span>
+                                )}
+                                {storyUsdc > 0 && (
+                                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                    {storyUsdc.toFixed(2)} USDC
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <div className="pt-4 border-t border-ns-border mt-1">
+                      <Link
+                        to="/user-stories"
+                        className="text-sm font-ui text-ns-accent hover:underline"
+                      >
+                        {stories.length > 5
+                          ? `View all ${stories.length} stories →`
+                          : "Manage stories →"}
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </Card>
+            </>
+          )}
+
+          {/* ── Wallet & Earnings ── */}
+          {activeSection === "wallet" && (
+            <>
+              <Card title="Wallet Connection">
+                {!isWalletConnected ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-ui text-ns-ink-secondary">
+                      Connect your wallet to receive tips from readers on the
+                      Sepolia testnet.
+                    </p>
+                    <WalletConnectButton />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Status pill */}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          isCorrectNetwork ? "bg-emerald-500" : "bg-amber-500"
+                        }`}
+                      />
+                      <span className="text-sm font-ui text-ns-ink">
+                        {isCorrectNetwork
+                          ? "Connected · Sepolia Testnet"
+                          : "Wrong network — please switch to Sepolia"}
+                      </span>
+                    </div>
+
+                    {/* Address row */}
+                    <div>
+                      <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2">
+                        Address
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 px-3 py-2 text-xs font-mono bg-ns-surface border border-ns-border rounded-ns text-ns-ink truncate">
+                          {connectedAddress}
+                        </code>
+                        <button
+                          onClick={handleCopyAddress}
+                          className="p-2 rounded-ns border border-ns-border bg-ns-surface hover:bg-ns-surface-hover text-ns-ink-muted hover:text-ns-ink transition-colors"
+                        >
+                          {copied ? (
+                            <CheckCircle2 className="w-4 h-4 text-ns-accent" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
                           )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Save to profile */}
+                    {!addressSaved && (
+                      <button
+                        onClick={handleSaveWallet}
+                        disabled={isSaving}
+                        className="w-full py-2 text-sm font-ui font-medium bg-ns-accent hover:bg-ns-accent-hover text-white rounded-ns transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSaving ? "Saving…" : "Save address to profile"}
+                      </button>
+                    )}
+                    {saveSuccess && (
+                      <div className="flex items-center gap-2 text-sm font-ui text-ns-accent">
+                        <CheckCircle2 className="w-4 h-4" /> Saved successfully
+                      </div>
+                    )}
+                    {saveError && (
+                      <p className="text-sm font-ui text-ns-destructive">
+                        {saveError}
+                      </p>
+                    )}
+                    {addressSaved && (
+                      <div className="flex items-center gap-2 text-xs font-ui text-ns-ink-muted">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-ns-accent" />
+                        Address saved to your profile
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              {savedWalletAddress && (
+                <Card title="Lifetime Earnings">
+                  {!hasLifetimeEarnings ? (
+                    <div className="py-8 text-center">
+                      <DollarSign className="w-10 h-10 text-ns-ink-muted/30 mx-auto mb-3" />
+                      <p className="text-sm font-ui text-ns-ink-secondary">
+                        No tips received yet.
+                      </p>
+                      <p className="text-xs font-ui text-ns-ink-muted mt-1">
+                        Share your stories to start earning!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-ns-surface border border-ns-border rounded-ns">
+                        <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2">
+                          ETH
+                        </p>
+                        <p className="font-heading text-2xl text-emerald-600 dark:text-emerald-400">
+                          {parseFloat(lifetimeEarnings.eth).toFixed(4)}
+                        </p>
+                        <p className="text-xs font-ui text-ns-ink-muted mt-1">
+                          ≈ $
+                          {(parseFloat(lifetimeEarnings.eth) * 3000).toFixed(2)}{" "}
+                          USD
+                        </p>
+                      </div>
+                      <div className="p-4 bg-ns-surface border border-ns-border rounded-ns">
+                        <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2">
+                          USDC
+                        </p>
+                        <p className="font-heading text-2xl text-blue-600 dark:text-blue-400">
+                          {parseFloat(lifetimeEarnings.usdc).toFixed(2)}
+                        </p>
+                        <p className="text-xs font-ui text-ns-ink-muted mt-1">
+                          ≈ ${parseFloat(lifetimeEarnings.usdc).toFixed(2)} USD
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {stories.some(
+                (s) =>
+                  parseFloat(s.earnings.eth) > 0 ||
+                  parseFloat(s.earnings.usdc) > 0
+              ) && (
+                <Card title="Per-Story Earnings">
+                  <div className="divide-y divide-ns-border">
+                    {stories
+                      .filter(
+                        (s) =>
+                          parseFloat(s.earnings.eth) > 0 ||
+                          parseFloat(s.earnings.usdc) > 0
+                      )
+                      .map((story) => (
+                        <div
+                          key={story.id}
+                          className="flex items-center justify-between py-3.5 gap-4"
+                        >
+                          <Link
+                            to={`/story/${story.id}`}
+                            className="text-sm font-ui text-ns-ink hover:text-ns-accent transition-colors line-clamp-1"
+                          >
+                            {story.title}
+                          </Link>
+                          <div className="flex items-center gap-3 flex-shrink-0 text-xs font-ui">
+                            {parseFloat(story.earnings.eth) > 0 && (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                {parseFloat(story.earnings.eth).toFixed(4)} ETH
+                              </span>
+                            )}
+                            {parseFloat(story.earnings.usdc) > 0 && (
+                              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                {parseFloat(story.earnings.usdc).toFixed(2)}{" "}
+                                USDC
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {story.description && (
-                          <p className="text-sm text-black/60 dark:text-white/60 line-clamp-1">
-                            {story.description}
-                          </p>
+                      ))}
+                  </div>
+                  {(totalEthEarnings > 0 || totalUsdcEarnings > 0) && (
+                    <div className="mt-4 pt-4 border-t border-ns-border flex items-center justify-between">
+                      <span className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted">
+                        Total
+                      </span>
+                      <div className="flex items-center gap-3 text-xs font-ui">
+                        {totalEthEarnings > 0 && (
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {totalEthEarnings.toFixed(4)} ETH
+                          </span>
+                        )}
+                        {totalUsdcEarnings > 0 && (
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                            {totalUsdcEarnings.toFixed(2)} USDC
+                          </span>
                         )}
                       </div>
-
-                      {/* Earnings on the right */}
-                      {hasEarnings && (
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          {storyTotalEth > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                {storyTotalEth.toFixed(4)} ETH
-                              </span>
-                            </div>
-                          )}
-                          {storyTotalUsdc > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                {storyTotalUsdc.toFixed(2)} USDC
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  )}
+                </Card>
+              )}
 
-        {/* Summary */}
-        {stories.length > 0 &&
-          (totalEthEarnings > 0 || totalUsdcEarnings > 0) && (
-            <div className="p-6 bg-gradient-to-r from-emerald-50/50 to-blue-50/50 dark:from-emerald-900/10 dark:to-blue-900/10 rounded-xl border border-neutral-200 dark:border-neutral-800">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40 mb-4">
-                Total Story Earnings
-              </h3>
-              <div className="flex items-center gap-8">
-                <div>
-                  <p className="text-xs text-black/50 dark:text-white/50 mb-1">
-                    ETH
+              <Card title="How Tipping Works">
+                <div className="space-y-3 text-sm font-ui text-ns-ink-secondary">
+                  <p>
+                    Readers can tip you directly for your stories using ETH or
+                    USDC on the Sepolia testnet.
                   </p>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {totalEthEarnings.toFixed(4)} ETH
-                  </p>
+                  <div className="bg-ns-surface border border-ns-border rounded-ns p-4">
+                    <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-3">
+                      Revenue Split
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-ns-ink-secondary">
+                          Author (You)
+                        </span>
+                        <span className="font-semibold text-ns-accent">90%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ns-ink-secondary">
+                          Platform Fee
+                        </span>
+                        <span className="text-ns-ink-muted">10%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ── Notifications ── */}
+          {activeSection === "notifications" && (
+            <Card title="Notification Preferences">
+              <Row
+                label="Email Notifications"
+                description="Receive notifications via email"
+              >
+                <Toggle
+                  checked={notifications.email}
+                  onChange={(v) =>
+                    setNotifications((n) => ({ ...n, email: v }))
+                  }
+                />
+              </Row>
+              <Row
+                label="Push Notifications"
+                description="Receive browser push notifications"
+              >
+                <Toggle
+                  checked={notifications.push}
+                  onChange={(v) =>
+                    setNotifications((n) => ({ ...n, push: v }))
+                  }
+                />
+              </Row>
+              <Row
+                label="Marketing Emails"
+                description="Receive updates about new features"
+              >
+                <Toggle
+                  checked={notifications.marketing}
+                  onChange={(v) =>
+                    setNotifications((n) => ({ ...n, marketing: v }))
+                  }
+                />
+              </Row>
+            </Card>
+          )}
+
+          {/* ── Privacy ── */}
+          {activeSection === "privacy" && (
+            <Card title="Privacy Settings">
+              <Row
+                label="Profile Visibility"
+                description="Who can view your profile"
+              >
+                <select
+                  value={privacy.profileVisibility}
+                  onChange={(e) =>
+                    setPrivacy((p) => ({
+                      ...p,
+                      profileVisibility: e.target.value,
+                    }))
+                  }
+                  className="text-sm font-ui bg-ns-surface border border-ns-border rounded-ns px-3 py-1.5 text-ns-ink focus:outline-none focus:ring-1 focus:ring-ns-accent cursor-pointer"
+                >
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                  <option value="friends">Friends Only</option>
+                </select>
+              </Row>
+              <Row
+                label="Show Email"
+                description="Allow others to see your email address"
+              >
+                <Toggle
+                  checked={privacy.showEmail}
+                  onChange={(v) =>
+                    setPrivacy((p) => ({ ...p, showEmail: v }))
+                  }
+                />
+              </Row>
+            </Card>
+          )}
+
+          {/* ── Appearance ── */}
+          {activeSection === "appearance" && (
+            <Card title="Appearance">
+              <Row
+                label="Theme"
+                description={`Currently using ${theme === "light" ? "light" : "dark"} theme`}
+              >
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-ui font-medium bg-ns-surface border border-ns-border hover:bg-ns-surface-hover text-ns-ink rounded-ns transition-colors"
+                >
+                  {theme === "light" ? (
+                    <>
+                      <Moon className="w-4 h-4" /> Switch to Dark
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="w-4 h-4" /> Switch to Light
+                    </>
+                  )}
+                </button>
+              </Row>
+            </Card>
+          )}
+
+          {/* ── Account / Danger Zone ── */}
+          {activeSection === "account" && (
+            <Card>
+              <div className="flex items-center gap-3 pb-5 mb-5 border-b border-ns-border">
+                <div className="w-9 h-9 rounded-full bg-ns-destructive/10 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-4 h-4 text-ns-destructive" />
                 </div>
                 <div>
-                  <p className="text-xs text-black/50 dark:text-white/50 mb-1">
-                    USDC
+                  <p className="text-sm font-ui font-semibold text-ns-ink">
+                    Danger Zone
                   </p>
-                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    {totalUsdcEarnings.toFixed(2)} USDC
+                  <p className="text-xs font-ui text-ns-ink-muted">
+                    Irreversible actions — proceed with care
                   </p>
                 </div>
               </div>
-            </div>
+              <div>
+                <p className="text-sm font-ui font-medium text-ns-ink mb-1">
+                  Delete Account
+                </p>
+                <p className="text-xs font-ui text-ns-ink-muted mb-4 leading-relaxed">
+                  Once you delete your account, there is no going back. All your
+                  stories, lists, and data will be permanently removed.
+                </p>
+                <button className="px-4 py-2 text-sm font-ui font-medium bg-ns-destructive hover:bg-ns-destructive/90 text-white rounded-ns transition-colors">
+                  Delete Account
+                </button>
+              </div>
+            </Card>
           )}
+
+        </main>
       </div>
     </div>
   );

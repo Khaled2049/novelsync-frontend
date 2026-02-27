@@ -39,6 +39,21 @@ import {
 
 type Mode = "scratch" | "import";
 
+const CATEGORIES: { value: string; label: string }[] = [
+  { value: "fiction", label: "Fiction" },
+  { value: "non-fiction", label: "Non-Fiction" },
+  { value: "poetry", label: "Poetry" },
+  { value: "fantasy", label: "Fantasy" },
+  { value: "science-fiction", label: "Science Fiction" },
+  { value: "romance", label: "Romance" },
+  { value: "mystery-thriller", label: "Mystery/Thriller" },
+  { value: "horror", label: "Horror" },
+  { value: "historical-fiction", label: "Historical Fiction" },
+  { value: "young-adult", label: "Young Adult" },
+  { value: "drama", label: "Drama" },
+  { value: "adventure", label: "Adventure" },
+];
+
 interface StoryMetadataModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -182,7 +197,10 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
 
   const buildMetadata = () => ({
     category,
-    tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+    tags: tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
     targetAudience,
     language,
     copyright,
@@ -198,7 +216,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         coverImageUrl = await storageService.uploadCoverImage(
           coverImage,
           userId,
-          `new-${Date.now()}`
+          `new-${Date.now()}`,
         );
       }
 
@@ -206,7 +224,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         title,
         description,
         userId,
-        { ...buildMetadata(), coverImageUrl }
+        { ...buildMetadata(), coverImageUrl },
       );
       onClose();
       navigate(`/create/${newStoryId}`);
@@ -232,7 +250,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         coverImageUrl = await storageService.uploadCoverImage(
           coverImage,
           userId,
-          `new-${Date.now()}`
+          `new-${Date.now()}`,
         );
       }
 
@@ -241,7 +259,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         title,
         description,
         userId,
-        { ...buildMetadata(), coverImageUrl }
+        { ...buildMetadata(), coverImageUrl },
       );
 
       // Fetch the auto-created first chapter so we can overwrite it
@@ -254,7 +272,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           newStoryId,
           autoChapter.id,
           parsedChapters[0].title,
-          parsedChapters[0].content
+          parsedChapters[0].content,
         );
       }
 
@@ -262,18 +280,18 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
       for (let i = 1; i < parsedChapters.length; i++) {
         const chapterId = await storiesRepo.addChapter(
           newStoryId,
-          parsedChapters[i].title
+          parsedChapters[i].title,
         );
         await storiesRepo.updateChapter(
           newStoryId,
           chapterId,
           parsedChapters[i].title,
-          parsedChapters[i].content
+          parsedChapters[i].content,
         );
       }
 
       toast.success(
-        `Story created with ${parsedChapters.length} chapter${parsedChapters.length !== 1 ? "s" : ""} imported.`
+        `Story created with ${parsedChapters.length} chapter${parsedChapters.length !== 1 ? "s" : ""} imported.`,
       );
       onClose();
       navigate(`/create/${newStoryId}`);
@@ -285,7 +303,8 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     }
   };
 
-  const handleSubmit = mode === "scratch" ? handleScratchSubmit : handleImportSubmit;
+  const handleSubmit =
+    mode === "scratch" ? handleScratchSubmit : handleImportSubmit;
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -303,7 +322,6 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
 
         <div className="flex-grow overflow-y-auto px-6 py-4">
           <form onSubmit={handleSubmit} className="space-y-6">
-
             {/* ── Mode toggle ───────────────────────────────────────────────── */}
             <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
               <button
@@ -382,18 +400,15 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
-                      <SelectItem value="fiction" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Fiction</SelectItem>
-                      <SelectItem value="non-fiction" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Non-Fiction</SelectItem>
-                      <SelectItem value="poetry" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Poetry</SelectItem>
-                      <SelectItem value="fantasy" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Fantasy</SelectItem>
-                      <SelectItem value="science-fiction" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Science Fiction</SelectItem>
-                      <SelectItem value="romance" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Romance</SelectItem>
-                      <SelectItem value="mystery-thriller" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Mystery/Thriller</SelectItem>
-                      <SelectItem value="horror" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Horror</SelectItem>
-                      <SelectItem value="historical-fiction" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Historical Fiction</SelectItem>
-                      <SelectItem value="young-adult" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Young Adult</SelectItem>
-                      <SelectItem value="drama" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Drama</SelectItem>
-                      <SelectItem value="adventure" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700">Adventure</SelectItem>
+                      {CATEGORIES.map(({ value, label }) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -595,7 +610,9 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                     Text File <span className="text-red-500">*</span>
                   </Label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    Upload a <code className="font-mono">.txt</code> file (max 5 MB). Chapters are auto-detected from headings like "Chapter 1", "Part Two", "Prologue", etc.
+                    Upload a <code className="font-mono">.txt</code> file (max 5
+                    MB). Chapters are auto-detected from headings like "Chapter
+                    1", "Part Two", "Prologue", etc.
                   </p>
 
                   {/* Hidden file input */}
@@ -617,8 +634,8 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       isDragging
                         ? "border-dark-green dark:border-light-green bg-green-50 dark:bg-green-950/20"
                         : importFile
-                        ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-950/20"
-                        : "border-gray-300 dark:border-neutral-600 hover:border-dark-green dark:hover:border-light-green bg-gray-50 dark:bg-neutral-800/50"
+                          ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-950/20"
+                          : "border-gray-300 dark:border-neutral-600 hover:border-dark-green dark:hover:border-light-green bg-gray-50 dark:bg-neutral-800/50"
                     }`}
                   >
                     {importFile ? (
@@ -629,7 +646,8 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                             {importFile.name}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {(importFile.size / 1024).toFixed(1)} KB · click to replace
+                            {(importFile.size / 1024).toFixed(1)} KB · click to
+                            replace
                           </p>
                         </div>
                       </div>
@@ -637,7 +655,10 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       <div className="space-y-2">
                         <Upload className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-500" />
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          <span className="font-medium text-dark-green dark:text-light-green">Click to upload</span> or drag and drop
+                          <span className="font-medium text-dark-green dark:text-light-green">
+                            Click to upload
+                          </span>{" "}
+                          or drag and drop
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           Plain text (.txt) files only
@@ -662,7 +683,10 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       Import notices:
                     </p>
                     {parseWarnings.map((w, i) => (
-                      <p key={i} className="text-xs text-amber-600 dark:text-amber-400">
+                      <p
+                        key={i}
+                        className="text-xs text-amber-600 dark:text-amber-400"
+                      >
                         • {w}
                       </p>
                     ))}
@@ -673,7 +697,8 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                 {parsedChapters.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Detected {parsedChapters.length} chapter{parsedChapters.length !== 1 ? "s" : ""}:
+                      Detected {parsedChapters.length} chapter
+                      {parsedChapters.length !== 1 ? "s" : ""}:
                     </p>
                     <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-neutral-700 divide-y divide-gray-100 dark:divide-neutral-700">
                       {parsedChapters.map((ch, i) => (
@@ -697,7 +722,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </form>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900/50">
+        <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
           <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
             <Button
               type="button"
@@ -710,7 +735,10 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
             <Button
               type="submit"
               onClick={handleSubmit}
-              disabled={isSubmitting || (mode === "import" && parsedChapters.length === 0)}
+              disabled={
+                isSubmitting ||
+                (mode === "import" && parsedChapters.length === 0)
+              }
               className="h-11 px-8 bg-gradient-to-r from-dark-green to-light-green dark:from-light-green dark:to-dark-green text-white hover:shadow-lg transition-all shadow-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

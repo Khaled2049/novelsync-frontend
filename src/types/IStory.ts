@@ -32,6 +32,7 @@ export interface StoryMetadata {
   description: string;
   chapterCount: number;
   isPublished: boolean;
+  createdAt: Date;
   updatedAt: Date;
   author: string;
   views: number;
@@ -41,6 +42,7 @@ export interface StoryMetadata {
   category?: string;
   averageRating?: number;
   ratingsCount?: number;
+  wordCount?: number;
 }
 
 export interface ILikes {

@@ -61,7 +61,8 @@ const HelpSupport = () => {
           </div>
           <h1 className="text-4xl font-bold mb-2">Help & Support</h1>
           <p className="text-black/70 dark:text-white/70 text-lg">
-            Find answers to common questions or get in touch with our support team
+            Find answers to common questions or get in touch with our support
+            team
           </p>
         </div>
 
@@ -98,18 +99,20 @@ const HelpSupport = () => {
               Need more help? Reach out to us
             </p>
             <a
-              href="mailto:support@novelsync.com"
+              href="mailto:shoibal.not@gmail.com"
               className="text-sm text-dark-green dark:text-light-green hover:underline flex items-center gap-1"
             >
               <Mail className="w-4 h-4" />
-              support@novelsync.com
+              shoibal.not@gmail.com
             </a>
           </div>
         </div>
 
         {/* FAQ Section */}
         <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-black/10 dark:border-white/10 p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-semibold mb-6">
+            Frequently Asked Questions
+          </h2>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div
@@ -141,11 +144,12 @@ const HelpSupport = () => {
         <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-black/10 dark:border-white/10 p-6">
           <h2 className="text-2xl font-semibold mb-4">Still Need Help?</h2>
           <p className="text-black/70 dark:text-white/70 mb-6">
-            If you can't find what you're looking for, don't hesitate to reach out to our support team.
+            If you can't find what you're looking for, don't hesitate to reach
+            out to our support team.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a
-              href="mailto:support@novelsync.com"
+              href="mailto:shoibal.not@gmail.com"
               className="flex items-center justify-center gap-2 px-6 py-3 bg-dark-green dark:bg-light-green hover:bg-light-green dark:hover:bg-dark-green text-white font-semibold rounded-md transition-colors"
             >
               <Mail className="w-5 h-5" />
@@ -166,4 +170,3 @@ const HelpSupport = () => {
 };
 
 export default HelpSupport;
-

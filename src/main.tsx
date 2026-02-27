@@ -36,7 +36,6 @@ const BookLists = lazy(() => import("./components/explore/BookLists"));
 const Competitions = lazy(() => import("./components/explore/Competitions"));
 
 const Announcements = lazy(() => import("./components/explore/Announcements"));
-const Settings = lazy(() => import("./routes/Settings/Settings"));
 const HelpSupport = lazy(() => import("./routes/Help/HelpSupport"));
 const UserProfile = lazy(() => import("./routes/Profile/UserProfile"));
 
@@ -194,14 +193,6 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <Signup />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/settings",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Settings />
           </Suspense>
         ),
       },

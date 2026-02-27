@@ -2,12 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
 
 import { useAuthContext } from "../../contexts/AuthContext";
-import SignInPrompt from "../../components/SignInPrompt";
 import PostFeed from "./components/PostFeed";
 import BookClubs from "../BookClub";
 import FeedNavigation, { FeedType } from "./components/FeedNavigation";
-import { APP_NAME } from "@/config/seo";
-
 const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeFeed, setActiveFeed] = useState<FeedType>("home");
@@ -17,15 +14,6 @@ const Home: React.FC = () => {
   useEffect(() => {
     setIsLoading(false);
   }, [user?.uid]);
-
-  if (!user) {
-    return (
-      <SignInPrompt
-        title={`Welcome to ${APP_NAME}`}
-        description="Connect with authors, discover stories, and join book clubs. Sign in to start your reading journey."
-      />
-    );
-  }
 
   if (isLoading) {
     return (

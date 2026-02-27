@@ -81,12 +81,11 @@ class BookListService {
    */
   async getAllBookLists(currentUserId?: string): Promise<IBookList[]> {
     try {
-      // Query all lists and filter in memory for backward compatibility
-      // (old lists without isPublic field should default to public)
-      const allListsQuery = query(
-        this.bookListsCollection,
-        orderBy("createdAt", "desc")
-      );
+      // Unauthenticated users can only query public lists (matches security rule).
+      // Authenticated users fetch all lists and filter in memory to include their own private lists.
+      const allListsQuery = currentUserId
+        ? query(this.bookListsCollection, orderBy("createdAt", "desc"))
+        : query(this.bookListsCollection, where("isPublic", "==", true), orderBy("createdAt", "desc"));
 
       const snapshot = await getDocs(allListsQuery);
       const allLists = snapshot.docs.map((doc) => {

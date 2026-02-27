@@ -7,7 +7,6 @@ import UpdateBookClub from "./UpdateBookClub";
 
 import { useAuthContext } from "../../contexts/AuthContext";
 import { bookClubRepo } from "./bookClubRepo";
-import SignInPrompt from "../../components/SignInPrompt";
 
 const BookClubs = () => {
   const { user } = useAuthContext();
@@ -90,15 +89,6 @@ const BookClubs = () => {
     setSelectedClub(null);
   };
 
-  if (!user) {
-    return (
-      <SignInPrompt
-        title="Join the Community"
-        description="Discover new books, meet fellow readers, and track your reading journey. Sign in to view and join book clubs."
-      />
-    );
-  }
-
   if (showCreateForm && user) {
     return (
       <CreateBookClub
@@ -136,16 +126,18 @@ const BookClubs = () => {
               </h1>
             </div>
 
-            <button
-              onClick={handleShowCreateForm}
-              className="group shrink-0 mt-2 flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-900 dark:text-white hover:text-dark-green dark:hover:text-light-green transition-colors duration-200"
-            >
-              <span>Start a Club</span>
-              <ArrowUpRight
-                size={14}
-                className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200"
-              />
-            </button>
+            {user && (
+              <button
+                onClick={handleShowCreateForm}
+                className="group shrink-0 mt-2 flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-900 dark:text-white hover:text-dark-green dark:hover:text-light-green transition-colors duration-200"
+              >
+                <span>Start a Club</span>
+                <ArrowUpRight
+                  size={14}
+                  className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200"
+                />
+              </button>
+            )}
           </div>
 
           <p className="mt-6 font-body text-base text-neutral-500 dark:text-neutral-400 max-w-lg">
@@ -181,12 +173,14 @@ const BookClubs = () => {
             <p className="font-body text-sm text-neutral-400 dark:text-neutral-600 mb-10">
               Be the first to gather a reading circle.
             </p>
-            <button
-              onClick={handleShowCreateForm}
-              className="font-ui text-[11px] font-bold tracking-[0.14em] uppercase px-7 py-3 border border-neutral-900 dark:border-white text-neutral-900 dark:text-white hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors duration-200"
-            >
-              Found the First Club
-            </button>
+            {user && (
+              <button
+                onClick={handleShowCreateForm}
+                className="font-ui text-[11px] font-bold tracking-[0.14em] uppercase px-7 py-3 border border-neutral-900 dark:border-white text-neutral-900 dark:text-white hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors duration-200"
+              >
+                Found the First Club
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -3,14 +3,7 @@ import { useRef, useEffect, RefObject } from "react";
 import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 
-import {
-  User,
-  Settings,
-  Shield,
-  HelpCircle,
-  BookOpen,
-  LogOut,
-} from "lucide-react";
+import { User, Shield, HelpCircle, BookOpen, LogOut } from "lucide-react";
 import { IUser } from "../../types/IUser";
 
 interface UserDropdownProps {
@@ -70,12 +63,6 @@ const UserDropdown = ({
 
   const menuItems = [
     {
-      icon: Settings,
-      label: "Settings",
-      to: "/settings",
-      onClick: onClose,
-    },
-    {
       icon: Shield,
       label: "Privacy Policy",
       to: "/privacy-policy",
@@ -122,9 +109,7 @@ const UserDropdown = ({
             <p className="text-sm font-semibold truncate text-ns-ink">
               {user.displayName || "User"}
             </p>
-            <p className="text-xs text-ns-ink-muted truncate">
-              {user.email}
-            </p>
+            <p className="text-xs text-ns-ink-muted truncate">{user.email}</p>
           </div>
         </div>
       </Link>

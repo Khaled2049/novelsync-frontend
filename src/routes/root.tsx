@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import {
   ArrowRight,
@@ -145,6 +146,7 @@ function Section({
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -273,13 +275,15 @@ export default function HomePage() {
               }}
               className="flex flex-wrap gap-4"
             >
-              <button
-                onClick={() => navigate("/sign-up")}
-                className="group inline-flex items-center gap-2.5 rounded-full bg-ns-accent hover:bg-ns-accent-hover text-white px-8 py-3.5 font-ui font-semibold shadow-lg shadow-ns-accent/25 transition-all duration-300 hover:shadow-ns-accent/40 hover:scale-[1.03] active:scale-[0.98]"
-              >
-                Start writing now
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </button>
+              {!user && (
+                <button
+                  onClick={() => navigate("/sign-up")}
+                  className="group inline-flex items-center gap-2.5 rounded-full bg-ns-accent hover:bg-ns-accent-hover text-white px-8 py-3.5 font-ui font-semibold shadow-lg shadow-ns-accent/25 transition-all duration-300 hover:shadow-ns-accent/40 hover:scale-[1.03] active:scale-[0.98]"
+                >
+                  Start writing now
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </button>
+              )}
               <button
                 onClick={() => navigate("/explore")}
                 className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.06] backdrop-blur-sm hover:bg-white/[0.12] px-8 py-3.5 font-ui font-semibold text-white transition-all duration-300"

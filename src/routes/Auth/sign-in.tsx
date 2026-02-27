@@ -108,6 +108,7 @@ const Signin: React.FC = () => {
                 type="password"
                 id="password"
                 name="password"
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
