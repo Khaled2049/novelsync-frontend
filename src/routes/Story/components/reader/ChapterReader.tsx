@@ -34,7 +34,6 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
   onBackToDetails,
   onPrevChapter,
   onNextChapter,
-  characters = [],
 }) => {
   // Settings
   const { settings, updateSettings } = useReaderSettings();
@@ -72,9 +71,6 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
   // Top bar visibility
   const [showTopBar, setShowTopBar] = useState(true);
 
-  // Characters panel
-  const [showCharacters, setShowCharacters] = useState(false);
-
   // Handle search toggle
   const handleSearchToggle = () => {
     setShowSearch(!showSearch);
@@ -89,11 +85,6 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
     setShowTopBar(false);
   };
 
-  const handleCharactersToggle = () => {
-    setShowCharacters((v) => !v);
-    setShowTopBar(false);
-  };
-
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${currentTheme.bg} ${currentTheme.text}`}
@@ -105,8 +96,6 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
           onBack={onBackToDetails}
           onSearchToggle={handleSearchToggle}
           onSettingsToggle={handleSettingsToggle}
-          onCharactersToggle={handleCharactersToggle}
-          hasCharacters={characters.length > 0}
         />
       ) : (
         <button

@@ -1,7 +1,7 @@
 // src/components/reader/ReaderTopBar.tsx
 
 import React from "react";
-import { ArrowLeft, Settings, Search, Users } from "lucide-react";
+import { ArrowLeft, Settings, Search } from "lucide-react";
 
 interface ReaderTopBarProps {
   theme: {
@@ -13,8 +13,6 @@ interface ReaderTopBarProps {
   onBack: () => void;
   onSearchToggle: () => void;
   onSettingsToggle: () => void;
-  onCharactersToggle: () => void;
-  hasCharacters?: boolean;
 }
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -22,8 +20,6 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   onBack,
   onSearchToggle,
   onSettingsToggle,
-  onCharactersToggle,
-  hasCharacters,
 }) => {
   return (
     <div
@@ -40,15 +36,6 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
-          {hasCharacters && (
-            <button
-              onClick={onCharactersToggle}
-              className={`p-2 rounded-lg ${theme.hover} transition-colors ${theme.text}`}
-              aria-label="Characters"
-            >
-              <Users size={20} />
-            </button>
-          )}
           <button
             onClick={onSearchToggle}
             className={`p-2 rounded-lg ${theme.hover} transition-colors ${theme.text}`}
