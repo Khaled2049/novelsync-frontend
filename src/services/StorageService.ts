@@ -7,6 +7,8 @@ import {
 } from "firebase/storage";
 
 const COVERS_PATH = "book-covers";
+const CHARACTER_ART_PATH = "character-art";
+const PLACE_IMAGE_PATH = "place-images";
 
 class StorageService {
   /**
@@ -21,6 +23,46 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${COVERS_PATH}/${userId}/${storyId}-${Date.now()}.${ext}`;
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type,
+      cacheControl: "public, max-age=31536000",
+    });
+    return getDownloadURL(snapshot.ref);
+  }
+
+  /**
+   * Upload character art to Firebase Storage.
+   * Path: character-art/{userId}/{characterId}-{timestamp}.{ext}
+   * Returns the permanent public download URL.
+   */
+  async uploadCharacterArt(
+    file: File,
+    userId: string,
+    characterId: string
+  ): Promise<string> {
+    const ext = file.type === "image/png" ? "png" : "jpg";
+    const path = `${CHARACTER_ART_PATH}/${userId}/${characterId}-${Date.now()}.${ext}`;
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type,
+      cacheControl: "public, max-age=31536000",
+    });
+    return getDownloadURL(snapshot.ref);
+  }
+
+  /**
+   * Upload a place image to Firebase Storage.
+   * Path: place-images/{userId}/{placeId}-{timestamp}.{ext}
+   * Returns the permanent public download URL.
+   */
+  async uploadPlaceImage(
+    file: File,
+    userId: string,
+    placeId: string
+  ): Promise<string> {
+    const ext = file.type === "image/png" ? "png" : "jpg";
+    const path = `${PLACE_IMAGE_PATH}/${userId}/${placeId}-${Date.now()}.${ext}`;
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,

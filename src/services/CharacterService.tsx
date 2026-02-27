@@ -11,6 +11,13 @@ import { firestore } from "@/config/firebase";
 // import { storiesRepo } from "@/services/StoriesRepo";
 import { Character } from "@/types/ICharacter";
 
+// Firestore rejects undefined values — strip them before writing
+function omitUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 class CharacterService {
   private storiesCollection = collection(firestore, "stories");
 
@@ -49,7 +56,7 @@ class CharacterService {
         userId: story.data().userId,
       };
 
-      await setDoc(newCharacterRef, newCharacter);
+      await setDoc(newCharacterRef, omitUndefined(newCharacter));
 
       return newCharacter.id;
     } catch (error) {
@@ -71,10 +78,7 @@ class CharacterService {
       }
 
       const characterData = characterSnapshot.data() as Character;
-      await updateDoc(characterRef, {
-        ...characterData,
-        ...character,
-      });
+      await updateDoc(characterRef, omitUndefined({ ...characterData, ...character }));
     } catch (error) {
       console.error("Error updating character:", error);
       throw error;

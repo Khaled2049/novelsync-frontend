@@ -1,18 +1,65 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Place } from "@/types/IPlace";
 import AddPlaceModal from "@/components/places/AddPlaceModal";
 import { placeService } from "@/services/PlaceService";
+import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";
-import UpdatePlaceModal from "@/components/places/UpdatePlaceModal";
-import { MapPin, MapPinPlus, Map, Pencil, Trash2 } from "lucide-react";
+import {
+  Map,
+  MapPin,
+  MapPinPlus,
+  ImagePlus,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+} from "lucide-react";
+
+// Reusable field component
+const Field: React.FC<{
+  label: string;
+  value?: string;
+  editing: boolean;
+  placeholder: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}> = ({ label, value, editing, placeholder, onChange, rows = 3 }) => {
+  if (!editing && !value) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
+        {label}
+      </p>
+      {editing ? (
+        <textarea
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={rows}
+          className="w-full font-body text-sm text-ns-ink bg-ns-surface border border-ns-border rounded-ns px-3 py-2 resize-none focus:outline-none focus:border-ns-accent transition-colors placeholder:text-ns-ink-muted"
+        />
+      ) : (
+        <p className="font-body text-sm text-ns-ink leading-relaxed whitespace-pre-wrap">
+          {value}
+        </p>
+      )}
+    </div>
+  );
+};
 
 const Places: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
   const [places, setPlaces] = useState<Place[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [placeToUpdate, setPlaceToUpdate] = useState<Place | null>(null);
+
+  // Edit state
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Place | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadPlaces();
@@ -26,22 +73,16 @@ const Places: React.FC = () => {
 
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
+    setEditing(false);
+    setDraft(null);
+    setImagePreview(null);
+    setImageFile(null);
   };
 
   const handleAddPlace = (newPlace: Place) => {
     setPlaces((prev) => [...prev, newPlace]);
     setIsAddModalOpen(false);
-  };
-
-  const handleUpdatePlace = (updatedPlace: Place) => {
-    setPlaces((prev) =>
-      prev.map((p) => (p.id === updatedPlace.id ? updatedPlace : p))
-    );
-    setIsUpdateModalOpen(false);
-    setPlaceToUpdate(null);
-    if (selectedPlace?.id === updatedPlace.id) {
-      setSelectedPlace(updatedPlace);
-    }
+    setSelectedPlace(newPlace);
   };
 
   const handleDeletePlace = async (placeId: string) => {
@@ -55,6 +96,62 @@ const Places: React.FC = () => {
     }
   };
 
+  const startEditing = () => {
+    if (!selectedPlace) return;
+    setDraft({ ...selectedPlace });
+    setImagePreview(null);
+    setImageFile(null);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setDraft(null);
+    setImagePreview(null);
+    setImageFile(null);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleSave = async () => {
+    if (!draft || !storyId) return;
+    setSaving(true);
+    try {
+      let updatedDraft = { ...draft };
+
+      if (imageFile) {
+        const url = await storageService.uploadPlaceImage(
+          imageFile,
+          draft.userId,
+          draft.id
+        );
+        updatedDraft = { ...updatedDraft, imageUrl: url };
+      }
+
+      await placeService.updatePlace(storyId, updatedDraft);
+      setPlaces((prev) =>
+        prev.map((p) => (p.id === updatedDraft.id ? updatedDraft : p))
+      );
+      setSelectedPlace(updatedDraft);
+      setEditing(false);
+      setDraft(null);
+      setImagePreview(null);
+      setImageFile(null);
+    } catch (error) {
+      console.error("Error saving place:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const place = editing ? draft : selectedPlace;
+  const imageSrc = imagePreview ?? place?.imageUrl ?? null;
+
   if (!storyId) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -67,7 +164,6 @@ const Places: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-ns-bg">
-
       {/* ── Toolbar ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-ns-border bg-ns-surface">
         <div className="flex items-center gap-2.5">
@@ -89,7 +185,6 @@ const Places: React.FC = () => {
 
       {/* ── Two-Panel Content ── */}
       <div className="flex flex-1 overflow-hidden">
-
         {/* Left: Roster */}
         <div className="w-64 flex-shrink-0 border-r border-ns-border flex flex-col bg-ns-surface">
           <div className="flex-1 overflow-y-auto py-3 px-3">
@@ -99,30 +194,44 @@ const Places: React.FC = () => {
                   <Map className="w-5 h-5 text-ns-accent opacity-60" />
                 </div>
                 <p className="font-ui text-xs text-ns-ink-muted text-center leading-relaxed">
-                  No places yet.<br />Add your first location.
+                  No places yet.
+                  <br />
+                  Add your first location.
                 </p>
               </div>
             ) : (
               <div className="space-y-0.5">
-                {places.map((place) => {
-                  const isSelected = selectedPlace?.id === place.id;
+                {places.map((p) => {
+                  const isSelected = selectedPlace?.id === p.id;
                   return (
                     <div
-                      key={place.id}
-                      onClick={() => handlePlaceClick(place)}
+                      key={p.id}
+                      onClick={() => handlePlaceClick(p)}
                       className={`flex items-center gap-3 rounded-ns px-3 py-2.5 cursor-pointer transition-all duration-150 group ${
-                        isSelected ? "bg-ns-accent-subtle" : "hover:bg-ns-surface-hover"
+                        isSelected
+                          ? "bg-ns-accent-subtle"
+                          : "hover:bg-ns-surface-hover"
                       }`}
                     >
-                      {/* Icon badge */}
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isSelected
-                            ? "bg-ns-accent text-white"
-                            : "bg-ns-border text-ns-ink-secondary"
-                        }`}
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
+                      {/* Thumbnail or icon */}
+                      <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? "bg-ns-accent text-white"
+                                : "bg-ns-border text-ns-ink-secondary"
+                            }`}
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                          </div>
+                        )}
                       </div>
 
                       {/* Info */}
@@ -132,11 +241,11 @@ const Places: React.FC = () => {
                             isSelected ? "text-ns-ink" : "text-ns-ink-secondary"
                           }`}
                         >
-                          {place.name}
+                          {p.name}
                         </p>
-                        {place.description && (
+                        {p.description && (
                           <p className="font-ui text-[10px] text-ns-ink-muted truncate">
-                            {place.description}
+                            {p.description}
                           </p>
                         )}
                       </div>
@@ -146,8 +255,11 @@ const Places: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setPlaceToUpdate(place);
-                            setIsUpdateModalOpen(true);
+                            handlePlaceClick(p);
+                            setTimeout(() => {
+                              setDraft({ ...p });
+                              setEditing(true);
+                            }, 0);
                           }}
                           className="p-1.5 rounded text-ns-ink-muted hover:text-ns-ink hover:bg-ns-elevated transition-all duration-150"
                           aria-label="Edit place"
@@ -157,7 +269,7 @@ const Places: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeletePlace(place.id);
+                            handleDeletePlace(p.id);
                           }}
                           className="p-1.5 rounded text-ns-ink-muted hover:text-ns-destructive hover:bg-ns-elevated transition-all duration-150"
                           aria-label="Delete place"
@@ -173,10 +285,9 @@ const Places: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Detail Panel */}
+        {/* Right: Detail / Edit Panel */}
         <div className="flex-1 overflow-y-auto bg-ns-bg">
           {!selectedPlace ? (
-            /* Empty state */
             <div className="h-full flex flex-col items-center justify-center gap-3 px-8 animate-ns-fade-in">
               <div className="w-14 h-14 rounded-full bg-ns-accent-subtle flex items-center justify-center">
                 <MapPin className="w-6 h-6 text-ns-accent opacity-60" />
@@ -191,73 +302,203 @@ const Places: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* Place Detail */
-            <div className="max-w-xl mx-auto p-6 space-y-6 animate-ns-fade-in">
-
-              {/* Header */}
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-ns-accent flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex-1 min-w-0 pt-1">
-                  <h2 className="font-heading italic text-2xl text-ns-ink leading-tight">
-                    {selectedPlace.name}
-                  </h2>
-                </div>
-                <button
-                  onClick={() => {
-                    setPlaceToUpdate(selectedPlace);
-                    setIsUpdateModalOpen(true);
-                  }}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink active:scale-[0.97] transition-all duration-150"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
-                </button>
-              </div>
-
-              <div className="h-px bg-ns-border" />
-
-              {/* Fields */}
-              <div className="space-y-5">
-                {selectedPlace.description && (
-                  <div className="space-y-1.5">
-                    <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
-                      Description
-                    </p>
-                    <p className="font-body text-sm text-ns-ink leading-relaxed">
-                      {selectedPlace.description}
-                    </p>
+            <div className="animate-ns-fade-in">
+              {/* Image Hero */}
+              <div
+                className={`relative w-full bg-ns-surface border-b border-ns-border overflow-hidden ${
+                  editing ? "cursor-pointer group" : ""
+                }`}
+                style={{ minHeight: "180px", maxHeight: "280px" }}
+                onClick={
+                  editing ? () => imageInputRef.current?.click() : undefined
+                }
+              >
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt={place?.name}
+                    className="w-full h-full object-cover"
+                    style={{ maxHeight: "280px" }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[180px] gap-3 text-ns-ink-muted">
+                    {editing ? (
+                      <>
+                        <ImagePlus className="w-8 h-8 opacity-40" />
+                        <span className="font-ui text-xs">
+                          Click to upload a location image
+                        </span>
+                      </>
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-ns-accent/20 flex items-center justify-center">
+                        <MapPin className="w-9 h-9 text-ns-accent opacity-60" />
+                      </div>
+                    )}
                   </div>
                 )}
+                {editing && imageSrc && (
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <ImagePlus className="w-6 h-6 text-white" />
+                    <span className="font-ui text-sm text-white">
+                      Change image
+                    </span>
+                  </div>
+                )}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+              </div>
 
-                {selectedPlace.notes && (
-                  <div className="space-y-1.5">
-                    <p className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
-                      Notes
-                    </p>
-                    <p className="font-body text-sm text-ns-ink-secondary leading-relaxed">
-                      {selectedPlace.notes}
-                    </p>
+              {/* Profile Content */}
+              <div className="max-w-2xl mx-auto p-6 space-y-6">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    {editing ? (
+                      <input
+                        value={draft?.name ?? ""}
+                        onChange={(e) =>
+                          setDraft((prev) =>
+                            prev ? { ...prev, name: e.target.value } : prev
+                          )
+                        }
+                        placeholder="Place name"
+                        className="font-heading italic text-2xl text-ns-ink bg-transparent border-b border-ns-border focus:border-ns-accent focus:outline-none w-full pb-1 transition-colors"
+                      />
+                    ) : (
+                      <h2 className="font-heading italic text-2xl text-ns-ink leading-tight">
+                        {selectedPlace.name}
+                      </h2>
+                    )}
+                  </div>
+
+                  {/* Edit / Save / Cancel */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editing ? (
+                      <>
+                        <button
+                          onClick={cancelEditing}
+                          disabled={saving}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface active:scale-[0.97] transition-all duration-150"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSave}
+                          disabled={saving || !draft?.name?.trim()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns bg-ns-accent text-white font-ui text-xs font-medium hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          {saving ? "Saving…" : "Save"}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={startEditing}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink active:scale-[0.97] transition-all duration-150"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px bg-ns-border" />
+
+                {/* Fields */}
+                <div className="space-y-5">
+                  <Field
+                    label="Description"
+                    value={
+                      editing ? draft?.description : selectedPlace.description
+                    }
+                    editing={editing}
+                    placeholder="What is this place? A brief overview…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, description: v } : p))
+                    }
+                    rows={3}
+                  />
+                  <Field
+                    label="Atmosphere"
+                    value={
+                      editing ? draft?.atmosphere : selectedPlace.atmosphere
+                    }
+                    editing={editing}
+                    placeholder="Mood, sensory details, sounds, smells, light…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, atmosphere: v } : p))
+                    }
+                    rows={3}
+                  />
+                  <Field
+                    label="Geography"
+                    value={editing ? draft?.geography : selectedPlace.geography}
+                    editing={editing}
+                    placeholder="Physical layout, terrain, surroundings, size…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, geography: v } : p))
+                    }
+                    rows={3}
+                  />
+                  <Field
+                    label="History"
+                    value={editing ? draft?.history : selectedPlace.history}
+                    editing={editing}
+                    placeholder="Origins, past events, how it came to be…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, history: v } : p))
+                    }
+                    rows={3}
+                  />
+                  <Field
+                    label="Significance"
+                    value={
+                      editing
+                        ? draft?.significance
+                        : selectedPlace.significance
+                    }
+                    editing={editing}
+                    placeholder="Why this place matters to the story or characters…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, significance: v } : p))
+                    }
+                    rows={2}
+                  />
+                  <Field
+                    label="Notes"
+                    value={editing ? draft?.notes : selectedPlace.notes}
+                    editing={editing}
+                    placeholder="Anything else worth remembering…"
+                    onChange={(v) =>
+                      setDraft((p) => (p ? { ...p, notes: v } : p))
+                    }
+                    rows={2}
+                  />
+                </div>
+
+                {/* Danger zone */}
+                {!editing && (
+                  <div className="pt-2 border-t border-ns-border">
+                    <button
+                      onClick={() => handleDeletePlace(selectedPlace.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs text-ns-destructive border border-ns-destructive/20 hover:bg-ns-destructive/5 hover:border-ns-destructive/40 active:scale-[0.97] transition-all duration-150"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete Place
+                    </button>
                   </div>
                 )}
               </div>
-
-              {/* Danger zone */}
-              <div className="pt-2 border-t border-ns-border">
-                <button
-                  onClick={() => handleDeletePlace(selectedPlace.id)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs text-ns-destructive border border-ns-destructive/20 hover:bg-ns-destructive/5 hover:border-ns-destructive/40 active:scale-[0.97] transition-all duration-150"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Place
-                </button>
-              </div>
-
             </div>
           )}
         </div>
-
       </div>
 
       {/* ── Modals ── */}
@@ -266,14 +507,6 @@ const Places: React.FC = () => {
           storyId={storyId}
           onClose={() => setIsAddModalOpen(false)}
           onAddPlace={handleAddPlace}
-        />
-      )}
-      {isUpdateModalOpen && placeToUpdate && (
-        <UpdatePlaceModal
-          storyId={storyId}
-          place={placeToUpdate}
-          onClose={() => setIsUpdateModalOpen(false)}
-          onUpdateplace={handleUpdatePlace}
         />
       )}
     </div>

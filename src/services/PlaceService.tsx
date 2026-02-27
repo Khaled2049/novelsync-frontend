@@ -10,6 +10,12 @@ import {
 import { firestore } from "@/config/firebase";
 import { Place } from "@/types/IPlace";
 
+function omitUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 class PlaceService {
   private storiesCollection = collection(firestore, "stories");
 
@@ -45,7 +51,7 @@ class PlaceService {
         userId: story.data().userId,
       };
 
-      await setDoc(newplaceRef, newplace);
+      await setDoc(newplaceRef, omitUndefined(newplace));
 
       return newplace.id;
     } catch (error) {
@@ -64,10 +70,7 @@ class PlaceService {
       }
 
       const placeData = placesnapshot.data() as Place;
-      await updateDoc(placeRef, {
-        ...placeData,
-        ...place,
-      });
+      await updateDoc(placeRef, omitUndefined({ ...placeData, ...place }));
     } catch (error) {
       console.error("Error updating place:", error);
       throw error;

@@ -42,6 +42,7 @@ import {
 import { Character } from "@/types/ICharacter";
 import { Place } from "@/types/IPlace";
 import { plotService } from "@/services/PlotService";
+import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import axios from "axios";
@@ -89,11 +90,17 @@ const PlotTimeline: React.FC = () => {
 
   const [showTensionChart, setShowTensionChart] = useState(false);
 
-  const [characters] = useState<Character[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [places] = useState<Place[]>([]);
 
   useEffect(() => {
     loadPlots();
+    if (storyId) {
+      characterService
+        .getCharacters(storyId)
+        .then(setCharacters)
+        .catch(() => {});
+    }
   }, [storyId]);
 
   const loadPlots = async () => {
@@ -326,7 +333,6 @@ const PlotTimeline: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-ns-bg">
-
       {/* ── Toolbar ── */}
       <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-3 border-b border-ns-border bg-ns-surface">
         {/* Page title */}
@@ -382,6 +388,7 @@ const PlotTimeline: React.FC = () => {
 
         {/* Generate — pushed to right */}
         <button
+          disabled={true}
           onClick={generateText}
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-ns-gold/40 text-ns-gold font-ui text-xs font-medium rounded-ns hover:bg-ns-gold/5 active:scale-[0.97] transition-all duration-150"
         >
@@ -393,7 +400,6 @@ const PlotTimeline: React.FC = () => {
       {/* ── Scrollable Content ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4 max-w-5xl mx-auto">
-
           {/* Tension Curve Chart */}
           <AnimatePresence>
             {showTensionChart && (

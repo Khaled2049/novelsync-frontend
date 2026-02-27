@@ -18,7 +18,7 @@ const StoriesHeader: React.FC<StoriesHeaderProps> = ({
 }) => {
   if (user) {
     return (
-      <div className="py-8 mb-8">
+      <div className="py-8 mb-2">
         <div className="flex items-start justify-between">
           {/* Welcome Section */}
           <div className="space-y-3">

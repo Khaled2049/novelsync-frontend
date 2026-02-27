@@ -58,7 +58,7 @@ const StoryDetail: React.FC = () => {
   });
 
   const { walletAddress: authorWalletAddress } = useUserWalletAddress(
-    state.story?.userId
+    state.story?.userId,
   );
 
   // --- Data Loading ---
@@ -83,7 +83,7 @@ const StoryDetail: React.FC = () => {
 
         const validChapterIndex = Math.max(
           0,
-          Math.min(chapterIndex, chaptersData.length - 1)
+          Math.min(chapterIndex, chaptersData.length - 1),
         );
         const currentChapter = chaptersData[validChapterIndex] || null;
 
@@ -115,7 +115,7 @@ const StoryDetail: React.FC = () => {
         }));
       }
     },
-    [user]
+    [user],
   );
 
   // --- Handlers ---
@@ -185,7 +185,7 @@ const StoryDetail: React.FC = () => {
         }));
       }
     },
-    [id, user, state.userRating, state.ratingsCount, state.story]
+    [id, user, state.userRating, state.ratingsCount, state.story],
   );
 
   const handlePrevChapter = useCallback(() => {
@@ -202,7 +202,7 @@ const StoryDetail: React.FC = () => {
     setState((prev) => {
       const nextIndex = Math.min(
         prev.currentChapterIndex + 1,
-        prev.chapters.length - 1
+        prev.chapters.length - 1,
       );
       return {
         ...prev,
@@ -222,13 +222,13 @@ const StoryDetail: React.FC = () => {
           id,
           state.currentChapter.id,
           commentId,
-          user.uid
+          user.uid,
         );
       } catch (error) {
         console.error("Error toggling like:", error);
       }
     },
-    [user, id, state.currentChapter, commentService]
+    [user, id, state.currentChapter, commentService],
   );
 
   const handleReply = useCallback(
@@ -241,13 +241,13 @@ const StoryDetail: React.FC = () => {
           user.uid,
           user.username,
           message,
-          parentId
+          parentId,
         );
       } catch (error) {
         console.error("Error adding reply:", error);
       }
     },
-    [user, id, state.currentChapter, commentService]
+    [user, id, state.currentChapter, commentService],
   );
 
   const handleDelete = useCallback(
@@ -257,13 +257,13 @@ const StoryDetail: React.FC = () => {
         await commentService.deleteComment(
           id,
           state.currentChapter.id,
-          commentId
+          commentId,
         );
       } catch (error) {
         console.error("Error deleting comment:", error);
       }
     },
-    [id, state.currentChapter, commentService]
+    [id, state.currentChapter, commentService],
   );
 
   const handleEdit = useCallback(
@@ -274,13 +274,13 @@ const StoryDetail: React.FC = () => {
           id,
           state.currentChapter.id,
           commentId,
-          newMessage
+          newMessage,
         );
       } catch (error) {
         console.error("Error updating comment:", error);
       }
     },
-    [id, state.currentChapter, commentService]
+    [id, state.currentChapter, commentService],
   );
 
   // --- Effects ---
@@ -299,7 +299,7 @@ const StoryDetail: React.FC = () => {
     setState((prev) => ({ ...prev, commentsLoading: true }));
     const commentsCollection = commentService.getCommentsCollection(
       id,
-      state.currentChapter.id
+      state.currentChapter.id,
     );
     const q = query(commentsCollection, orderBy("createdAt", "asc"));
 
@@ -331,7 +331,7 @@ const StoryDetail: React.FC = () => {
       (error) => {
         console.error("Error listening to comments:", error);
         setState((prev) => ({ ...prev, commentsLoading: false }));
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -404,11 +404,9 @@ const StoryDetail: React.FC = () => {
         />
 
         <div className="min-h-screen bg-ns-bg font-body">
-
           {/* ── Header: cover + title side by side ── */}
           <div className="max-w-5xl mx-auto px-6 pt-28 pb-10 border-b border-ns-border">
             <div className="flex flex-col sm:flex-row gap-8 sm:gap-10 items-start">
-
               {/* Book cover */}
               <div className="flex-shrink-0 w-36 sm:w-44 aspect-[2/3] rounded-ns-lg shadow-ns-xl overflow-hidden ring-1 ring-ns-border/40 self-start">
                 {state.story.coverImageUrl ? (
@@ -507,50 +505,48 @@ const StoryDetail: React.FC = () => {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
 
           {/* ── Content ── */}
           <div className="max-w-5xl mx-auto px-6 py-12">
             <main className="max-w-2xl mx-auto">
-                <StorySynopsis description={state.story.description} />
+              <StorySynopsis description={state.story.description} />
 
-                {/* Ornamental divider */}
-                <div className="flex items-center gap-4 my-10">
-                  <div className="flex-1 h-px bg-ns-border" />
-                  <span className="text-ns-ink-muted text-xs select-none">✦</span>
-                  <div className="flex-1 h-px bg-ns-border" />
-                </div>
+              {/* Ornamental divider */}
+              <div className="flex items-center gap-4 my-10">
+                <div className="flex-1 h-px bg-ns-border" />
+                <span className="text-ns-ink-muted text-xs select-none">✦</span>
+                <div className="flex-1 h-px bg-ns-border" />
+              </div>
 
-                <StoryAuthorBio
-                  author={state.story.author}
-                  authorWalletAddress={authorWalletAddress || undefined}
+              <StoryAuthorBio
+                author={state.story.author}
+                authorWalletAddress={authorWalletAddress || undefined}
+                storyId={id!}
+              />
+
+              <div className="flex items-center gap-4 my-10">
+                <div className="flex-1 h-px bg-ns-border" />
+                <span className="text-ns-ink-muted text-xs select-none">✦</span>
+                <div className="flex-1 h-px bg-ns-border" />
+              </div>
+
+              {state.currentChapter && (
+                <StoryCommentsSection
                   storyId={id!}
+                  chapterId={state.currentChapter.id}
+                  comments={state.comments}
+                  commentsLoading={state.commentsLoading}
+                  currentUser={user}
+                  onLike={handleCommentLike}
+                  onReply={handleReply}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
-
-                <div className="flex items-center gap-4 my-10">
-                  <div className="flex-1 h-px bg-ns-border" />
-                  <span className="text-ns-ink-muted text-xs select-none">✦</span>
-                  <div className="flex-1 h-px bg-ns-border" />
-                </div>
-
-                {state.currentChapter && (
-                  <StoryCommentsSection
-                    storyId={id!}
-                    chapterId={state.currentChapter.id}
-                    comments={state.comments}
-                    commentsLoading={state.commentsLoading}
-                    currentUser={user}
-                    onLike={handleCommentLike}
-                    onReply={handleReply}
-                    onDelete={handleDelete}
-                    onEdit={handleEdit}
-                  />
-                )}
+              )}
             </main>
           </div>
-
         </div>
       </>
     );

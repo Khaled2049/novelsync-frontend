@@ -9,19 +9,32 @@ import { APP_NAME } from "@/config/seo";
 import StoriesHeader from "@/components/StoriesHeader";
 
 const CATEGORIES = [
-  { id: "all",               name: "All",         value: "all",               symbol: "◆" },
-  { id: "fiction",           name: "Fiction",      value: "fiction",           symbol: "◗" },
-  { id: "non-fiction",       name: "Non-Fiction",  value: "non-fiction",       symbol: "◎" },
-  { id: "poetry",            name: "Poetry",       value: "poetry",            symbol: "❧" },
-  { id: "fantasy",           name: "Fantasy",      value: "fantasy",           symbol: "✦" },
-  { id: "science-fiction",   name: "Sci-Fi",       value: "science-fiction",   symbol: "⊙" },
-  { id: "romance",           name: "Romance",      value: "romance",           symbol: "♡" },
-  { id: "mystery-thriller",  name: "Mystery",      value: "mystery-thriller",  symbol: "◐" },
-  { id: "horror",            name: "Horror",       value: "horror",            symbol: "◈" },
-  { id: "historical-fiction",name: "Historical",   value: "historical-fiction",symbol: "⊕" },
-  { id: "young-adult",       name: "Young Adult",  value: "young-adult",       symbol: "✶" },
-  { id: "drama",             name: "Drama",        value: "drama",             symbol: "◉" },
-  { id: "adventure",         name: "Adventure",    value: "adventure",         symbol: "▷" },
+  { id: "all", name: "All", value: "all", symbol: "◆" },
+  { id: "fiction", name: "Fiction", value: "fiction", symbol: "◗" },
+  { id: "non-fiction", name: "Non-Fiction", value: "non-fiction", symbol: "◎" },
+  { id: "poetry", name: "Poetry", value: "poetry", symbol: "❧" },
+  { id: "fantasy", name: "Fantasy", value: "fantasy", symbol: "✦" },
+  {
+    id: "science-fiction",
+    name: "Sci-Fi",
+    value: "science-fiction",
+    symbol: "⊙",
+  },
+  { id: "romance", name: "Romance", value: "romance", symbol: "♡" },
+  {
+    id: "mystery-thriller",
+    name: "Mystery",
+    value: "mystery-thriller",
+    symbol: "◐",
+  },
+  { id: "horror", name: "Horror", value: "horror", symbol: "◈" },
+  {
+    id: "historical-fiction",
+    name: "Historical",
+    value: "historical-fiction",
+    symbol: "⊕",
+  },
+  { id: "young-adult", name: "Young Adult", value: "young-adult", symbol: "✶" },
 ] as const;
 
 const AllStories: React.FC = () => {
@@ -64,7 +77,8 @@ const AllStories: React.FC = () => {
       if (selectedCategory === "all") {
         storyList = await storiesRepo.getPublishedStories();
       } else {
-        storyList = await storiesRepo.getPublishedStoriesByCategory(selectedCategory);
+        storyList =
+          await storiesRepo.getPublishedStoriesByCategory(selectedCategory);
       }
       setStories(storyList);
       setCurrentPage(1);
@@ -131,9 +145,10 @@ const AllStories: React.FC = () => {
                     flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
                     rounded-full border text-xs font-ui font-medium tracking-wide
                     transition-all duration-200
-                    ${isActive
-                      ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
-                      : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
+                    ${
+                      isActive
+                        ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                        : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
                     }
                   `}
                 >
@@ -153,7 +168,9 @@ const AllStories: React.FC = () => {
         {/* Stories Content */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <span className="text-ns-ink-muted font-ui text-sm">Loading stories…</span>
+            <span className="text-ns-ink-muted font-ui text-sm">
+              Loading stories…
+            </span>
           </div>
         ) : currentStories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -239,19 +256,21 @@ const AllStories: React.FC = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-10">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    onClick={() => handlePageChange(pageNumber)}
-                    className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
-                      currentPage === pageNumber
-                        ? "bg-ns-accent text-white shadow-ns-sm"
-                        : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      onClick={() => handlePageChange(pageNumber)}
+                      className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
+                        currentPage === pageNumber
+                          ? "bg-ns-accent text-white shadow-ns-sm"
+                          : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ),
+                )}
               </div>
             )}
           </>
