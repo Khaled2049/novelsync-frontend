@@ -1,3 +1,4 @@
+import "./polyfills";
 import "./index.css";
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";

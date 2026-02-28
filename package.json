@@ -40,6 +40,7 @@
     "@tiptap/suggestion": "^3.10.7",
     "aos": "^2.3.4",
     "axios": "^1.7.2",
+    "buffer": "^6.0.3",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
     "ethers": "^5.7.2",
