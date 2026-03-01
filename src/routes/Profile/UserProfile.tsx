@@ -114,8 +114,11 @@ const UserProfile: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const wallet = useWallet();
   const chain = useChain();
-  const { walletAddress: savedWalletAddress, loading: walletLoading } =
-    useUserWalletAddress(user?.uid);
+  const {
+    walletAddress: savedWalletAddress,
+    loading: walletLoading,
+    setWalletAddress: setSavedWalletAddress,
+  } = useUserWalletAddress(user?.uid);
   const {
     lifetimeEarnings,
     fetchLifetimeEarnings,
@@ -133,7 +136,9 @@ const UserProfile: React.FC = () => {
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Settings state (local only — no backend for notifications/privacy yet)
@@ -205,14 +210,34 @@ const UserProfile: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
+    setDeleteSuccess(false);
     try {
       await userService.updateUserWalletAddress(user.uid, connectedAddress);
+      setSavedWalletAddress(connectedAddress);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
       setSaveError(err.message || "Failed to save wallet address.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWallet = async () => {
+    if (!user?.uid || !savedWalletAddress) return;
+    setIsDeleting(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    setDeleteSuccess(false);
+    try {
+      await userService.clearUserWalletAddress(user.uid);
+      setSavedWalletAddress(null);
+      setDeleteSuccess(true);
+      setTimeout(() => setDeleteSuccess(false), 3000);
+    } catch (err: any) {
+      setSaveError(err.message || "Failed to remove wallet address.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -560,6 +585,20 @@ const UserProfile: React.FC = () => {
                             <Copy className="w-4 h-4" />
                           )}
                         </button>
+                        {savedWalletAddress && (
+                          <button
+                            onClick={handleDeleteWallet}
+                            disabled={isDeleting}
+                            className="p-2 rounded-ns border border-ns-border bg-ns-surface hover:bg-red-50 dark:hover:bg-red-500/10 text-ns-ink-muted hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Remove saved address"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -576,6 +615,11 @@ const UserProfile: React.FC = () => {
                     {saveSuccess && (
                       <div className="flex items-center gap-2 text-sm font-ui text-ns-accent">
                         <CheckCircle2 className="w-4 h-4" /> Saved successfully
+                      </div>
+                    )}
+                    {deleteSuccess && (
+                      <div className="flex items-center gap-2 text-sm font-ui text-ns-accent">
+                        <CheckCircle2 className="w-4 h-4" /> Address removed
                       </div>
                     )}
                     {saveError && (

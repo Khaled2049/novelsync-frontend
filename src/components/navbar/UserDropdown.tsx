@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
-import { useRef, useEffect, RefObject } from "react";
+import { useRef, useEffect, RefObject, useState } from "react";
 import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
+import { useWalletState } from "@/hooks/useWalletState";
+import { toast } from "sonner";
 
-import { User, Shield, HelpCircle, BookOpen, LogOut } from "lucide-react";
+import { User, Shield, HelpCircle, BookOpen, LogOut, Loader2 } from "lucide-react";
 import { IUser } from "../../types/IUser";
 
 interface UserDropdownProps {
@@ -22,11 +24,34 @@ const UserDropdown = ({
   const { signout } = useFirebaseAuth();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { address, disconnectWallet } = useWalletState();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    await signout();
-    navigate("/sign-in");
-    onClose();
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    try {
+      // Best effort: disconnect wallet before Firebase sign-out.
+      if (address) {
+        try {
+          await disconnectWallet();
+        } catch (disconnectError) {
+          console.warn("Wallet disconnect failed during sign-out:", disconnectError);
+        }
+      }
+
+      await signout();
+      onClose();
+      navigate("/sign-in");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to sign out";
+      toast.error(message);
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   useEffect(() => {
@@ -138,10 +163,20 @@ const UserDropdown = ({
       <div className="border-t border-ns-border">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-ns-destructive hover:bg-ns-destructive/5 transition-colors group"
+          disabled={isSigningOut}
+          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-ns-destructive hover:bg-ns-destructive/5 transition-colors group disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          <span>Sign Out</span>
+          {isSigningOut ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Signing out...</span>
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span>Sign Out</span>
+            </>
+          )}
         </button>
       </div>
     </div>

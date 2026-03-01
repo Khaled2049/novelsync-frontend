@@ -46,11 +46,19 @@ const difficultyLabel: Record<string, string> = {
 interface CompetitionCardProps {
   competition: ICompetition;
   onJoin: (competitionId: string) => void;
+  onEdit?: (competitionId: string) => void;
+  onDelete?: (competitionId: string) => void;
+  canManage?: boolean;
+  joinLoading?: boolean;
 }
 
 const CompetitionCard: React.FC<CompetitionCardProps> = ({
   competition,
   onJoin,
+  onEdit,
+  onDelete,
+  canManage = false,
+  joinLoading = false,
 }) => {
   const { status, difficulty } = competition;
   const isCompleted = status === "completed";
@@ -177,14 +185,37 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
                   e.stopPropagation();
                   onJoin(competition.id);
                 }}
+                disabled={competition.isJoined || joinLoading}
                 className="font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors duration-200 whitespace-nowrap"
               >
-                {status === "upcoming" ? "Register" : "Enter →"}
+                {competition.isJoined
+                  ? "Joined"
+                  : joinLoading
+                    ? "Joining..."
+                    : status === "upcoming"
+                      ? "Register"
+                      : "Enter →"}
               </button>
             ) : (
               <span className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-neutral-400 dark:text-neutral-600">
                 Closed
               </span>
+            )}
+            {canManage && (
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => onEdit?.(competition.id)}
+                  className="font-ui text-[10px] font-semibold tracking-[0.12em] uppercase text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-white transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete?.(competition.id)}
+                  className="font-ui text-[10px] font-semibold tracking-[0.12em] uppercase text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             )}
           </div>
         </div>

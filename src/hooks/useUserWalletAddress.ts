@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { userService } from "@/services/UserService";
 
 interface UseUserWalletAddressResult {
   walletAddress: string | null;
   loading: boolean;
   error: string | null;
+  setWalletAddress: Dispatch<SetStateAction<string | null>>;
 }
 
 /**
@@ -46,6 +47,5 @@ export const useUserWalletAddress = (
     fetchWalletAddress();
   }, [userId]);
 
-  return { walletAddress, loading, error };
+  return { walletAddress, loading, error, setWalletAddress };
 };
-
