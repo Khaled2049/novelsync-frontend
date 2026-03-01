@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ConnectWallet, useChain } from "@thirdweb-dev/react";
+import React, { useEffect, useRef, useState } from "react"
 import {
   CheckCircle2,
   AlertCircle,
@@ -10,9 +9,9 @@ import {
   ChevronDown,
   Wallet,
   Info,
-} from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useWalletState, WalletState } from "@/hooks/useWalletState";
+} from "lucide-react"
+import { useTheme } from "@/contexts/ThemeContext"
+import { useWalletState, WalletState } from "@/hooks/useWalletState"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +19,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -28,29 +27,46 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useAuthContext } from "@/contexts/AuthContext";
-import { userService } from "@/services/UserService";
-import { APP_NAME } from "@/config/seo";
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { useAuthContext } from "@/contexts/AuthContext"
+import { userService } from "@/services/UserService"
+import { useChainId } from "wagmi"
+
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337")
+
+const getNetworkName = (chainId: number | undefined) => {
+  if (!chainId) return "Unknown"
+  if (chainId === 31337) return "Anvil"
+  if (chainId === 11155111) return "Sepolia"
+  if (chainId === 1) return "Ethereum"
+  return `Chain ${chainId}`
+}
 
 export const WalletConnectButton: React.FC = () => {
-  const chain = useChain();
-  const { theme } = useTheme();
-  const { user } = useAuthContext();
-  const { state, address, error, disconnectWallet, isDisconnecting } =
-    useWalletState();
-  const prevStateRef = useRef<WalletState>(WalletState.DISCONNECTED);
-  const isFirstRenderRef = useRef(true);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasCheckedSavedAddress, setHasCheckedSavedAddress] = useState(false);
+  const chainId = useChainId()
+  const { theme } = useTheme()
+  const { user } = useAuthContext()
+  const {
+    state,
+    address,
+    error,
+    connectWallet,
+    disconnectWallet,
+    switchToTargetChain,
+    isConnecting,
+    isDisconnecting,
+  } = useWalletState()
 
-  // Check if address is already saved when wallet connects
+  const prevStateRef = useRef<WalletState>(WalletState.DISCONNECTED)
+  const isFirstRenderRef = useRef(true)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [hasCheckedSavedAddress, setHasCheckedSavedAddress] = useState(false)
+
   useEffect(() => {
     const checkSavedAddress = async () => {
-      // Only check if wallet is ready, user is authenticated, and we haven't checked yet
       if (
         state === WalletState.READY &&
         address &&
@@ -58,147 +74,157 @@ export const WalletConnectButton: React.FC = () => {
         !hasCheckedSavedAddress
       ) {
         try {
-          const savedAddress = await userService.getUserWalletAddress(user.uid);
+          const savedAddress = await userService.getUserWalletAddress(user.uid)
+          setHasCheckedSavedAddress(true)
 
-          setHasCheckedSavedAddress(true);
-
-          // Only show dialog if address is not saved or differs from connected address
           if (
             !savedAddress ||
             savedAddress.toLowerCase() !== address.toLowerCase()
           ) {
-            setShowSaveDialog(true);
+            setShowSaveDialog(true)
           }
-        } catch (error) {
-          console.error("Error checking saved address:", error);
-          // Still show dialog if check fails (user can decide)
-          setHasCheckedSavedAddress(true);
-          setShowSaveDialog(true);
+        } catch {
+          setHasCheckedSavedAddress(true)
+          setShowSaveDialog(true)
         }
       }
-    };
+    }
 
-    checkSavedAddress();
-  }, [state, address, user?.uid, hasCheckedSavedAddress]);
+    checkSavedAddress()
+  }, [state, address, user?.uid, hasCheckedSavedAddress])
 
-  // Reset check flag when wallet disconnects
   useEffect(() => {
     if (state === WalletState.DISCONNECTED) {
-      setHasCheckedSavedAddress(false);
-      setShowSaveDialog(false);
+      setHasCheckedSavedAddress(false)
+      setShowSaveDialog(false)
     }
-  }, [state]);
+  }, [state])
 
-  // Toast notifications for important state changes only
   useEffect(() => {
-    // Skip on first render to avoid showing toast for already-connected wallets
     if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      prevStateRef.current = state;
-      return;
+      isFirstRenderRef.current = false
+      prevStateRef.current = state
+      return
     }
 
-    // Only show toast if state actually changed
-    if (prevStateRef.current === state) return;
+    if (prevStateRef.current === state) return
 
-    const showToast = {
-      [WalletState.READY]: () => {
-        // Only show success toast if transitioning from DISCONNECTED (user actively connected)
-        if (prevStateRef.current === WalletState.DISCONNECTED) {
-          toast.success("Wallet connected successfully", {
-            description: "Connected to Sepolia network",
-          });
-        }
-      },
-      [WalletState.WRONG_NETWORK]: () =>
-        toast.warning("Wrong network detected", {
-          description: "Please switch to Sepolia network",
-          duration: 5000,
-        }),
-      [WalletState.ERROR]: () =>
-        error &&
-        toast.error("Wallet connection error", {
-          description: error.message,
-          duration: 5000,
-        }),
-    };
-
-    if (state in showToast) {
-      showToast[state as keyof typeof showToast]?.();
+    if (
+      state === WalletState.READY &&
+      prevStateRef.current === WalletState.DISCONNECTED
+    ) {
+      toast.success("Wallet connected successfully", {
+        description: `Connected to ${getNetworkName(chainId)} network`,
+      })
     }
-    prevStateRef.current = state;
-  }, [state, error]);
+
+    if (state === WalletState.WRONG_NETWORK) {
+      toast.warning("Wrong network detected", {
+        description: `Please switch to ${getNetworkName(TARGET_CHAIN_ID)}`,
+        duration: 5000,
+      })
+    }
+
+    if (state === WalletState.ERROR && error) {
+      toast.error("Wallet connection error", {
+        description: error.message,
+        duration: 5000,
+      })
+    }
+
+    prevStateRef.current = state
+  }, [state, error, chainId])
+
+  const handleConnect = async () => {
+    try {
+      await connectWallet()
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to connect wallet"
+      toast.error(errorMessage)
+    }
+  }
 
   const handleDisconnect = async () => {
     try {
-      await disconnectWallet();
-      toast.success("Wallet disconnected successfully");
+      await disconnectWallet()
+      toast.success("Wallet disconnected successfully")
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to disconnect wallet";
-      toast.error(errorMessage);
+        err instanceof Error ? err.message : "Failed to disconnect wallet"
+      toast.error(errorMessage)
     }
-  };
+  }
+
+  const handleSwitchNetwork = async () => {
+    try {
+      await switchToTargetChain()
+      toast.success(`Switched to ${getNetworkName(TARGET_CHAIN_ID)}`)
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to switch network"
+      toast.error(errorMessage)
+    }
+  }
 
   const handleCopyAddress = async () => {
-    if (address) {
-      try {
-        await navigator.clipboard.writeText(address);
-        toast.success("Address copied to clipboard");
-      } catch (err) {
-        toast.error("Failed to copy address");
-      }
+    if (!address) return
+
+    try {
+      await navigator.clipboard.writeText(address)
+      toast.success("Address copied to clipboard")
+    } catch {
+      toast.error("Failed to copy address")
     }
-  };
+  }
 
   const handleSaveAddress = async () => {
     if (!user?.uid || !address) {
-      toast.error("User ID or wallet address is missing");
-      return;
+      toast.error("User ID or wallet address is missing")
+      return
     }
 
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      await userService.updateUserWalletAddress(user.uid, address);
-      setShowSaveDialog(false);
-      setHasCheckedSavedAddress(true);
+      await userService.updateUserWalletAddress(user.uid, address)
+      setShowSaveDialog(false)
+      setHasCheckedSavedAddress(true)
       toast.success("Wallet address saved to your profile", {
         description: "You can now receive tips from readers",
-      });
-    } catch (error) {
+      })
+    } catch (saveError) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to save wallet address";
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to save wallet address"
+
       toast.error("Failed to save wallet address", {
         description: errorMessage,
-      });
+      })
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
-
-  const handleSkipSave = () => {
-    setShowSaveDialog(false);
-    setHasCheckedSavedAddress(true);
-  };
-
-  // Wallet actions are only available for authenticated users.
-  if (!user) {
-    return null;
   }
 
-  // State display configuration
+  const handleSkipSave = () => {
+    setShowSaveDialog(false)
+    setHasCheckedSavedAddress(true)
+  }
+
+  if (!user) {
+    return null
+  }
+
   const stateConfig = {
     [WalletState.READY]: {
       icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
       text: null,
-      detail: "Sepolia Network",
+      detail: `${getNetworkName(chainId)} Network`,
     },
     [WalletState.WRONG_NETWORK]: {
       icon: <AlertCircle className="w-4 h-4 text-yellow-500" />,
       text: "Wrong Network",
-      detail: `Chain ID: ${chain?.chainId || "Unknown"}`,
+      detail: `Chain ID: ${chainId || "Unknown"}`,
     },
     [WalletState.CONNECTING]: {
       icon: <Loader className="w-4 h-4 animate-spin text-blue-500" />,
@@ -220,18 +246,16 @@ export const WalletConnectButton: React.FC = () => {
       text: null,
       detail: "Disconnected",
     },
-  };
+  }
 
   const currentState =
-    stateConfig[state] || stateConfig[WalletState.DISCONNECTED];
+    stateConfig[state] || stateConfig[WalletState.DISCONNECTED]
 
-  // Show dropdown when wallet is connected
   if (address && state !== WalletState.DISCONNECTED) {
-    const truncatedAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    const truncatedAddress = `${address.slice(0, 6)}...${address.slice(-4)}`
 
     return (
       <>
-        {/* Save Wallet Address Dialog - Always rendered for proper focus management */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -266,16 +290,14 @@ export const WalletConnectButton: React.FC = () => {
                 </div>
               </div>
 
-              {address && (
-                <div className="p-3 rounded-lg border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-black">
-                  <p className="text-xs font-medium text-black/60 dark:text-white/60 mb-1">
-                    Wallet Address
-                  </p>
-                  <p className="text-sm font-mono text-black dark:text-white break-all">
-                    {address}
-                  </p>
-                </div>
-              )}
+              <div className="p-3 rounded-lg border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-black">
+                <p className="text-xs font-medium text-black/60 dark:text-white/60 mb-1">
+                  Wallet Address
+                </p>
+                <p className="text-sm font-mono text-black dark:text-white break-all">
+                  {address}
+                </p>
+              </div>
             </div>
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -365,6 +387,17 @@ export const WalletConnectButton: React.FC = () => {
                 </div>
               </div>
             </DropdownMenuLabel>
+            {state === WalletState.WRONG_NETWORK && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSwitchNetwork}
+                  className="cursor-pointer"
+                >
+                  Switch to {getNetworkName(TARGET_CHAIN_ID)}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleDisconnect}
@@ -386,101 +419,17 @@ export const WalletConnectButton: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </>
-    );
+    )
   }
 
-  // Show connect button when disconnected
   return (
-    <>
-      {/* Save Wallet Address Dialog - Always rendered for proper focus management */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-full bg-dark-green/10 dark:bg-light-green/10">
-                <Wallet className="w-6 h-6 text-dark-green dark:text-light-green" />
-              </div>
-              <DialogTitle className="text-xl font-semibold text-black dark:text-white">
-                Save Wallet Address?
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-base text-black/70 dark:text-white/70 pt-2">
-              Save your wallet address to your profile to receive tips from
-              readers.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="p-4 rounded-lg border border-dark-green/20 dark:border-light-green/20 bg-dark-green/5 dark:bg-light-green/5">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-dark-green dark:text-light-green mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-black dark:text-white mb-1">
-                    Why save your wallet address?
-                  </p>
-                  <p className="text-xs text-black/70 dark:text-white/70">
-                    Readers need your saved wallet address to send you tips.
-                    Without it, you won't be able to receive payments for your
-                    stories.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {address && (
-              <div className="p-3 rounded-lg border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-black">
-                <p className="text-xs font-medium text-black/60 dark:text-white/60 mb-1">
-                  Wallet Address
-                </p>
-                <p className="text-sm font-mono text-black dark:text-white break-all">
-                  {address}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSkipSave}
-              disabled={isSaving}
-              className="w-full sm:w-auto border border-black/20 dark:border-white/20 bg-white dark:bg-neutral-900 hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              Skip for Now
-            </Button>
-            <Button
-              onClick={handleSaveAddress}
-              disabled={isSaving}
-              className="w-full sm:w-auto bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Save Address
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="wallet-connect-wrapper [&_button]:!bg-dark-green [&_button]:dark:!bg-light-green [&_button]:!text-white [&_button]:hover:!bg-light-green [&_button]:dark:hover:!bg-dark-green [&_button]:!font-semibold [&_button]:!py-2 [&_button]:!px-4 [&_button]:!rounded-small [&_button]:!transition-colors [&_button]:!duration-300 [&_button]:!border-0 [&_button]:!shadow-sm">
-        <ConnectWallet
-          theme={theme}
-          btnTitle="Connect Wallet"
-          modalTitle={`Connect to ${APP_NAME}`}
-          modalSize="wide"
-          welcomeScreen={{
-            title: `Welcome to ${APP_NAME}`,
-            subtitle: "Connect your wallet to start tipping authors",
-          }}
-        />
-      </div>
-    </>
-  );
-};
+    <button
+      onClick={handleConnect}
+      disabled={isConnecting}
+      className="bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green font-semibold py-2 px-4 rounded-small transition-colors duration-300 border-0 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+      data-theme={theme}
+    >
+      {isConnecting ? "Connecting..." : "Connect Wallet"}
+    </button>
+  )
+}

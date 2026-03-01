@@ -8,7 +8,7 @@ A full-featured AI-powered novel writing platform built with React, Firebase, an
 - **Editor:** TipTap (ProseMirror-based rich text editor)
 - **Backend:** Firebase (Firestore, Auth, Storage, Functions)
 - **AI:** Google Generative AI for brainstorming, text enhancement, and image generation
-- **Web3:** Ethers.js + Thirdweb SDK for USDC tipping on Base (Sepolia testnet)
+- **Web3:** Wagmi + Viem for ETH/USDC tipping with Foundry contract artifacts
 - **Charts:** Recharts for tension curve visualization and statistics
 
 ## Features
@@ -47,8 +47,8 @@ A full-featured AI-powered novel writing platform built with React, Firebase, an
 - Competitions and announcements
 
 ### Web3 Tipping
-- Wallet connection via Thirdweb (MetaMask, etc.)
-- Tip authors with USDC on Base (Sepolia testnet)
+- Wallet connection via injected wallets (MetaMask, etc.)
+- Tip authors with ETH/USDC on configured EVM chain
 - Transaction history and earnings tracking
 
 ## Getting Started
@@ -84,11 +84,11 @@ VITE_FIREBASE_MESSAGE_SENDER_ID=your-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
 VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 
-# Web3 / Thirdweb
-VITE_THIRDWEB_CLIENT_ID=your-client-id
+# Web3
 VITE_USDC_TOKEN_ADDRESS=0x...
 VITE_TIPPING_CONTRACT_ADDRESS=0x...
-VITE_CHAIN_ID=84532
+VITE_CHAIN_ID=31337
+VITE_RPC_URL=http://127.0.0.1:8545
 
 # AI
 VITE_MAX_AI_USAGE=1000

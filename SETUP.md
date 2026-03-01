@@ -77,10 +77,10 @@ These are injected at build time so the frontend can connect to Firebase and oth
 | `VITE_FIREBASE_MESSAGE_SENDER_ID` | Firebase messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | Firebase app ID |
 | `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics measurement ID |
-| `VITE_THIRDWEB_CLIENT_ID` | Thirdweb client ID for wallet connection |
 | `VITE_USDC_TOKEN_ADDRESS` | USDC token contract address |
 | `VITE_TIPPING_CONTRACT_ADDRESS` | Tipping contract address |
-| `VITE_CHAIN_ID` | Blockchain chain ID (e.g. `84532` for Base Sepolia) |
+| `VITE_CHAIN_ID` | Blockchain chain ID (e.g. `31337` for Anvil local) |
+| `VITE_RPC_URL` | RPC URL for wallet reads/writes |
 | `VITE_MAX_AI_USAGE` | Max AI usage quota (e.g. `1000`) |
 
 You can find these values in your local `.env` file (or in Firebase Console → Project settings → Your apps for the Firebase config).

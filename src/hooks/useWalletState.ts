@@ -1,5 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { useWallet, useChain } from "@thirdweb-dev/react";
+import { useCallback, useEffect, useMemo, useState } from "react"
+import {
+  useAccount,
+  useChainId,
+  useConnect,
+  useDisconnect,
+  useSwitchChain,
+} from "wagmi"
 
 export enum WalletState {
   DISCONNECTED = "DISCONNECTED",
@@ -10,110 +16,103 @@ export enum WalletState {
   ERROR = "ERROR",
 }
 
-const SEPOLIA_CHAIN_ID = 11155111;
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337")
 
 interface UseWalletStateReturn {
-  state: WalletState;
-  address: string | null;
-  error: Error | null;
-  disconnectWallet: () => Promise<void>;
-  isDisconnecting: boolean;
+  state: WalletState
+  address: string | null
+  error: Error | null
+  connectWallet: () => Promise<void>
+  disconnectWallet: () => Promise<void>
+  switchToTargetChain: () => Promise<void>
+  isConnecting: boolean
+  isDisconnecting: boolean
 }
 
 export const useWalletState = (): UseWalletStateReturn => {
-  const wallet = useWallet();
-  const chain = useChain();
-  const [state, setState] = useState<WalletState>(WalletState.DISCONNECTED);
-  const [address, setAddress] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const { address, isConnected, isConnecting, isReconnecting } = useAccount()
+  const chainId = useChainId()
+  const { connectAsync, connectors } = useConnect()
+  const { disconnectAsync, isPending: isDisconnecting } = useDisconnect()
+  const { switchChainAsync } = useSwitchChain()
+  const [manualError, setManualError] = useState<Error | null>(null)
 
-  // Fetch address when wallet connects
+  const state = useMemo(() => {
+    if (manualError) return WalletState.ERROR
+    if (!isConnected || !address) {
+      if (isConnecting || isReconnecting) return WalletState.CONNECTING
+      return WalletState.DISCONNECTED
+    }
+
+    if (!chainId) return WalletState.CONNECTED
+    if (chainId === TARGET_CHAIN_ID) return WalletState.READY
+    return WalletState.WRONG_NETWORK
+  }, [address, chainId, isConnected, isConnecting, isReconnecting, manualError])
+
   useEffect(() => {
-    const fetchAddress = async () => {
-      if (!wallet) {
-        setAddress(null);
-        setState(WalletState.DISCONNECTED);
-        setError(null);
-        return;
-      }
+    if (isConnected && address && manualError) {
+      setManualError(null)
+    }
+  }, [isConnected, address, manualError])
 
-      // Only fetch if we don't have an address yet
-      if (!address) {
-        setState(WalletState.CONNECTING);
-        try {
-          const addr = await wallet.getAddress();
-          setAddress(addr);
-          setError(null);
-        } catch (err) {
-          const error =
-            err instanceof Error
-              ? err
-              : new Error("Failed to get wallet address");
-          setError(error);
-          setState(WalletState.ERROR);
-          setAddress(null);
-        }
-      }
-    };
+  const connectWallet = useCallback(async () => {
+    setManualError(null)
 
-    fetchAddress();
-  }, [wallet]);
-
-  // Update state based on address and chain
-  useEffect(() => {
-    if (!wallet) {
-      setState(WalletState.DISCONNECTED);
-      return;
+    const connector = connectors[0]
+    if (!connector) {
+      throw new Error("No wallet connector available")
     }
 
-    if (!address) {
-      // Address is being fetched (handled by previous effect)
-      return;
+    try {
+      await connectAsync({ connector })
+    } catch (err) {
+      const parsed =
+        err instanceof Error ? err : new Error("Failed to connect wallet")
+      setManualError(parsed)
+      throw parsed
     }
-
-    if (!chain) {
-      // Chain info not loaded yet
-      setState(WalletState.CONNECTED);
-      return;
-    }
-
-    if (chain.chainId === SEPOLIA_CHAIN_ID) {
-      setState(WalletState.READY);
-      setError(null);
-    } else {
-      setState(WalletState.WRONG_NETWORK);
-      setError(null);
-    }
-  }, [wallet, chain, address]);
+  }, [connectAsync, connectors])
 
   const disconnectWallet = useCallback(async () => {
-    if (!wallet) {
-      return;
+    setManualError(null)
+
+    if (!isConnected) {
+      return
     }
 
-    setIsDisconnecting(true);
     try {
-      await wallet.disconnect();
-      setAddress(null);
-      setError(null);
-      setState(WalletState.DISCONNECTED);
+      await disconnectAsync()
     } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to disconnect wallet");
-      setError(error);
-      setState(WalletState.ERROR);
-      throw error;
-    } finally {
-      setIsDisconnecting(false);
+      const parsed =
+        err instanceof Error ? err : new Error("Failed to disconnect wallet")
+      setManualError(parsed)
+      throw parsed
     }
-  }, [wallet]);
+  }, [disconnectAsync, isConnected])
+
+  const switchToTargetChain = useCallback(async () => {
+    if (!switchChainAsync) {
+      throw new Error("Network switching is not supported by this wallet")
+    }
+
+    try {
+      await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+    } catch (err) {
+      const parsed =
+        err instanceof Error ? err : new Error("Failed to switch network")
+      setManualError(parsed)
+      throw parsed
+    }
+  }, [switchChainAsync])
 
   return {
     state,
-    address,
-    error,
+    address: address || null,
+    error: manualError,
+    connectWallet,
     disconnectWallet,
+    switchToTargetChain,
+    isConnecting: isConnecting || isReconnecting,
     isDisconnecting,
-  };
-};
+  }
+}

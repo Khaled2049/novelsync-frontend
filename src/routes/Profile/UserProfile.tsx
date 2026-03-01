@@ -4,7 +4,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { useEarnings } from "@/hooks/useEarnings";
-import { useWallet, useChain } from "@thirdweb-dev/react";
+import { useAccount, useChainId } from "wagmi";
 import { storiesRepo } from "@/services/StoriesRepo";
 import { userService } from "@/services/UserService";
 import { StoryMetadata } from "@/types/IStory";
@@ -26,6 +26,16 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
+const TARGET_CHAIN_NAME =
+  TARGET_CHAIN_ID === 31337
+    ? "Anvil"
+    : TARGET_CHAIN_ID === 11155111
+    ? "Sepolia"
+    : TARGET_CHAIN_ID === 1
+    ? "Ethereum"
+    : `Chain ${TARGET_CHAIN_ID}`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,8 +122,8 @@ const Row = ({
 const UserProfile: React.FC = () => {
   const { user, updateProfile } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
-  const wallet = useWallet();
-  const chain = useChain();
+  const { address } = useAccount();
+  const chainId = useChainId();
   const {
     walletAddress: savedWalletAddress,
     loading: walletLoading,
@@ -153,15 +163,8 @@ const UserProfile: React.FC = () => {
   });
 
   useEffect(() => {
-    if (wallet) {
-      wallet
-        .getAddress()
-        .then(setConnectedAddress)
-        .catch(() => setConnectedAddress(null));
-    } else {
-      setConnectedAddress(null);
-    }
-  }, [wallet]);
+    setConnectedAddress(address || null);
+  }, [address]);
 
   useEffect(() => {
     if (savedWalletAddress) fetchLifetimeEarnings(savedWalletAddress);
@@ -241,8 +244,8 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const isWalletConnected = !!wallet && !!connectedAddress;
-  const isCorrectNetwork = chain?.chainId === 11155111;
+  const isWalletConnected = !!connectedAddress;
+  const isCorrectNetwork = chainId === TARGET_CHAIN_ID;
   const addressSaved =
     savedWalletAddress &&
     connectedAddress?.toLowerCase() === savedWalletAddress.toLowerCase();
@@ -546,7 +549,7 @@ const UserProfile: React.FC = () => {
                   <div className="space-y-3">
                     <p className="text-sm font-ui text-ns-ink-secondary">
                       Connect your wallet to receive tips from readers on the
-                      Sepolia testnet.
+                      {TARGET_CHAIN_NAME} network.
                     </p>
                     <WalletConnectButton />
                   </div>
@@ -561,8 +564,8 @@ const UserProfile: React.FC = () => {
                       />
                       <span className="text-sm font-ui text-ns-ink">
                         {isCorrectNetwork
-                          ? "Connected · Sepolia Testnet"
-                          : "Wrong network — please switch to Sepolia"}
+                          ? `Connected · ${TARGET_CHAIN_NAME}`
+                          : `Wrong network — please switch to ${TARGET_CHAIN_NAME}`}
                       </span>
                     </div>
 
@@ -746,7 +749,7 @@ const UserProfile: React.FC = () => {
                 <div className="space-y-3 text-sm font-ui text-ns-ink-secondary">
                   <p>
                     Readers can tip you directly for your stories using ETH or
-                    USDC on the Sepolia testnet.
+                    USDC on {TARGET_CHAIN_NAME}.
                   </p>
                   <div className="bg-ns-surface border border-ns-border rounded-ns p-4">
                     <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-3">

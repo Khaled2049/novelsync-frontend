@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { X, AlertCircle, Wallet } from "lucide-react";
-import { useAddress, useChainId } from "@thirdweb-dev/react";
-import { Sepolia } from "@thirdweb-dev/chains";
+import { useChainId } from "wagmi";
 import { useTippingContract } from "@/hooks/useTippingContract";
 import { useUSDCApproval } from "@/hooks/useUSDCApproval";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useWalletState } from "@/hooks/useWalletState";
 import { FeePreviewCard } from "@/components/FeePreviewCard";
 import { TransactionStatus } from "@/components/TransactionStatus";
 import { TransactionStatus as TxStatus } from "@/types/tipping";
-import { utils } from "ethers";
 
 interface StoryTipModalProps {
   author: string;
@@ -21,6 +20,14 @@ interface StoryTipModalProps {
 type PaymentMethod = "ETH" | "USDC";
 
 const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
+
+const getTargetChainName = (chainId: number) => {
+  if (chainId === 31337) return "Anvil";
+  if (chainId === 11155111) return "Sepolia";
+  if (chainId === 1) return "Ethereum";
+  return `Chain ${chainId}`;
+};
 
 // Feature flag: Set to true to enable USDC payments
 const USDC_PAYMENTS_ENABLED = false;
@@ -32,12 +39,12 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const address = useAddress();
+  const { address } = useWalletState();
   const chainId = useChainId();
 
   const isConnected = !!address;
 
-  const isCorrectNetwork = chainId === Sepolia.chainId;
+  const isCorrectNetwork = chainId === TARGET_CHAIN_ID;
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
@@ -208,7 +215,9 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
 
   const handleSendTip = async () => {
     if (!isConnected) return alert("Please connect your wallet first");
-    if (!isCorrectNetwork) return alert("Please switch to Sepolia testnet");
+    if (!isCorrectNetwork) {
+      return alert(`Please switch to ${getTargetChainName(TARGET_CHAIN_ID)}`);
+    }
 
     const validation = validateAmount();
     if (!validation.valid) return alert(validation.error);
@@ -234,13 +243,11 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
           if (needsApproval) return; // If still needs approval after attempt, stop
         }
 
-        const amountInSmallestUnit = utils.parseUnits(amount.toString(), 6);
-
         await tipAuthorWithUSDC(
           authorWalletAddress,
           storyId,
           USDC_ADDRESS,
-          amountInSmallestUnit.toString()
+          amount.toString()
         );
       } else {
         // USDC is disabled
@@ -290,7 +297,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                 Support {author}
               </h3>
               <p className="text-sm text-black/60 dark:text-white/60 mt-1">
-                Send a tip on Sepolia
+                Send a tip on {getTargetChainName(TARGET_CHAIN_ID)}
               </p>
             </div>
             <button
@@ -318,7 +325,8 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                 <p className="text-black/70 dark:text-white/70 mb-4">
-                  Please switch to Sepolia testnet to send tips
+                  Please switch to {getTargetChainName(TARGET_CHAIN_ID)} to
+                  send tips
                 </p>
               </div>
             ) : (
@@ -371,7 +379,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                         <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-700 dark:text-blue-300">
                           USDC payments are not enabled yet. Please use ETH
-                          (Sepolia testnet) to send tips.
+                          ({getTargetChainName(TARGET_CHAIN_ID)}) to send tips.
                         </p>
                       </div>
                     </div>

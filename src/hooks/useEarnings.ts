@@ -1,95 +1,108 @@
-import { useContract } from "@thirdweb-dev/react";
-import { useState, useCallback, useMemo } from "react";
-import { utils, BigNumber } from "ethers";
+import { useState, useCallback, useMemo } from "react"
+import { formatEther, formatUnits } from "viem"
+import { usePublicClient } from "wagmi"
+import {
+  tippingPlatformConfig,
+  ZERO_ADDRESS,
+} from "@/blockchain/tippingPlatform"
 
-const CONTRACT_ADDRESS = import.meta.env.VITE_TIPPING_CONTRACT_ADDRESS || "";
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
+const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || ""
 
 interface EarningsData {
-  eth: string;
-  usdc: string;
+  eth: string
+  usdc: string
+}
+
+const toBigInt = (value: unknown): bigint => {
+  if (typeof value === "bigint") return value
+  return 0n
 }
 
 export const useEarnings = () => {
-  const { contract } = useContract(CONTRACT_ADDRESS);
+  const publicClient = usePublicClient()
   const [lifetimeEarnings, setLifetimeEarnings] = useState<EarningsData>({
     eth: "0",
     usdc: "0",
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchLifetimeEarnings = useCallback(
     async (walletAddress: string) => {
-      if (!contract || !walletAddress) {
-        setLoading(false);
-        return;
+      if (!publicClient || !walletAddress) {
+        setLoading(false)
+        return
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        setLoading(true)
+        setError(null)
 
-        // Simple direct calls - thirdweb handles everything
         const [ethEarnings, usdcEarnings] = await Promise.all([
-          (contract as any)
-            .call("lifetimeEarnings", [
-              walletAddress,
-              "0x0000000000000000000000000000000000000000",
-            ])
-            .catch(() => BigNumber.from(0)),
-          (contract as any)
-            .call("lifetimeEarnings", [walletAddress, USDC_ADDRESS])
-            .catch(() => BigNumber.from(0)),
-        ]);
+          publicClient
+            .readContract({
+              ...tippingPlatformConfig,
+              functionName: "lifetimeEarnings",
+              args: [walletAddress as `0x${string}`, ZERO_ADDRESS],
+            })
+            .catch(() => 0n),
+          publicClient
+            .readContract({
+              ...tippingPlatformConfig,
+              functionName: "lifetimeEarnings",
+              args: [walletAddress as `0x${string}`, USDC_ADDRESS as `0x${string}`],
+            })
+            .catch(() => 0n),
+        ])
 
         setLifetimeEarnings({
-          eth: utils.formatEther(ethEarnings),
-          usdc: utils.formatUnits(usdcEarnings, 6),
-        });
+          eth: formatEther(toBigInt(ethEarnings)),
+          usdc: formatUnits(toBigInt(usdcEarnings), 6),
+        })
       } catch (err) {
-        console.error("Error fetching lifetime earnings:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch earnings"
-        );
-        setLifetimeEarnings({ eth: "0", usdc: "0" });
+        setError(err instanceof Error ? err.message : "Failed to fetch earnings")
+        setLifetimeEarnings({ eth: "0", usdc: "0" })
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     },
-    [contract, USDC_ADDRESS]
-  );
+    [publicClient]
+  )
 
   const fetchStoryEarnings = useCallback(
     async (storyId: string): Promise<EarningsData> => {
-      if (!contract || !storyId) {
-        return { eth: "0", usdc: "0" };
+      if (!publicClient || !storyId) {
+        return { eth: "0", usdc: "0" }
       }
 
       try {
         const [ethEarnings, usdcEarnings] = await Promise.all([
-          (contract as any)
-            .call("storyEarnings", [
-              storyId,
-              "0x0000000000000000000000000000000000000000",
-            ])
-            .catch(() => BigNumber.from(0)),
-          (contract as any)
-            .call("storyEarnings", [storyId, USDC_ADDRESS])
-            .catch(() => BigNumber.from(0)),
-        ]);
+          publicClient
+            .readContract({
+              ...tippingPlatformConfig,
+              functionName: "storyEarnings",
+              args: [storyId, ZERO_ADDRESS],
+            })
+            .catch(() => 0n),
+          publicClient
+            .readContract({
+              ...tippingPlatformConfig,
+              functionName: "storyEarnings",
+              args: [storyId, USDC_ADDRESS as `0x${string}`],
+            })
+            .catch(() => 0n),
+        ])
 
         return {
-          eth: utils.formatEther(ethEarnings),
-          usdc: utils.formatUnits(usdcEarnings, 6),
-        };
-      } catch (err) {
-        console.error(`Error fetching earnings for story ${storyId}:`, err);
-        return { eth: "0", usdc: "0" };
+          eth: formatEther(toBigInt(ethEarnings)),
+          usdc: formatUnits(toBigInt(usdcEarnings), 6),
+        }
+      } catch {
+        return { eth: "0", usdc: "0" }
       }
     },
-    [contract, USDC_ADDRESS]
-  );
+    [publicClient]
+  )
 
   return useMemo(
     () => ({
@@ -106,5 +119,5 @@ export const useEarnings = () => {
       loading,
       error,
     ]
-  );
-};
+  )
+}

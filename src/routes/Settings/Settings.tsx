@@ -20,15 +20,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useWallet, useChain } from "@thirdweb-dev/react";
+import { useChainId } from "wagmi";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { userService } from "@/services/UserService";
+import { useWalletState } from "@/hooks/useWalletState";
+
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
+const TARGET_CHAIN_NAME =
+  TARGET_CHAIN_ID === 31337
+    ? "Anvil"
+    : TARGET_CHAIN_ID === 11155111
+      ? "Sepolia"
+      : TARGET_CHAIN_ID === 1
+        ? "Ethereum"
+        : `Chain ${TARGET_CHAIN_ID}`;
 
 const Settings = () => {
   const { user, updateBio } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
-  const wallet = useWallet();
-  const chain = useChain();
+  const { address: walletAddress } = useWalletState();
+  const chainId = useChainId();
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -41,7 +52,6 @@ const Settings = () => {
   });
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState("");
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [savedAddress, setSavedAddress] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,24 +62,6 @@ const Settings = () => {
   useEffect(() => {
     setEditedBio(user?.bio || "Write an about me section here...");
   }, [user?.bio]);
-
-  // Fetch wallet address from connected wallet (for display only)
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (wallet) {
-        try {
-          const addr = await wallet.getAddress();
-          setWalletAddress(addr);
-        } catch (error) {
-          console.error("Error getting wallet address:", error);
-          setWalletAddress(null);
-        }
-      } else {
-        setWalletAddress(null);
-      }
-    };
-    fetchAddress();
-  }, [wallet]);
 
   // Load existing saved address from Firestore
   useEffect(() => {
@@ -140,8 +132,8 @@ const Settings = () => {
     alert("Settings saved successfully!");
   };
 
-  const isConnected = !!wallet && !!walletAddress;
-  const isCorrectNetwork = chain?.chainId === 11155111; // Sepolia
+  const isConnected = !!walletAddress;
+  const isCorrectNetwork = chainId === TARGET_CHAIN_ID;
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-black text-black dark:text-white py-8 px-4 font-body">
@@ -261,8 +253,8 @@ const Settings = () => {
                       </p>
                       <p className="text-xs text-black/70 dark:text-white/70">
                         {isCorrectNetwork
-                          ? "Sepolia Testnet"
-                          : "Wrong Network - Please switch to Sepolia"}
+                          ? TARGET_CHAIN_NAME
+                          : `Wrong Network - Please switch to ${TARGET_CHAIN_NAME}`}
                       </p>
                     </div>
                   </div>
@@ -385,7 +377,7 @@ const Settings = () => {
                           Wrong Network
                         </h3>
                         <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                          Please switch to Sepolia testnet to receive tips.
+                          Please switch to {TARGET_CHAIN_NAME} to receive tips.
                         </p>
                       </div>
                     </div>
@@ -406,7 +398,7 @@ const Settings = () => {
                 <div className="space-y-4">
                   <p className="text-black/70 dark:text-white/70">
                     Readers can tip you directly for your stories using ETH or
-                    USDC on the Sepolia testnet. Here's how the tipping system
+                    USDC on {TARGET_CHAIN_NAME}. Here's how the tipping system
                     works:
                   </p>
 
@@ -446,7 +438,7 @@ const Settings = () => {
                     </h3>
                     <ul className="list-disc list-inside space-y-1 text-sm text-black/70 dark:text-white/70">
                       <li>Connect your wallet using the button above</li>
-                      <li>Make sure you're on the Sepolia testnet</li>
+                      <li>Make sure you're on {TARGET_CHAIN_NAME}</li>
                       <li>Share your stories - readers can tip you directly</li>
                       <li>Tips are sent directly to your connected wallet</li>
                     </ul>
