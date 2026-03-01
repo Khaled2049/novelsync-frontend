@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { deleteField, doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "@/config/firebase";
 
 class UserService {
@@ -43,7 +43,22 @@ class UserService {
       throw new Error("Failed to update user wallet address");
     }
   }
+
+  /**
+   * Remove wallet address for a user in Firestore
+   * @param userId - The user's ID
+   */
+  async clearUserWalletAddress(userId: string): Promise<void> {
+    try {
+      const userDocRef = doc(firestore, "users", userId);
+      await updateDoc(userDocRef, {
+        walletAddress: deleteField(),
+      });
+    } catch (error) {
+      console.error("Error clearing user wallet address:", error);
+      throw new Error("Failed to clear user wallet address");
+    }
+  }
 }
 
 export const userService = new UserService();
-

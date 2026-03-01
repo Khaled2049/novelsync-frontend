@@ -2,8 +2,11 @@ import { Link } from "react-router-dom";
 import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
-import { Shield, HelpCircle, BookOpen, LogOut, X } from "lucide-react";
+import { useState } from "react";
+import { Shield, HelpCircle, BookOpen, LogOut, X, Loader2 } from "lucide-react";
 import { WalletConnectButton } from "../WalletConnectButton";
+import { useWalletState } from "@/hooks/useWalletState";
+import { toast } from "sonner";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -14,11 +17,34 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const { signout } = useFirebaseAuth();
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const { address, disconnectWallet } = useWalletState();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    await signout();
-    navigate("/sign-in");
-    onClose();
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    try {
+      // Best effort: disconnect wallet before Firebase sign-out.
+      if (address) {
+        try {
+          await disconnectWallet();
+        } catch (disconnectError) {
+          console.warn("Wallet disconnect failed during sign-out:", disconnectError);
+        }
+      }
+
+      await signout();
+      onClose();
+      navigate("/sign-in");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to sign out";
+      toast.error(message);
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const handleSignIn = () => {
@@ -60,12 +86,13 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {/* Wallet */}
-          <div className="flex items-center justify-between mb-6 pb-6 border-b border-ns-border">
-            <div className="flex-1 ml-4">
-              <WalletConnectButton />
+          {user && (
+            <div className="flex items-center justify-between mb-6 pb-6 border-b border-ns-border">
+              <div className="flex-1 ml-4">
+                <WalletConnectButton />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation Links */}
           <div className="space-y-1 mb-6">
@@ -129,10 +156,20 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-3 w-full px-4 py-3 text-ns-destructive hover:bg-ns-destructive/5 rounded-ns transition-colors"
+                disabled={isSigningOut}
+                className="flex items-center gap-3 w-full px-4 py-3 text-ns-destructive hover:bg-ns-destructive/5 rounded-ns transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <LogOut className="w-5 h-5" />
-                <span>Sign Out</span>
+                {isSigningOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Signing out...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-5 h-5" />
+                    <span>Sign Out</span>
+                  </>
+                )}
               </button>
             </>
           ) : (

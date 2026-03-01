@@ -59,6 +59,7 @@ export const WalletConnectButton: React.FC = () => {
       ) {
         try {
           const savedAddress = await userService.getUserWalletAddress(user.uid);
+
           setHasCheckedSavedAddress(true);
 
           // Only show dialog if address is not saved or differs from connected address
@@ -181,6 +182,11 @@ export const WalletConnectButton: React.FC = () => {
     setShowSaveDialog(false);
     setHasCheckedSavedAddress(true);
   };
+
+  // Wallet actions are only available for authenticated users.
+  if (!user) {
+    return null;
+  }
 
   // State display configuration
   const stateConfig = {

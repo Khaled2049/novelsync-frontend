@@ -36,7 +36,7 @@ export const generateChapter = onRequest(
       processChapterGeneration(jobId, storyId, chapterNumber).catch((error) => {
         logger.error(
           `Error in background chapter generation for job ${jobId}`,
-          error
+          error,
         );
       });
 
@@ -52,7 +52,7 @@ export const generateChapter = onRequest(
         details: error instanceof Error ? error.message : String(error),
       });
     }
-  })
+  }),
 );
 
 /**
@@ -61,7 +61,7 @@ export const generateChapter = onRequest(
 async function processChapterGeneration(
   jobId: string,
   storyId: string,
-  chapterNumber: number
+  chapterNumber: number,
 ): Promise<void> {
   try {
     await updateJobStatus(db, jobId, "processing", 0);
@@ -91,10 +91,24 @@ async function processChapterGeneration(
 
     await updateJobStatus(db, jobId, "processing", 75);
 
-    const generatedContent = agentResponse.data as {
-      content: string;
-      chapterNumber: number;
+    // Unwrap envelope if the agent returned { success, data: { content, ... } }
+    const rawData = agentResponse.data as Record<string, unknown>;
+    const generatedContent = (
+      rawData.data != null ? rawData.data : rawData
+    ) as {
+      content?: string;
+      chapterNumber?: number;
     };
+
+    if (
+      !generatedContent.content ||
+      typeof generatedContent.content !== "string"
+    ) {
+      logger.error("Agent response missing content field", {
+        agentResponseData: agentResponse.data,
+      });
+      throw new Error("Agent returned no content");
+    }
 
     // Parse chapter content (simple extraction - could be enhanced)
     // Extract title if present
@@ -104,7 +118,7 @@ async function processChapterGeneration(
 
     // Try to extract title from format "Title: [title]"
     const titleMatch = contentLines.find((line) =>
-      line.toLowerCase().startsWith("title:")
+      line.toLowerCase().startsWith("title:"),
     );
     if (titleMatch) {
       title = titleMatch.split(":")[1]?.trim() || title;
@@ -138,7 +152,7 @@ async function processChapterGeneration(
     });
 
     logger.info(
-      `Chapter generation completed for job ${jobId}, chapter ${chapterNumber}`
+      `Chapter generation completed for job ${jobId}, chapter ${chapterNumber}`,
     );
   } catch (error) {
     logger.error(`Chapter generation failed for job ${jobId}`, error);
@@ -148,7 +162,7 @@ async function processChapterGeneration(
       "failed",
       undefined,
       undefined,
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 }

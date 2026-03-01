@@ -48,7 +48,8 @@ export const SlashCommandExtension = Extension.create({
 
 // Suggestion configuration
 export const slashCommandSuggestion = (
-  onGenerateNextLine: () => Promise<void>
+  onGenerateNextLine: () => Promise<void>,
+  onGenerateChapter: () => Promise<void>,
 ): Partial<SuggestionOptions> => ({
   char: "/",
   pluginKey: new PluginKey("slashCommand"),
@@ -62,6 +63,15 @@ export const slashCommandSuggestion = (
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateNextLine();
+        },
+      },
+      {
+        title: "Generate Chapter",
+        description: "AI generates current chapter",
+        icon: "✨",
+        command: async ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).run();
+          await onGenerateChapter();
         },
       },
       {
@@ -101,7 +111,7 @@ export const slashCommandSuggestion = (
     ];
 
     return commands.filter((command) =>
-      command.title.toLowerCase().includes(query.toLowerCase())
+      command.title.toLowerCase().includes(query.toLowerCase()),
     );
   },
 

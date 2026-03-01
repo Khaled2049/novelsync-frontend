@@ -23,12 +23,17 @@ import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
-import { generateNextLines } from "@/api/brainstormApi";
+import {
+  generateChapter as generateChapterApi,
+  generateNextLines,
+  waitForJobCompletion,
+} from "@/api/brainstormApi";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 import { Loader, Maximize2, MessageSquare, Sparkles } from "lucide-react";
 import { enhanceText } from "@/api/textEnhancementApi";
 import { SaveStatusIndicator } from "@/components/SaveStatusIndicator";
 import { SaveState } from "@/hooks/useAutosave";
+import { storiesRepo } from "@/services/StoriesRepo";
 
 const limit = 50000;
 
@@ -54,7 +59,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   storyId,
   chapterId,
   onEditorReady,
-  onPageCountChange: _onPageCountChange,
   zoomLevel = 100,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,7 +72,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   // Function to call your backend API
   const fetchNextLineSuggestions = useCallback(
-    async (editorInstance: any) => {
+    async (editorInstance: Editor) => {
       setIsGenerating(true);
       try {
         const content = editorInstance.getHTML();
@@ -102,7 +106,79 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         setIsGenerating(false);
       }
     },
-    [storyId, chapterId]
+    [storyId, chapterId, incrementAiUsage],
+  );
+
+  const generateChapter = useCallback(
+    async (editorInstance: Editor) => {
+      if (!chapterId) {
+        alert("Please select a chapter first.");
+        return;
+      }
+
+      if (!canUseAI()) {
+        alert("Daily AI usage limit reached. Please try again tomorrow.");
+        return;
+      }
+
+      setIsGenerating(true);
+      try {
+        const chapter = await storiesRepo.getChapter(storyId, chapterId);
+        if (!chapter) {
+          throw new Error("Current chapter not found.");
+        }
+
+        const chapterNumber = (chapter.order ?? 0) + 1;
+        console.debug("[generateChapter] starting chapter generation", {
+          storyId,
+          chapterId,
+          chapterNumber,
+          currentChapterTitle: chapter.title,
+        });
+
+        const startResponse = await generateChapterApi({
+          storyId,
+          chapterNumber,
+        });
+        console.debug("[generateChapter] job queued", startResponse);
+
+        const completedJob = await waitForJobCompletion(startResponse.jobId);
+        console.debug("[generateChapter] job completed", completedJob);
+        const generatedChapterId =
+          typeof completedJob.result?.chapterId === "string"
+            ? completedJob.result.chapterId
+            : "";
+
+        if (!generatedChapterId) {
+          throw new Error("No generated chapter was returned.");
+        }
+
+        const generatedChapter = await storiesRepo.getChapter(
+          storyId,
+          generatedChapterId,
+        );
+        console.debug("[generateChapter] fetched generated chapter", {
+          generatedChapterId,
+          title: generatedChapter?.title,
+          hasContent: Boolean(generatedChapter?.content?.trim()),
+        });
+
+        if (!generatedChapter?.content?.trim()) {
+          throw new Error("Generated chapter content was empty.");
+        }
+
+        editorInstance.chain().focus().setContent(generatedChapter.content).run();
+        await incrementAiUsage();
+      } catch (error) {
+        console.error("Error generating chapter:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to generate chapter.";
+        alert(errorMessage);
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [storyId, chapterId, canUseAI, incrementAiUsage],
   );
 
   // Create Tab key extension for AI generation
@@ -126,14 +202,19 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         return [
           Suggestion({
             editor: editorInstance,
-            ...slashCommandSuggestion(async () => {
-              await fetchNextLineSuggestions(editorInstance);
-            }),
+            ...slashCommandSuggestion(
+              async () => {
+                await fetchNextLineSuggestions(editorInstance);
+              },
+              async () => {
+                await generateChapter(editorInstance);
+              },
+            ),
           }),
         ];
       },
     });
-  }, [fetchNextLineSuggestions]);
+  }, [fetchNextLineSuggestions, generateChapter]);
 
   // Initialize the editor
   const editor = useEditor({
@@ -193,19 +274,21 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   // Handle text enhancement (expand, dialogue, rewrite)
   const handleTextEnhancement = useCallback(
-    async (action: 'expand' | 'dialogue' | 'rewrite') => {
+    async (action: "expand" | "dialogue" | "rewrite") => {
       if (!editor) return;
 
       // Check AI limit BEFORE API call
       if (!canUseAI()) {
-        setEnhancementError("Daily AI usage limit reached. Please try again tomorrow.");
+        setEnhancementError(
+          "Daily AI usage limit reached. Please try again tomorrow.",
+        );
         setTimeout(() => setEnhancementError(""), 3000);
         return;
       }
 
       // Get selected text
       const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, ' ');
+      const selectedText = editor.state.doc.textBetween(from, to, " ");
 
       if (!selectedText.trim()) {
         setEnhancementError("Please select some text first");
@@ -234,16 +317,16 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           .deleteRange({ from, to })
           .insertContentAt(from, response.data.enhancedText)
           .run();
-
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to enhance text";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to enhance text";
         setEnhancementError(errorMessage);
         setTimeout(() => setEnhancementError(""), 3000);
       } finally {
         setIsEnhancing(false);
       }
     },
-    [editor, storyId, chapterId, canUseAI, incrementAiUsage]
+    [editor, storyId, chapterId, canUseAI, incrementAiUsage],
   );
 
   // Debounce save function
@@ -258,7 +341,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         debounceTimerRef.current = null;
       }, 3000);
     },
-    [onSave]
+    [onSave],
   );
 
   // Clean up on unmount
@@ -285,7 +368,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       >
         <div className="flex items-center gap-1 bg-black p-1">
           <button
-            onClick={() => handleTextEnhancement('expand')}
+            onClick={() => handleTextEnhancement("expand")}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Expand text with more detail"
@@ -299,7 +382,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           </button>
 
           <button
-            onClick={() => handleTextEnhancement('dialogue')}
+            onClick={() => handleTextEnhancement("dialogue")}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Improve dialogue quality"
@@ -313,7 +396,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           </button>
 
           <button
-            onClick={() => handleTextEnhancement('rewrite')}
+            onClick={() => handleTextEnhancement("rewrite")}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Rewrite with different phrasing"
@@ -334,7 +417,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 min-h-[calc(100vh-200px)] transition-all duration-200"
           style={{
             zoom: zoomLevel / 100,
-            width: '800px',
+            width: "800px",
           }}
         >
           <div className="px-16 py-12">
@@ -363,12 +446,10 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dark-green"></div>
-              <span className="text-gray-900 dark:text-white">
-                Generating suggestions...
-              </span>
+                <span className="text-gray-900 dark:text-white">Generating...</span>
+              </div>
             </div>
           </div>
-        </div>
       )}
 
       {/* Suggestion Menu */}
