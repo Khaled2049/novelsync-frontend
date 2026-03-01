@@ -1,223 +1,15 @@
-import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
-import { ICompetition, CompetitionStatus } from "@/types/ICompetition";
-import CompetitionCard from "./CompetitionCard";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Search, X } from "lucide-react";
 import { APP_NAME } from "@/config/seo";
-
-const mockCompetitions: ICompetition[] = [
-  {
-    id: "1",
-    title: "Fantasy World Building Challenge",
-    description:
-      "Create a rich, immersive fantasy world with detailed lore, magic systems, and unique cultures. The winning entry will be featured in our showcase.",
-    prizeAmount: 5000,
-    prizeCurrency: "USDC",
-    deadline: new Date("2024-12-31T23:59:59"),
-    startDate: new Date("2024-11-01T00:00:00"),
-    status: "active",
-    difficulty: "intermediate",
-    participants: 1247,
-    maxParticipants: 5000,
-    tags: ["Fantasy", "World Building", "Lore"],
-    category: "World Building",
-    organizer: `${APP_NAME} Team`,
-    rules: [
-      "Minimum 10,000 words",
-      "Must include magic system",
-      "Original content only",
-    ],
-    evaluationCriteria: "Creativity, depth, and originality",
-    sponsor: {
-      id: "sponsor-1",
-      name: "Epic Publishing House",
-      website: "https://example.com/epic-publishing",
-      message:
-        "We're excited to discover the next great fantasy world! The winning entry will receive consideration for publication.",
-      tier: "gold",
-    },
-  },
-  {
-    id: "2",
-    title: "500-Word Micro Story Competition",
-    description:
-      "Write a complete, compelling story in exactly 500 words. Challenge your brevity and creativity!",
-    prizeAmount: 2000,
-    prizeCurrency: "USDC",
-    deadline: new Date("2024-12-15T23:59:59"),
-    startDate: new Date("2024-11-15T00:00:00"),
-    status: "active",
-    difficulty: "beginner",
-    participants: 3421,
-    maxParticipants: 10000,
-    tags: ["Micro Fiction", "Flash Fiction", "Short Story"],
-    category: "Short Story",
-    organizer: "Writing Community",
-    rules: ["Exactly 500 words", "Any genre", "Original work"],
-    evaluationCriteria: "Impact, creativity, and storytelling",
-  },
-  {
-    id: "3",
-    title: "Sci-Fi Character Development Challenge",
-    description:
-      "Develop a complex sci-fi character with a rich backstory, unique abilities, and compelling motivations.",
-    prizeAmount: 3500,
-    prizeCurrency: "USDC",
-    deadline: new Date("2025-01-20T23:59:59"),
-    startDate: new Date("2024-12-01T00:00:00"),
-    status: "upcoming",
-    difficulty: "intermediate",
-    participants: 0,
-    maxParticipants: 3000,
-    tags: ["Sci-Fi", "Character Development", "Backstory"],
-    category: "Character Development",
-    organizer: "Sci-Fi Writers Guild",
-    rules: [
-      "Character must be original",
-      "Include backstory and motivations",
-      "Set in a sci-fi universe",
-    ],
-    evaluationCriteria: "Depth, originality, and relatability",
-    sponsor: {
-      id: "sponsor-2",
-      name: "TechVerse Media",
-      website: "https://example.com/techverse",
-      message:
-        "Supporting the next generation of sci-fi storytellers. Join us in shaping the future of science fiction!",
-      tier: "platinum",
-    },
-  },
-  {
-    id: "4",
-    title: "Plot Twist Master Competition",
-    description:
-      "Write a story where the ending completely surprises the reader. No one should see it coming!",
-    prizeAmount: 4000,
-    prizeCurrency: "USDC",
-    deadline: new Date("2024-11-30T23:59:59"),
-    startDate: new Date("2024-10-01T00:00:00"),
-    status: "active",
-    difficulty: "advanced",
-    participants: 892,
-    maxParticipants: 2000,
-    tags: ["Plot Twist", "Suspense", "Mystery"],
-    category: "Plot Development",
-    organizer: "Mystery Writers Association",
-    rules: [
-      "Must have a surprising twist",
-      "Minimum 5,000 words",
-      "Foreshadowing must be subtle",
-    ],
-    evaluationCriteria: "Surprise factor, execution, and coherence",
-  },
-  {
-    id: "5",
-    title: "Historical Fiction Writing Contest",
-    description:
-      "Write a compelling historical fiction story set in any period before 1900. Accuracy and creativity are key.",
-    prizeAmount: 6000,
-    prizeCurrency: "USDC",
-    deadline: new Date("2024-10-31T23:59:59"),
-    startDate: new Date("2024-09-01T00:00:00"),
-    status: "completed",
-    difficulty: "advanced",
-    participants: 2156,
-    maxParticipants: 3000,
-    tags: ["Historical Fiction", "Research", "Period Piece"],
-    category: "Historical Fiction",
-    organizer: "Historical Writers Society",
-    rules: [
-      "Must be historically accurate",
-      "Minimum 15,000 words",
-      "Set before 1900",
-    ],
-    evaluationCriteria: "Historical accuracy, storytelling, and research",
-  },
-  {
-    id: "6",
-    title: "Romance Novel Opening Challenge",
-    description:
-      "Write the first 10,000 words of a romance novel that hooks readers from the first page.",
-    prizeAmount: 3000,
-    prizeCurrency: "USDC",
-    deadline: new Date("2025-01-15T23:59:59"),
-    startDate: new Date("2024-12-01T00:00:00"),
-    status: "upcoming",
-    difficulty: "beginner",
-    participants: 0,
-    maxParticipants: 5000,
-    tags: ["Romance", "Opening", "Hook"],
-    category: "Romance",
-    organizer: "Romance Writers Circle",
-    rules: [
-      "First 10,000 words only",
-      "Must hook readers",
-      "Any romance subgenre",
-    ],
-    evaluationCriteria: "Engagement, chemistry, and writing quality",
-  },
-  {
-    id: "7",
-    title: "Horror Short Story Competition",
-    description:
-      "Create a spine-chilling horror story that keeps readers up at night. Atmosphere and tension are everything.",
-    prizeAmount: 4500,
-    prizeCurrency: "USDC",
-    deadline: new Date("2024-12-20T23:59:59"),
-    startDate: new Date("2024-11-01T00:00:00"),
-    status: "active",
-    difficulty: "intermediate",
-    participants: 1876,
-    maxParticipants: 4000,
-    tags: ["Horror", "Suspense", "Thriller"],
-    category: "Horror",
-    organizer: "Horror Writers Network",
-    rules: [
-      "Must be genuinely scary",
-      "5,000-15,000 words",
-      "No excessive gore",
-    ],
-    evaluationCriteria: "Fear factor, atmosphere, and pacing",
-    sponsor: {
-      id: "sponsor-3",
-      name: "Midnight Press",
-      website: "https://example.com/midnight-press",
-      message:
-        "We're looking for the next great horror voice. Top stories will be featured in our annual horror anthology!",
-      tier: "silver",
-    },
-  },
-  {
-    id: "8",
-    title: "Young Adult Fantasy Series Pitch",
-    description:
-      "Pitch the first book in a YA fantasy series. Include synopsis, character profiles, and world-building overview.",
-    prizeAmount: 7500,
-    prizeCurrency: "USDC",
-    deadline: new Date("2025-02-28T23:59:59"),
-    startDate: new Date("2024-12-15T00:00:00"),
-    status: "upcoming",
-    difficulty: "advanced",
-    participants: 0,
-    maxParticipants: 2000,
-    tags: ["YA", "Fantasy", "Series", "Pitch"],
-    category: "Young Adult",
-    organizer: "YA Publishers Alliance",
-    rules: [
-      "Must be YA appropriate",
-      "Include series outline",
-      "Original concept",
-    ],
-    evaluationCriteria: "Marketability, originality, and series potential",
-    sponsor: {
-      id: "sponsor-4",
-      name: "Young Readers Collective",
-      website: "https://example.com/young-readers",
-      message:
-        "We're committed to discovering fresh YA voices. The winning pitch will receive a full manuscript review and potential publishing contract.",
-      tier: "gold",
-    },
-  },
-];
+import { useAuthContext } from "@/contexts/AuthContext";
+import CompetitionCard from "./CompetitionCard";
+import { competitionService } from "@/services/CompetitionService";
+import {
+  CompetitionDifficulty,
+  CompetitionStatus,
+  ICompetition,
+  ICompetitionInput,
+} from "@/types/ICompetition";
 
 const STATUS_TABS: { value: CompetitionStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -226,39 +18,293 @@ const STATUS_TABS: { value: CompetitionStatus | "all"; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
+const DIFFICULTY_OPTIONS: CompetitionDifficulty[] = [
+  "beginner",
+  "intermediate",
+  "advanced",
+];
+
+interface CompetitionFormState {
+  title: string;
+  description: string;
+  category: string;
+  difficulty: CompetitionDifficulty;
+  prizeAmount: string;
+  prizeCurrency: string;
+  startDate: string;
+  deadline: string;
+  maxParticipants: string;
+  tags: string;
+}
+
+const toDateTimeLocal = (date: Date): string => {
+  const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
+};
+
+const getInitialFormState = (): CompetitionFormState => {
+  const now = new Date();
+  const start = new Date(now.getTime() + 60 * 60 * 1000);
+  const deadline = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  return {
+    title: "",
+    description: "",
+    category: "",
+    difficulty: "beginner",
+    prizeAmount: "",
+    prizeCurrency: "USDC",
+    startDate: toDateTimeLocal(start),
+    deadline: toDateTimeLocal(deadline),
+    maxParticipants: "",
+    tags: "",
+  };
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
+const mapCompetitionToForm = (
+  competition: ICompetition,
+): CompetitionFormState => {
+  return {
+    title: competition.title,
+    description: competition.description,
+    category: competition.category,
+    difficulty: competition.difficulty,
+    prizeAmount: String(competition.prizeAmount),
+    prizeCurrency: competition.prizeCurrency,
+    startDate: toDateTimeLocal(competition.startDate),
+    deadline: toDateTimeLocal(competition.deadline),
+    maxParticipants: competition.maxParticipants
+      ? String(competition.maxParticipants)
+      : "",
+    tags: competition.tags.join(", "),
+  };
+};
+
 const Competitions: React.FC = () => {
+  const { user } = useAuthContext();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CompetitionStatus | "all">(
-    "all"
+    "all",
   );
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sponsoredFilter, setSponsoredFilter] = useState<
     "all" | "sponsored" | "non-sponsored"
   >("all");
 
-  const handleJoinCompetition = (competitionId: string) => {
-    const competition = mockCompetitions.find((c) => c.id === competitionId);
-    if (competition) {
-      alert(
-        `Joining competition: ${competition.title}\n\nThis will be implemented with actual functionality.`
+  const [competitions, setCompetitions] = useState<ICompetition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingCompetitionId, setEditingCompetitionId] = useState<
+    string | null
+  >(null);
+  const [formState, setFormState] = useState<CompetitionFormState>(
+    getInitialFormState(),
+  );
+  const [saving, setSaving] = useState(false);
+
+  const loadCompetitions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [fetchedCompetitions, joinedIds] = await Promise.all([
+        competitionService.getCompetitions(),
+        user
+          ? competitionService.getUserJoinedCompetitionIds(user.uid)
+          : Promise.resolve(new Set<string>()),
+      ]);
+
+      setCompetitions(
+        fetchedCompetitions.map((competition) => ({
+          ...competition,
+          isJoined: joinedIds.has(competition.id),
+        })),
       );
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to load competitions."));
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadCompetitions();
+  }, [loadCompetitions]);
+
+  const handleFormChange = (
+    field: keyof CompetitionFormState,
+    value: string,
+  ) => {
+    setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => {
+    setEditingCompetitionId(null);
+    setFormState(getInitialFormState());
+    setShowForm(false);
+  };
+
+  const handleStartCreate = () => {
+    setEditingCompetitionId(null);
+    setFormState(getInitialFormState());
+    setShowForm(true);
+    setError(null);
+  };
+
+  const handleStartEdit = (competitionId: string) => {
+    const competition = competitions.find((item) => item.id === competitionId);
+    if (!competition) return;
+
+    setEditingCompetitionId(competition.id);
+    setFormState(mapCompetitionToForm(competition));
+    setShowForm(true);
+    setError(null);
+  };
+
+  const buildPayload = (): ICompetitionInput => {
+    return {
+      title: formState.title,
+      description: formState.description,
+      category: formState.category,
+      difficulty: formState.difficulty,
+      prizeAmount: Number(formState.prizeAmount),
+      prizeCurrency: formState.prizeCurrency,
+      startDate: new Date(formState.startDate),
+      deadline: new Date(formState.deadline),
+      maxParticipants: formState.maxParticipants
+        ? Number(formState.maxParticipants)
+        : null,
+      tags: formState.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+  };
+
+  const handleSaveCompetition = async () => {
+    if (!user) {
+      setError("You must be logged in to manage competitions.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const payload = buildPayload();
+      const creatorName =
+        user.username || user.displayName || user.email || "Unknown user";
+
+      if (editingCompetitionId) {
+        await competitionService.updateCompetition(
+          editingCompetitionId,
+          user.uid,
+          payload,
+        );
+      } else {
+        await competitionService.createCompetition(
+          user.uid,
+          creatorName,
+          payload,
+        );
+      }
+
+      resetForm();
+      await loadCompetitions();
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to save competition."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCompetition = async (competitionId: string) => {
+    if (!user) {
+      setError("You must be logged in to delete competitions.");
+      return;
+    }
+
+    if (
+      !window.confirm("Delete this competition? This action cannot be undone.")
+    ) {
+      return;
+    }
+
+    try {
+      setError(null);
+      await competitionService.deleteCompetition(competitionId, user.uid);
+      setCompetitions((prev) =>
+        prev.filter((item) => item.id !== competitionId),
+      );
+      if (editingCompetitionId === competitionId) {
+        resetForm();
+      }
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to delete competition."));
+    }
+  };
+
+  const handleJoinCompetition = async (competitionId: string) => {
+    if (!user) {
+      setError("You must be logged in to join competitions.");
+      return;
+    }
+
+    const competition = competitions.find((item) => item.id === competitionId);
+    if (!competition || competition.isJoined) {
+      return;
+    }
+
+    try {
+      setJoiningId(competitionId);
+      setError(null);
+      await competitionService.joinCompetition(competitionId);
+
+      setCompetitions((prev) =>
+        prev.map((item) =>
+          item.id === competitionId
+            ? {
+                ...item,
+                isJoined: true,
+                participants: item.participants + 1,
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to join competition."));
+    } finally {
+      setJoiningId(null);
     }
   };
 
   const categories = useMemo(() => {
-    const cats = new Set(mockCompetitions.map((c) => c.category));
+    const cats = new Set(
+      competitions.map((competition) => competition.category),
+    );
     return Array.from(cats).sort();
-  }, []);
+  }, [competitions]);
 
   const filteredCompetitions = useMemo(() => {
-    return mockCompetitions.filter((competition) => {
+    return competitions.filter((competition) => {
       const matchesSearch =
         competition.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         competition.description
           .toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
         competition.tags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
+          tag.toLowerCase().includes(searchQuery.toLowerCase()),
         );
 
       const matchesStatus =
@@ -274,7 +320,13 @@ const Competitions: React.FC = () => {
         matchesSearch && matchesStatus && matchesCategory && matchesSponsored
       );
     });
-  }, [searchQuery, statusFilter, categoryFilter, sponsoredFilter]);
+  }, [
+    categoryFilter,
+    competitions,
+    searchQuery,
+    sponsoredFilter,
+    statusFilter,
+  ]);
 
   const selectClass =
     "font-ui text-[11px] font-semibold tracking-[0.1em] uppercase bg-transparent border-0 border-b border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-500 pb-1.5 focus:outline-none focus:border-neutral-700 dark:focus:border-neutral-400 transition-colors cursor-pointer";
@@ -282,25 +334,233 @@ const Competitions: React.FC = () => {
   return (
     <div className="min-h-screen">
       <div className="max-w-6xl mx-auto px-5 md:px-12 py-12 md:py-16">
-
-        {/* Masthead */}
         <header className="mb-10">
           <p className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-dark-green dark:text-light-green mb-4">
             {APP_NAME} — Writing Prizes
           </p>
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <h1 className="font-heading text-[3rem] md:text-[4.5rem] font-light italic leading-[1.05] text-neutral-900 dark:text-white">
-              The Prize Room.
+              Time to write!
             </h1>
-            <p className="font-body text-base text-neutral-500 dark:text-neutral-400 max-w-xs mb-1">
-              Compete for prizes, get discovered, and push your writing further.
-            </p>
+            <div className="flex flex-col items-end gap-3">
+              <p className="font-body text-base text-neutral-500 dark:text-neutral-400 max-w-xs mb-1">
+                Compete for prizes, get discovered, and push your writing
+                further.
+              </p>
+              {user && (
+                <button
+                  onClick={handleStartCreate}
+                  className="inline-flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Competition
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Filters */}
+        {error && (
+          <div className="mb-6 p-3 border border-red-200 bg-red-50 text-red-700 text-sm flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-500 hover:text-red-700"
+              aria-label="Dismiss error"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {showForm && (
+          <section className="mb-10 border border-neutral-200 dark:border-neutral-800 p-5 md:p-6 bg-white/60 dark:bg-neutral-900/30">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-heading italic text-3xl text-neutral-900 dark:text-white">
+                {editingCompetitionId
+                  ? "Edit Competition"
+                  : "Create Competition"}
+              </h2>
+              <button
+                onClick={resetForm}
+                className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Title
+                </label>
+                <input
+                  value={formState.title}
+                  onChange={(e) => handleFormChange("title", e.target.value)}
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="Competition title"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Category
+                </label>
+                <input
+                  value={formState.category}
+                  onChange={(e) => handleFormChange("category", e.target.value)}
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="Fantasy, Horror, Short Story..."
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Description
+                </label>
+                <textarea
+                  value={formState.description}
+                  onChange={(e) =>
+                    handleFormChange("description", e.target.value)
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm min-h-[96px]"
+                  placeholder="Describe the competition and entry expectations"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Difficulty
+                </label>
+                <select
+                  value={formState.difficulty}
+                  onChange={(e) =>
+                    handleFormChange(
+                      "difficulty",
+                      e.target.value as CompetitionDifficulty,
+                    )
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                >
+                  {DIFFICULTY_OPTIONS.map((difficulty) => (
+                    <option key={difficulty} value={difficulty}>
+                      {difficulty}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Tags
+                </label>
+                <input
+                  value={formState.tags}
+                  onChange={(e) => handleFormChange("tags", e.target.value)}
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="Fantasy, Lore, Adventure"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Prize Amount
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formState.prizeAmount}
+                  onChange={(e) =>
+                    handleFormChange("prizeAmount", e.target.value)
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="5000"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Prize Currency
+                </label>
+                <input
+                  value={formState.prizeCurrency}
+                  onChange={(e) =>
+                    handleFormChange(
+                      "prizeCurrency",
+                      e.target.value.toUpperCase(),
+                    )
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="USDC"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Start Date
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formState.startDate}
+                  onChange={(e) =>
+                    handleFormChange("startDate", e.target.value)
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Deadline
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formState.deadline}
+                  onChange={(e) => handleFormChange("deadline", e.target.value)}
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Max Participants (optional)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formState.maxParticipants}
+                  onChange={(e) =>
+                    handleFormChange("maxParticipants", e.target.value)
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                  placeholder="1000"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={handleSaveCompetition}
+                disabled={saving}
+                className="font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors disabled:opacity-60"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingCompetitionId
+                    ? "Save Changes"
+                    : "Create Competition"}
+              </button>
+              <button
+                onClick={resetForm}
+                className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        )}
+
         <div className="space-y-5">
-          {/* Search */}
           <div className="relative">
             <input
               type="text"
@@ -312,9 +572,7 @@ const Competitions: React.FC = () => {
             <Search className="absolute right-0 top-1 w-4 h-4 text-neutral-400 dark:text-neutral-600" />
           </div>
 
-          {/* Status tabs + secondary filters */}
           <div className="flex items-center justify-between flex-wrap gap-4">
-            {/* Status tabs */}
             <div className="flex items-center">
               {STATUS_TABS.map((tab, i) => (
                 <button
@@ -333,7 +591,6 @@ const Competitions: React.FC = () => {
               ))}
             </div>
 
-            {/* Secondary filters */}
             <div className="flex items-center gap-6">
               <select
                 value={categoryFilter}
@@ -341,9 +598,9 @@ const Competitions: React.FC = () => {
                 className={selectClass}
               >
                 <option value="all">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
                   </option>
                 ))}
               </select>
@@ -352,7 +609,7 @@ const Competitions: React.FC = () => {
                 value={sponsoredFilter}
                 onChange={(e) =>
                   setSponsoredFilter(
-                    e.target.value as "all" | "sponsored" | "non-sponsored"
+                    e.target.value as "all" | "sponsored" | "non-sponsored",
                   )
                 }
                 className={selectClass}
@@ -365,21 +622,29 @@ const Competitions: React.FC = () => {
           </div>
         </div>
 
-        {/* Top rule + count */}
         <div className="mt-6 border-t border-neutral-900 dark:border-neutral-100" />
         <p className="font-mono text-[11px] text-neutral-400 dark:text-neutral-600 mt-3">
           {filteredCompetitions.length} competition
           {filteredCompetitions.length !== 1 ? "s" : ""}
         </p>
 
-        {/* List */}
-        {filteredCompetitions.length > 0 ? (
+        {loading ? (
+          <div className="py-20 text-center">
+            <p className="font-body text-sm text-neutral-500 dark:text-neutral-400">
+              Loading competitions...
+            </p>
+          </div>
+        ) : filteredCompetitions.length > 0 ? (
           <div>
             {filteredCompetitions.map((competition) => (
               <CompetitionCard
                 key={competition.id}
                 competition={competition}
                 onJoin={handleJoinCompetition}
+                onEdit={handleStartEdit}
+                onDelete={handleDeleteCompetition}
+                joinLoading={joiningId === competition.id}
+                canManage={competition.creatorId === user?.uid}
               />
             ))}
           </div>

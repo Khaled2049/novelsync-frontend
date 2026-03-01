@@ -3,7 +3,7 @@ export type CompetitionStatus = "active" | "upcoming" | "completed";
 export type CompetitionDifficulty = "beginner" | "intermediate" | "advanced";
 
 export interface ISponsor {
-  id: string;
+  id?: string;
   name: string;
   logo?: string; // URL to sponsor logo
   website?: string; // Sponsor website URL
@@ -26,7 +26,40 @@ export interface ICompetition {
   tags: string[];
   category: string;
   organizer: string;
+  creatorId?: string;
+  creatorName?: string;
+  isJoined?: boolean;
   rules?: string[];
   evaluationCriteria?: string;
   sponsor?: ISponsor; // Optional sponsor information
 }
+
+export interface ICompetitionInput {
+  title: string;
+  description: string;
+  prizeAmount: number;
+  prizeCurrency: string;
+  startDate: Date;
+  deadline: Date;
+  difficulty: CompetitionDifficulty;
+  maxParticipants?: number | null;
+  tags: string[];
+  category: string;
+}
+
+export interface ICompetitionUpdate
+  extends Partial<
+    Pick<
+      ICompetitionInput,
+      | "title"
+      | "description"
+      | "prizeAmount"
+      | "prizeCurrency"
+      | "startDate"
+      | "deadline"
+      | "difficulty"
+      | "maxParticipants"
+      | "tags"
+      | "category"
+    >
+  > {}

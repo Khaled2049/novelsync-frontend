@@ -33,3 +33,4 @@ export { generateCoverImage } from "./generateCoverImage";
 export { sendChatMessage } from "./sendChatMessage";
 export { enhanceText } from "./enhanceText";
 export { onInviteApproved } from "./inviteService";
+export { joinCompetition } from "./competitionEndpoints";
