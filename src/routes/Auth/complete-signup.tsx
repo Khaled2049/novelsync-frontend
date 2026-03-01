@@ -3,6 +3,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEO/SEOHead";
 import { APP_NAME } from "@/config/seo";
+import { useWalletState, WalletState } from "@/hooks/useWalletState";
 
 const CompleteSignup: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -14,6 +15,15 @@ const CompleteSignup: React.FC = () => {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const { completeMagicLinkSignup, isMagicLink, error } = useFirebaseAuth();
+  const {
+    state: walletState,
+    address: walletAddress,
+    error: walletError,
+    connectWallet,
+    disconnectWallet,
+    isConnecting,
+    isDisconnecting,
+  } = useWalletState();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +73,12 @@ const CompleteSignup: React.FC = () => {
     setIsLoading(true);
     setLinkError(null);
 
-    const result = await completeMagicLinkSignup(email, username.trim(), password);
+    const result = await completeMagicLinkSignup(
+      email,
+      username.trim(),
+      password,
+      walletAddress || undefined
+    );
 
     setIsLoading(false);
 
@@ -79,6 +94,22 @@ const CompleteSignup: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSubmit(e);
+    }
+  };
+
+  const handleWalletConnect = async () => {
+    try {
+      await connectWallet();
+    } catch {
+      // Error state is shown in UI through walletError
+    }
+  };
+
+  const handleWalletDisconnect = async () => {
+    try {
+      await disconnectWallet();
+    } catch {
+      // Error state is shown in UI through walletError
     }
   };
 
@@ -291,6 +322,66 @@ const CompleteSignup: React.FC = () => {
                  hover:border-neutral-300 dark:hover:border-neutral-600"
                 placeholder="Confirm your password"
               />
+            </div>
+
+            <div className="animate-fade-in" style={{ animationDelay: "0.55s" }}>
+              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-white">
+                      Wallet (optional)
+                    </p>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+                      Connect now to receive tips, or set this up later from your profile.
+                    </p>
+                  </div>
+                  {walletAddress ? (
+                    <button
+                      type="button"
+                      onClick={handleWalletDisconnect}
+                      disabled={isDisconnecting}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors ${
+                        isDisconnecting
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                      }`}
+                    >
+                      {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleWalletConnect}
+                      disabled={isConnecting}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg bg-dark-green dark:bg-light-green text-white dark:text-neutral-900 transition-all ${
+                        isConnecting
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:opacity-90"
+                      }`}
+                    >
+                      {isConnecting ? "Connecting..." : "Connect Wallet"}
+                    </button>
+                  )}
+                </div>
+
+                {walletAddress && (
+                  <p className="text-xs font-mono text-neutral-700 dark:text-neutral-300 mt-3 break-all">
+                    Connected: {walletAddress}
+                  </p>
+                )}
+
+                {walletState === WalletState.WRONG_NETWORK && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Wallet connected on a different network. You can still finish signup and change network later.
+                  </p>
+                )}
+
+                {walletError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    {walletError.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             {(linkError || error) && (

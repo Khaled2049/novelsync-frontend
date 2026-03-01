@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef } from "react"
 import {
   CheckCircle2,
   AlertCircle,
@@ -7,8 +7,6 @@ import {
   LogOut,
   Copy,
   ChevronDown,
-  Wallet,
-  Info,
 } from "lucide-react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useWalletState, WalletState } from "@/hooks/useWalletState"
@@ -61,44 +59,26 @@ export const WalletConnectButton: React.FC = () => {
 
   const prevStateRef = useRef<WalletState>(WalletState.DISCONNECTED)
   const isFirstRenderRef = useRef(true)
-  const [showSaveDialog, setShowSaveDialog] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [hasCheckedSavedAddress, setHasCheckedSavedAddress] = useState(false)
+  const [savedWalletAddress, setSavedWalletAddress] = React.useState<
+    string | null
+  >(user?.walletAddress || null)
+  const [showReplaceWalletDialog, setShowReplaceWalletDialog] = React.useState(false)
+  const [isUpdatingWalletAddress, setIsUpdatingWalletAddress] = React.useState(false)
 
   useEffect(() => {
-    const checkSavedAddress = async () => {
-      if (
-        state === WalletState.READY &&
-        address &&
-        user?.uid &&
-        !hasCheckedSavedAddress
-      ) {
-        try {
-          const savedAddress = await userService.getUserWalletAddress(user.uid)
-          setHasCheckedSavedAddress(true)
-
-          if (
-            !savedAddress ||
-            savedAddress.toLowerCase() !== address.toLowerCase()
-          ) {
-            setShowSaveDialog(true)
-          }
-        } catch {
-          setHasCheckedSavedAddress(true)
-          setShowSaveDialog(true)
-        }
-      }
-    }
-
-    checkSavedAddress()
-  }, [state, address, user?.uid, hasCheckedSavedAddress])
+    setSavedWalletAddress(user?.walletAddress || null)
+  }, [user?.walletAddress])
 
   useEffect(() => {
-    if (state === WalletState.DISCONNECTED) {
-      setHasCheckedSavedAddress(false)
-      setShowSaveDialog(false)
+    if (
+      state !== WalletState.DISCONNECTED &&
+      address &&
+      savedWalletAddress &&
+      savedWalletAddress.toLowerCase() !== address.toLowerCase()
+    ) {
+      setShowReplaceWalletDialog(true)
     }
-  }, [state])
+  }, [state, address, savedWalletAddress])
 
   useEffect(() => {
     if (isFirstRenderRef.current) {
@@ -178,37 +158,45 @@ export const WalletConnectButton: React.FC = () => {
     }
   }
 
-  const handleSaveAddress = async () => {
+  const handleConfirmWalletReplacement = async () => {
     if (!user?.uid || !address) {
-      toast.error("User ID or wallet address is missing")
+      toast.error("Unable to update wallet address")
       return
     }
 
-    setIsSaving(true)
+    setIsUpdatingWalletAddress(true)
     try {
       await userService.updateUserWalletAddress(user.uid, address)
-      setShowSaveDialog(false)
-      setHasCheckedSavedAddress(true)
-      toast.success("Wallet address saved to your profile", {
-        description: "You can now receive tips from readers",
+      setSavedWalletAddress(address)
+      setShowReplaceWalletDialog(false)
+      toast.success("Wallet address updated", {
+        description: "Future tip payouts will use this new wallet address.",
       })
-    } catch (saveError) {
-      const errorMessage =
-        saveError instanceof Error
-          ? saveError.message
-          : "Failed to save wallet address"
-
-      toast.error("Failed to save wallet address", {
-        description: errorMessage,
+    } catch (updateErr) {
+      const updateMessage =
+        updateErr instanceof Error
+          ? updateErr.message
+          : "Failed to update wallet address"
+      toast.error("Could not update wallet address", {
+        description: updateMessage,
       })
     } finally {
-      setIsSaving(false)
+      setIsUpdatingWalletAddress(false)
     }
   }
 
-  const handleSkipSave = () => {
-    setShowSaveDialog(false)
-    setHasCheckedSavedAddress(true)
+  const handleKeepOriginalWallet = async () => {
+    setShowReplaceWalletDialog(false)
+    try {
+      await disconnectWallet()
+      toast.info("Original wallet kept", {
+        description: "Your existing payout wallet remains unchanged.",
+      })
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to disconnect wallet"
+      toast.error(errorMessage)
+    }
   }
 
   if (!user) {
@@ -250,86 +238,71 @@ export const WalletConnectButton: React.FC = () => {
 
   const currentState =
     stateConfig[state] || stateConfig[WalletState.DISCONNECTED]
+  const savedAddressShort = savedWalletAddress
+    ? `${savedWalletAddress.slice(0, 6)}...${savedWalletAddress.slice(-4)}`
+    : null
+  const newAddressShort = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : null
+
+  const replaceWalletDialog = (
+    <Dialog
+      open={showReplaceWalletDialog}
+      onOpenChange={(open) => {
+        if (isUpdatingWalletAddress) return
+        setShowReplaceWalletDialog(open)
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Update payout wallet address?</DialogTitle>
+          <DialogDescription>
+            We noticed you connected a different wallet than the one currently on
+            your profile.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-black/10 dark:border-white/10 p-3 space-y-2">
+          <p className="text-xs text-black/70 dark:text-white/70">
+            Current saved wallet:{" "}
+            <span className="font-mono text-black dark:text-white">
+              {savedAddressShort}
+            </span>
+          </p>
+          <p className="text-xs text-black/70 dark:text-white/70">
+            Newly connected wallet:{" "}
+            <span className="font-mono text-black dark:text-white">
+              {newAddressShort}
+            </span>
+          </p>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button
+            variant="outline"
+            onClick={handleKeepOriginalWallet}
+            disabled={isUpdatingWalletAddress}
+          >
+            Keep Existing Wallet
+          </Button>
+          <Button
+            onClick={handleConfirmWalletReplacement}
+            disabled={isUpdatingWalletAddress}
+            className="bg-dark-green dark:bg-light-green text-white"
+          >
+            {isUpdatingWalletAddress ? "Updating..." : "Use New Wallet"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 
   if (address && state !== WalletState.DISCONNECTED) {
     const truncatedAddress = `${address.slice(0, 6)}...${address.slice(-4)}`
 
     return (
       <>
-        <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-full bg-dark-green/10 dark:bg-light-green/10">
-                  <Wallet className="w-6 h-6 text-dark-green dark:text-light-green" />
-                </div>
-                <DialogTitle className="text-xl font-semibold text-black dark:text-white">
-                  Save Wallet Address?
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-base text-black/70 dark:text-white/70 pt-2">
-                Save your wallet address to your profile to receive tips from
-                readers.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="p-4 rounded-lg border border-dark-green/20 dark:border-light-green/20 bg-dark-green/5 dark:bg-light-green/5">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-dark-green dark:text-light-green mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-black dark:text-white mb-1">
-                      Why save your wallet address?
-                    </p>
-                    <p className="text-xs text-black/70 dark:text-white/70">
-                      Readers need your saved wallet address to send you tips.
-                      Without it, you won't be able to receive payments for your
-                      stories.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-black">
-                <p className="text-xs font-medium text-black/60 dark:text-white/60 mb-1">
-                  Wallet Address
-                </p>
-                <p className="text-sm font-mono text-black dark:text-white break-all">
-                  {address}
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                onClick={handleSkipSave}
-                disabled={isSaving}
-                className="w-full sm:w-auto border border-black/20 dark:border-white/20 bg-white dark:bg-neutral-900 hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                Skip for Now
-              </Button>
-              <Button
-                onClick={handleSaveAddress}
-                disabled={isSaving}
-                className="w-full sm:w-auto bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Save Address
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+        {replaceWalletDialog}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -423,13 +396,16 @@ export const WalletConnectButton: React.FC = () => {
   }
 
   return (
-    <button
-      onClick={handleConnect}
-      disabled={isConnecting}
-      className="bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green font-semibold py-2 px-4 rounded-small transition-colors duration-300 border-0 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-      data-theme={theme}
-    >
-      {isConnecting ? "Connecting..." : "Connect Wallet"}
-    </button>
+    <>
+      {replaceWalletDialog}
+      <button
+        onClick={handleConnect}
+        disabled={isConnecting}
+        className="bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green font-semibold py-2 px-4 rounded-small transition-colors duration-300 border-0 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+        data-theme={theme}
+      >
+        {isConnecting ? "Connecting..." : "Connect Wallet"}
+      </button>
+    </>
   )
 }
