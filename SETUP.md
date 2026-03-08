@@ -77,10 +77,19 @@ These are injected at build time so the frontend can connect to Firebase and oth
 | `VITE_FIREBASE_MESSAGE_SENDER_ID` | Firebase messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | Firebase app ID |
 | `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics measurement ID |
-| `VITE_USDC_TOKEN_ADDRESS` | USDC token contract address |
-| `VITE_TIPPING_CONTRACT_ADDRESS` | Tipping contract address |
-| `VITE_CHAIN_ID` | Blockchain chain ID (e.g. `31337` for Anvil local) |
-| `VITE_RPC_URL` | RPC URL for wallet reads/writes |
+| `VITE_CHAIN_ID` | Active chain ID (`31337` Anvil, `11155111` Sepolia, `1` Mainnet) |
+| `VITE_ANVIL_RPC_URL` | RPC URL for Anvil |
+| `VITE_SEPOLIA_RPC_URL` | RPC URL for Sepolia |
+| `VITE_MAINNET_RPC_URL` | RPC URL for Ethereum mainnet |
+| `VITE_USDC_TOKEN_ADDRESS_ANVIL` | USDC token address on Anvil |
+| `VITE_USDC_TOKEN_ADDRESS_SEPOLIA` | USDC token address on Sepolia |
+| `VITE_USDC_TOKEN_ADDRESS_MAINNET` | USDC token address on mainnet |
+| `VITE_TIPPING_CONTRACT_ADDRESS_ANVIL` | Tipping contract address on Anvil |
+| `VITE_TIPPING_CONTRACT_ADDRESS_SEPOLIA` | Tipping contract address on Sepolia |
+| `VITE_TIPPING_CONTRACT_ADDRESS_MAINNET` | Tipping contract address on mainnet |
+| `VITE_RPC_URL` | Optional shared fallback RPC URL (legacy) |
+| `VITE_USDC_TOKEN_ADDRESS` | Optional shared fallback USDC address (legacy) |
+| `VITE_TIPPING_CONTRACT_ADDRESS` | Optional shared fallback tipping contract address (legacy) |
 | `VITE_MAX_AI_USAGE` | Max AI usage quota (e.g. `1000`) |
 
 You can find these values in your local `.env` file (or in Firebase Console → Project settings → Your apps for the Firebase config).

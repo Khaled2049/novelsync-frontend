@@ -8,6 +8,7 @@ import { useWalletState } from "@/hooks/useWalletState";
 import { FeePreviewCard } from "@/components/FeePreviewCard";
 import { TransactionStatus } from "@/components/TransactionStatus";
 import { TransactionStatus as TxStatus } from "@/types/tipping";
+import { USDC_ADDRESS } from "@/blockchain/tokens";
 
 interface StoryTipModalProps {
   author: string;
@@ -19,7 +20,6 @@ interface StoryTipModalProps {
 
 type PaymentMethod = "ETH" | "USDC";
 
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
 const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
 
 const getTargetChainName = (chainId: number) => {
@@ -72,6 +72,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
   const {
     ethBalance,
     usdcBalance,
+    isLoading: isLoadingBalances,
     refetch: refetchBalances,
   } = useTokenBalance();
 
@@ -388,15 +389,30 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
 
                 {/* Balance Display */}
                 <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-black/70 dark:text-white/70">
-                      Your Balance:
-                    </span>
-                    <span className="font-medium text-black dark:text-white">
-                      {paymentMethod === "ETH"
-                        ? `${parseFloat(ethBalance).toFixed(4)} ETH`
-                        : `${parseFloat(usdcBalance).toFixed(2)} USDC`}
-                    </span>
+                  <p className="text-sm font-medium text-black/70 dark:text-white/70 mb-2">
+                    Current balances
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md bg-white/70 dark:bg-neutral-900/60 p-2">
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        ETH
+                      </p>
+                      <p className="font-medium text-black dark:text-white">
+                        {isLoadingBalances
+                          ? "Loading..."
+                          : `${parseFloat(ethBalance).toFixed(4)} ETH`}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-white/70 dark:bg-neutral-900/60 p-2">
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        USDC
+                      </p>
+                      <p className="font-medium text-black dark:text-white">
+                        {isLoadingBalances
+                          ? "Loading..."
+                          : `${parseFloat(usdcBalance).toFixed(2)} USDC`}
+                      </p>
+                    </div>
                   </div>
                 </div>
 

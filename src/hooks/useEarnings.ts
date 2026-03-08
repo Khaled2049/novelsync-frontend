@@ -5,8 +5,7 @@ import {
   tippingPlatformConfig,
   ZERO_ADDRESS,
 } from "@/blockchain/tippingPlatform"
-
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || ""
+import { USDC_ADDRESS } from "@/blockchain/tokens"
 
 interface EarningsData {
   eth: string

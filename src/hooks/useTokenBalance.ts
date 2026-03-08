@@ -1,8 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { erc20Abi, formatUnits } from "viem"
 import { useAccount, useBalance, useReadContract } from "wagmi"
-
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || ""
+import { USDC_ADDRESS } from "@/blockchain/tokens"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
 
 export const useTokenBalance = () => {

@@ -2,8 +2,7 @@ import { useState, useCallback } from "react"
 import { erc20Abi, parseUnits } from "viem"
 import { useAccount, usePublicClient, useWriteContract } from "wagmi"
 import { TIPPING_PLATFORM_ADDRESS } from "@/blockchain/tippingPlatform"
-
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || ""
+import { USDC_ADDRESS } from "@/blockchain/tokens"
 
 export const useUSDCApproval = () => {
   const { address } = useAccount()
