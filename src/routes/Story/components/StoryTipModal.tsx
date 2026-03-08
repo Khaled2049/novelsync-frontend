@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { X, AlertCircle, Wallet } from "lucide-react";
-import { useAddress, useChainId } from "@thirdweb-dev/react";
-import { Sepolia } from "@thirdweb-dev/chains";
+import { useChainId } from "wagmi";
 import { useTippingContract } from "@/hooks/useTippingContract";
 import { useUSDCApproval } from "@/hooks/useUSDCApproval";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useWalletState } from "@/hooks/useWalletState";
 import { FeePreviewCard } from "@/components/FeePreviewCard";
 import { TransactionStatus } from "@/components/TransactionStatus";
 import { TransactionStatus as TxStatus } from "@/types/tipping";
-import { utils } from "ethers";
+import { USDC_ADDRESS } from "@/blockchain/tokens";
 
 interface StoryTipModalProps {
   author: string;
@@ -20,7 +20,14 @@ interface StoryTipModalProps {
 
 type PaymentMethod = "ETH" | "USDC";
 
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
+
+const getTargetChainName = (chainId: number) => {
+  if (chainId === 31337) return "Anvil";
+  if (chainId === 11155111) return "Sepolia";
+  if (chainId === 1) return "Ethereum";
+  return `Chain ${chainId}`;
+};
 
 // Feature flag: Set to true to enable USDC payments
 const USDC_PAYMENTS_ENABLED = false;
@@ -32,12 +39,12 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const address = useAddress();
+  const { address } = useWalletState();
   const chainId = useChainId();
 
   const isConnected = !!address;
 
-  const isCorrectNetwork = chainId === Sepolia.chainId;
+  const isCorrectNetwork = chainId === TARGET_CHAIN_ID;
 
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
@@ -65,6 +72,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
   const {
     ethBalance,
     usdcBalance,
+    isLoading: isLoadingBalances,
     refetch: refetchBalances,
   } = useTokenBalance();
 
@@ -208,7 +216,9 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
 
   const handleSendTip = async () => {
     if (!isConnected) return alert("Please connect your wallet first");
-    if (!isCorrectNetwork) return alert("Please switch to Sepolia testnet");
+    if (!isCorrectNetwork) {
+      return alert(`Please switch to ${getTargetChainName(TARGET_CHAIN_ID)}`);
+    }
 
     const validation = validateAmount();
     if (!validation.valid) return alert(validation.error);
@@ -234,13 +244,11 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
           if (needsApproval) return; // If still needs approval after attempt, stop
         }
 
-        const amountInSmallestUnit = utils.parseUnits(amount.toString(), 6);
-
         await tipAuthorWithUSDC(
           authorWalletAddress,
           storyId,
           USDC_ADDRESS,
-          amountInSmallestUnit.toString()
+          amount.toString()
         );
       } else {
         // USDC is disabled
@@ -290,7 +298,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                 Support {author}
               </h3>
               <p className="text-sm text-black/60 dark:text-white/60 mt-1">
-                Send a tip on Sepolia
+                Send a tip on {getTargetChainName(TARGET_CHAIN_ID)}
               </p>
             </div>
             <button
@@ -318,7 +326,8 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                 <p className="text-black/70 dark:text-white/70 mb-4">
-                  Please switch to Sepolia testnet to send tips
+                  Please switch to {getTargetChainName(TARGET_CHAIN_ID)} to
+                  send tips
                 </p>
               </div>
             ) : (
@@ -371,7 +380,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                         <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-700 dark:text-blue-300">
                           USDC payments are not enabled yet. Please use ETH
-                          (Sepolia testnet) to send tips.
+                          ({getTargetChainName(TARGET_CHAIN_ID)}) to send tips.
                         </p>
                       </div>
                     </div>
@@ -380,15 +389,30 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
 
                 {/* Balance Display */}
                 <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-black/70 dark:text-white/70">
-                      Your Balance:
-                    </span>
-                    <span className="font-medium text-black dark:text-white">
-                      {paymentMethod === "ETH"
-                        ? `${parseFloat(ethBalance).toFixed(4)} ETH`
-                        : `${parseFloat(usdcBalance).toFixed(2)} USDC`}
-                    </span>
+                  <p className="text-sm font-medium text-black/70 dark:text-white/70 mb-2">
+                    Current balances
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md bg-white/70 dark:bg-neutral-900/60 p-2">
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        ETH
+                      </p>
+                      <p className="font-medium text-black dark:text-white">
+                        {isLoadingBalances
+                          ? "Loading..."
+                          : `${parseFloat(ethBalance).toFixed(4)} ETH`}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-white/70 dark:bg-neutral-900/60 p-2">
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        USDC
+                      </p>
+                      <p className="font-medium text-black dark:text-white">
+                        {isLoadingBalances
+                          ? "Loading..."
+                          : `${parseFloat(usdcBalance).toFixed(2)} USDC`}
+                      </p>
+                    </div>
                   </div>
                 </div>
 

@@ -18,6 +18,7 @@ export const useFirebaseAuth = () => {
     username: string;
     email: string;
     isAnonymous?: boolean;
+    walletAddress?: string;
   }) => {
     const dbUser = {
       username: userData.username,
@@ -32,6 +33,7 @@ export const useFirebaseAuth = () => {
       isAnonymous: userData.isAnonymous || false,
       aiUsage: 0,
       lastAiUsageDate: new Date().toISOString().split("T")[0],
+      ...(userData.walletAddress ? { walletAddress: userData.walletAddress } : {}),
     };
 
     await setDoc(doc(firestore, "users", userId), dbUser);
@@ -89,7 +91,8 @@ export const useFirebaseAuth = () => {
   const completeMagicLinkSignup = async (
     email: string,
     username: string,
-    password: string
+    password: string,
+    walletAddress?: string
   ): Promise<{ success: boolean; message?: string }> => {
     try {
       const link = window.location.href;
@@ -114,6 +117,7 @@ export const useFirebaseAuth = () => {
         username,
         email,
         isAnonymous: false,
+        walletAddress,
       });
 
       // Mark invite as completed

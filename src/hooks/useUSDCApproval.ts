@@ -1,68 +1,78 @@
-import { useContract } from "@thirdweb-dev/react";
-import { useState, useCallback } from "react";
-
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
-const CONTRACT_ADDRESS = import.meta.env.VITE_TIPPING_CONTRACT_ADDRESS || "";
+import { useState, useCallback } from "react"
+import { erc20Abi, parseUnits } from "viem"
+import { useAccount, usePublicClient, useWriteContract } from "wagmi"
+import { TIPPING_PLATFORM_ADDRESS } from "@/blockchain/tippingPlatform"
+import { USDC_ADDRESS } from "@/blockchain/tokens"
 
 export const useUSDCApproval = () => {
-  // Initialize as a "token" contract to get ERC20 helpers
-  const { contract: usdcContract } = useContract(USDC_ADDRESS, "token");
+  const { address } = useAccount()
+  const publicClient = usePublicClient()
+  const { mutateAsync } = useWriteContract()
 
-  const [isApproving, setIsApproving] = useState(false);
-  const [approvalTxHash, setApprovalTxHash] = useState<string>("");
+  const [isApproving, setIsApproving] = useState(false)
+  const [approvalTxHash, setApprovalTxHash] = useState<string>("")
 
-  // 1. Check Allowance
-  // Removed 'address' param. SDK infers owner from connected wallet.
   const checkAllowance = useCallback(
     async (amountNeeded: string) => {
-      if (!usdcContract) return { hasAllowance: false, currentAllowance: "0" };
+      if (!address || !publicClient || !USDC_ADDRESS) {
+        return { hasAllowance: false, currentAllowance: "0" }
+      }
 
       try {
-        // Checks: How much is [Connected User] allowing [CONTRACT_ADDRESS] to spend?
-        const allowance = await usdcContract.erc20.allowance(CONTRACT_ADDRESS);
+        const allowance = await publicClient.readContract({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address, TIPPING_PLATFORM_ADDRESS],
+        })
 
-        const hasAllowance =
-          Number(allowance.displayValue) >= Number(amountNeeded);
+        const needed = parseUnits(amountNeeded, 6)
+        const hasAllowance = allowance >= needed
 
         return {
           hasAllowance,
-          currentAllowance: allowance.displayValue,
-        };
-      } catch (e) {
-        console.error("Allowance check failed", e);
-        return { hasAllowance: false, currentAllowance: "0" };
+          currentAllowance: allowance.toString(),
+        }
+      } catch {
+        return { hasAllowance: false, currentAllowance: "0" }
       }
     },
-    [usdcContract]
-  );
+    [address, publicClient]
+  )
 
-  // 2. Request Approval
   const requestApproval = useCallback(
     async (amount: string) => {
-      if (!usdcContract) throw new Error("USDC contract not ready");
+      if (!publicClient || !USDC_ADDRESS) {
+        throw new Error("USDC contract not ready")
+      }
 
-      setIsApproving(true);
+      setIsApproving(true)
       try {
-        // .setAllowance automatically parses the string to the correct decimals
-        const tx = await usdcContract.erc20.setAllowance(
-          CONTRACT_ADDRESS,
-          amount
-        );
-        setApprovalTxHash(tx.receipt.transactionHash);
-        return tx;
-      } catch (err: any) {
-        throw new Error(err.reason || "Approval failed");
+        const hash = await mutateAsync({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [TIPPING_PLATFORM_ADDRESS, parseUnits(amount, 6)],
+        })
+
+        setApprovalTxHash(hash)
+        await publicClient.waitForTransactionReceipt({ hash })
+        return hash
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Approval transaction failed"
+        throw new Error(message)
       } finally {
-        setIsApproving(false);
+        setIsApproving(false)
       }
     },
-    [usdcContract]
-  );
+    [publicClient, mutateAsync]
+  )
 
   return {
     checkAllowance,
     requestApproval,
     isApproving,
     approvalTxHash,
-  };
-};
+  }
+}

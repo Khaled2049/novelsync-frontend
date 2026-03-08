@@ -291,30 +291,6 @@ const router = createBrowserRouter([
   },
 ]);
 
-// Suppress Thirdweb ConnectWallet DialogTitle accessibility warning
-// This is a known issue in the Thirdweb library where their ConnectWallet component
-// uses Radix UI Dialog internally without properly including a DialogTitle.
-// The modalTitle prop is passed but doesn't satisfy Radix UI's accessibility requirements.
-// This is a third-party library limitation that we cannot fix directly.
-if (typeof window !== "undefined") {
-  const originalError = console.error;
-  console.error = (...args: any[]) => {
-    const message = args[0]?.toString() || "";
-    // Only suppress the specific Thirdweb DialogTitle warning
-    if (
-      typeof message === "string" &&
-      message.includes("DialogContent") &&
-      message.includes("DialogTitle") &&
-      message.includes("screen reader") &&
-      message.includes("radix-ui")
-    ) {
-      // Suppress this specific Thirdweb accessibility warning
-      return;
-    }
-    originalError.apply(console, args);
-  };
-}
-
 createRoot(document.getElementById("root")!).render(
   <SEOProvider>
     <Web3Provider>

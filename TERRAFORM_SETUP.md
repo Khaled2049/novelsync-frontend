@@ -145,10 +145,10 @@ Go to Settings > Secrets and variables > Actions and add:
 | `VITE_FIREBASE_MESSAGE_SENDER_ID` | Sender ID                     |
 | `VITE_FIREBASE_APP_ID`            | App ID                        |
 | `VITE_FIREBASE_MEASUREMENT_ID`    | Measurement ID                |
-| `VITE_THIRDWEB_CLIENT_ID`         | Thirdweb client ID            |
 | `VITE_USDC_TOKEN_ADDRESS`         | USDC token address            |
 | `VITE_TIPPING_CONTRACT_ADDRESS`   | Tipping contract address      |
 | `VITE_CHAIN_ID`                   | Chain ID                      |
+| `VITE_RPC_URL`                    | Chain RPC URL                 |
 | `VITE_MAX_AI_USAGE`               | Max AI usage                  |
 | `VITE_APP_NAME`                   | App display name              |
 

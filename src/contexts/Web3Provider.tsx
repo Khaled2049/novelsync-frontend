@@ -1,25 +1,18 @@
-import { ThirdwebProvider } from "@thirdweb-dev/react";
-import { Sepolia } from "@thirdweb-dev/chains";
 import { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
+import { wagmiConfig } from "@/blockchain/config";
 
 interface Web3ProviderProps {
   children: ReactNode;
 }
 
+const queryClient = new QueryClient();
+
 export const Web3Provider = ({ children }: Web3ProviderProps) => {
-  const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID || "";
-
-  if (!clientId) {
-    console.warn("VITE_THIRDWEB_CLIENT_ID is not set");
-  }
-
   return (
-    <ThirdwebProvider
-      activeChain={Sepolia}
-      clientId={clientId}
-      supportedChains={[Sepolia]}
-    >
-      {children}
-    </ThirdwebProvider>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
   );
 };

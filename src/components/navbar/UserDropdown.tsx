@@ -5,7 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { useWalletState } from "@/hooks/useWalletState";
 import { toast } from "sonner";
 
-import { User, Shield, HelpCircle, BookOpen, LogOut, Loader2 } from "lucide-react";
+import {
+  User,
+  Shield,
+  HelpCircle,
+  BookOpen,
+  LogOut,
+  Loader2,
+} from "lucide-react";
 import { IUser } from "../../types/IUser";
 
 interface UserDropdownProps {
@@ -37,7 +44,10 @@ const UserDropdown = ({
         try {
           await disconnectWallet();
         } catch (disconnectError) {
-          console.warn("Wallet disconnect failed during sign-out:", disconnectError);
+          console.warn(
+            "Wallet disconnect failed during sign-out:",
+            disconnectError,
+          );
         }
       }
 

@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useState } from "react";
 import { Shield, HelpCircle, BookOpen, LogOut, X, Loader2 } from "lucide-react";
-import { WalletConnectButton } from "../WalletConnectButton";
 import { useWalletState } from "@/hooks/useWalletState";
 import { toast } from "sonner";
 
@@ -86,14 +85,6 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {user && (
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-ns-border">
-              <div className="flex-1 ml-4">
-                <WalletConnectButton />
-              </div>
-            </div>
-          )}
-
           {/* Navigation Links */}
           <div className="space-y-1 mb-6">
             {menuItems.map((item) => (

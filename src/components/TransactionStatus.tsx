@@ -13,6 +13,9 @@ interface TransactionStatusProps {
 
 const getExplorerUrl = (txHash: string) => {
   const chainId = import.meta.env.VITE_CHAIN_ID || "11155111";
+  if (chainId === "31337") {
+    return null;
+  }
   if (chainId === "11155111") {
     return `https://sepolia.etherscan.io/tx/${txHash}`;
   }
@@ -77,6 +80,8 @@ export const TransactionStatus: React.FC<TransactionStatusProps> = ({
   const content = getStatusContent();
   if (!content) return null;
 
+  const explorerUrl = txHash ? getExplorerUrl(txHash) : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -88,9 +93,9 @@ export const TransactionStatus: React.FC<TransactionStatusProps> = ({
           <p className="text-sm text-center text-black/70 dark:text-white/70">
             {content.message}
           </p>
-          {txHash && (
+          {txHash && explorerUrl && (
             <a
-              href={getExplorerUrl(txHash)}
+              href={explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"

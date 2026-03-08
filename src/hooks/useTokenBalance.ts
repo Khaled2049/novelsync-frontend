@@ -1,31 +1,47 @@
-import { useBalance } from "@thirdweb-dev/react";
-import { useCallback } from "react";
-
-const USDC_ADDRESS = import.meta.env.VITE_USDC_TOKEN_ADDRESS || "";
+import { useCallback, useMemo } from "react"
+import { erc20Abi, formatUnits } from "viem"
+import { useAccount, useBalance, useReadContract } from "wagmi"
+import { USDC_ADDRESS } from "@/blockchain/tokens"
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
 
 export const useTokenBalance = () => {
-  // 1. Get Native ETH Balance
+  const { address } = useAccount()
+
   const {
     data: ethData,
     isLoading: isLoadingETH,
     refetch: refetchETH,
-  } = useBalance();
+  } = useBalance({
+    address,
+  })
 
-  // 2. Get USDC Balance (Pass the token address)
   const {
-    data: usdcData,
+    data: usdcRaw,
     isLoading: isLoadingUSDC,
     refetch: refetchUSDC,
-  } = useBalance(USDC_ADDRESS);
+  } = useReadContract({
+    address: USDC_ADDRESS as `0x${string}`,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [address || ZERO_ADDRESS],
+    query: {
+      enabled: Boolean(address && USDC_ADDRESS),
+    },
+  })
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchETH(), refetchUSDC()]);
-  }, [refetchETH, refetchUSDC]);
+    await Promise.all([refetchETH(), refetchUSDC()])
+  }, [refetchETH, refetchUSDC])
 
-  return {
-    ethBalance: ethData?.displayValue || "0",
-    usdcBalance: usdcData?.displayValue || "0",
-    isLoading: isLoadingETH || isLoadingUSDC,
-    refetch,
-  };
-};
+  return useMemo(
+    () => ({
+      ethBalance: ethData
+        ? formatUnits(ethData.value, ethData.decimals || 18)
+        : "0",
+      usdcBalance: usdcRaw ? formatUnits(usdcRaw, 6) : "0",
+      isLoading: isLoadingETH || isLoadingUSDC,
+      refetch,
+    }),
+    [ethData, usdcRaw, isLoadingETH, isLoadingUSDC, refetch]
+  )
+}
