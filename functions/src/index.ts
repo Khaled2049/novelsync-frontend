@@ -34,3 +34,4 @@ export { sendChatMessage } from "./sendChatMessage";
 export { enhanceText } from "./enhanceText";
 export { onInviteApproved } from "./inviteService";
 export { joinCompetition } from "./competitionEndpoints";
+export { createUserByAdmin, setUserAdmin } from "./adminUserService";

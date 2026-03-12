@@ -27,12 +27,16 @@ export const useFirebaseAuth = () => {
       followers: ["default"],
       following: ["default"],
       stories: [],
+      posts: [],
       likedPosts: [],
       savedPosts: [],
       lastLogin: new Date().toISOString(),
       isAnonymous: userData.isAnonymous || false,
       aiUsage: 0,
       lastAiUsageDate: new Date().toISOString().split("T")[0],
+      bio: "Write an about me section here...",
+      occupation: "Occupation",
+      location: "Location",
       ...(userData.walletAddress ? { walletAddress: userData.walletAddress } : {}),
     };
 

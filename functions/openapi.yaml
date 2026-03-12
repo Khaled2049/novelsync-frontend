@@ -1,0 +1,960 @@
+openapi: 3.0.3
+info:
+  title: NovelSync Firebase Functions API
+  version: 1.0.0
+  description: |
+    OpenAPI spec for exported HTTP Firebase Functions in this repository.
+
+    Notes:
+    - Paths are function names (for example `/generateStory`).
+    - Story-protected endpoints require a Firebase ID token in `Authorization: Bearer <token>`.
+    - Function `onInviteApproved` is a Firestore trigger and is intentionally excluded.
+servers:
+  - url: "{scheme}://{host}{base_path}"
+    description: Firebase Emulator URL (configurable)
+    variables:
+      scheme:
+        default: http
+      host:
+        default: 127.0.0.1:5001
+      base_path:
+        default: /story-6f89f/us-central1
+  - url: http://127.0.0.1:5001/story-6f89f/us-central1
+    description: Firebase Emulator URL (story-6f89f fixed)
+  - url: https://us-central1-your-project-id.cloudfunctions.net
+    description: Firebase production URL
+
+tags:
+  - name: Auth
+  - name: Story
+  - name: Jobs
+  - name: AI
+  - name: Chat
+  - name: Books
+  - name: Images
+  - name: Competition
+  - name: Admin
+  - name: Utility
+
+security: []
+
+paths:
+  /authenticate:
+    post:
+      tags: [Auth]
+      summary: Sign in with email/password via Firebase Auth REST proxy
+      operationId: authenticate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Auth tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /generateStory:
+    post:
+      tags: [Story, AI]
+      summary: Queue asynchronous story generation job
+      operationId: generateStory
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId]
+              properties:
+                storyId:
+                  type: string
+                  description: Story ID owned by the authenticated user
+                genre:
+                  type: string
+                tone:
+                  type: string
+                length:
+                  type: string
+      responses:
+        '202':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuedJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /generateChapter:
+    post:
+      tags: [Story, AI]
+      summary: Queue asynchronous chapter generation job
+      operationId: generateChapter
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, chapterNumber]
+              properties:
+                storyId:
+                  type: string
+                chapterNumber:
+                  type: number
+      responses:
+        '202':
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuedJobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getStoryContext:
+    post:
+      tags: [Story]
+      summary: Get story context bundle
+      operationId: getStoryContext
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId]
+              properties:
+                storyId:
+                  type: string
+      responses:
+        '200':
+          description: Context payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /updateContext:
+    post:
+      tags: [Story]
+      summary: Update a context element for a story
+      operationId: updateContext
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, type, elementId, data]
+              properties:
+                storyId:
+                  type: string
+                type:
+                  type: string
+                  enum: [character, place, plot]
+                elementId:
+                  type: string
+                data:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Update acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /brainstormIdeas:
+    post:
+      tags: [AI]
+      summary: Generate brainstorming ideas for a story
+      operationId: brainstormIdeas
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, type]
+              properties:
+                storyId:
+                  type: string
+                type:
+                  type: string
+                  enum: [characters, plots, places, themes]
+                prompt:
+                  type: string
+                count:
+                  type: number
+                  default: 5
+      responses:
+        '200':
+          description: Generated content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /brainstormCharacter:
+    post:
+      tags: [AI]
+      summary: Generate character ideas for a story
+      operationId: brainstormCharacter
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId]
+              properties:
+                storyId:
+                  type: string
+                role:
+                  type: string
+                archetype:
+                  type: string
+      responses:
+        '200':
+          description: Generated content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /brainstormPlot:
+    post:
+      tags: [AI]
+      summary: Generate plot ideas for a story
+      operationId: brainstormPlot
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId]
+              properties:
+                storyId:
+                  type: string
+                plotType:
+                  type: string
+                  enum: [conflict, twist, subplot, development]
+      responses:
+        '200':
+          description: Generated content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /generateNextLines:
+    post:
+      tags: [AI]
+      summary: Generate continuation text from current editor state
+      operationId: generateNextLines
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, content, cursorPosition]
+              properties:
+                storyId:
+                  type: string
+                content:
+                  type: string
+                cursorPosition:
+                  type: number
+                chapterId:
+                  type: string
+      responses:
+        '200':
+          description: Generated content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /enhanceText:
+    post:
+      tags: [AI]
+      summary: Enhance selected story text
+      operationId: enhanceText
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, action, selectedText]
+              properties:
+                storyId:
+                  type: string
+                action:
+                  type: string
+                  enum: [expand, dialogue, rewrite]
+                selectedText:
+                  type: string
+                  maxLength: 5000
+                chapterId:
+                  type: string
+      responses:
+        '200':
+          description: Enhanced text response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sendChatMessage:
+    post:
+      tags: [Chat, AI]
+      summary: Send a message to story chat assistant
+      operationId: sendChatMessage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId, message]
+              properties:
+                storyId:
+                  type: string
+                chatId:
+                  type: string
+                message:
+                  type: string
+                includeFullContext:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                  chatId:
+                    type: string
+                  contextUsed:
+                    type: object
+                    properties:
+                      chapters:
+                        type: number
+                      characters:
+                        type: number
+                      plots:
+                        type: number
+                      places:
+                        type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getJobStatus/{jobId}:
+    get:
+      tags: [Jobs]
+      summary: Get a single job status
+      operationId: getJobStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job object
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getStoryJobs:
+    post:
+      tags: [Jobs]
+      summary: List all jobs for a story
+      operationId: getStoryJobs
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storyId]
+              properties:
+                storyId:
+                  type: string
+      responses:
+        '200':
+          description: Job list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /searchBooks:
+    get:
+      tags: [Books]
+      summary: Search Google Books
+      operationId: searchBooks
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: maxResults
+          required: false
+          schema:
+            type: string
+            default: '10'
+      responses:
+        '200':
+          description: Google Books API response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getBookDetails:
+    get:
+      tags: [Books]
+      summary: Get Google Book details by volume ID
+      operationId: getBookDetailsByQuery
+      parameters:
+        - in: query
+          name: volumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Google Books volume response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getBookDetails/{volumeId}:
+    get:
+      tags: [Books]
+      summary: Get Google Book details by volume ID in path
+      operationId: getBookDetailsByPath
+      parameters:
+        - in: path
+          name: volumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Google Books volume response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /generateCoverImage:
+    post:
+      tags: [Images]
+      summary: Generate a cover image from prompt
+      operationId: generateCoverImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Generated image payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image:
+                    type: string
+                    description: Base64-encoded PNG image
+                  prompt:
+                    type: string
+                  model:
+                    type: string
+                  generation_time:
+                    type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /joinCompetition:
+    post:
+      tags: [Competition]
+      summary: Join a competition as authenticated user
+      operationId: joinCompetition
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [competitionId]
+              properties:
+                competitionId:
+                  type: string
+      responses:
+        '200':
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  joinedAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation/business rule error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /createUserByAdmin:
+    post:
+      tags: [Admin]
+      summary: Admin-only user provisioning endpoint
+      operationId: createUserByAdmin
+      security:
+        - BearerAuth: []
+      description: "Requires Firebase custom claim `admin: true` on caller token."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: User created and credentials returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  uid:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  username:
+                    type: string
+                  password:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Existing user or username generation conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /setUserAdmin:
+    post:
+      tags: [Admin]
+      summary: Promote or demote a user by custom admin claim
+      operationId: setUserAdmin
+      security:
+        - BearerAuth: []
+      description: "Requires Firebase custom claim `admin: true` on caller token."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                uid:
+                  type: string
+                isAdmin:
+                  type: boolean
+                  default: true
+              anyOf:
+                - required: [email]
+                - required: [uid]
+      responses:
+        '200':
+          description: Admin claim updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  uid:
+                    type: string
+                  email:
+                    type: string
+                    nullable: true
+                  isAdmin:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getData:
+    get:
+      tags: [Utility]
+      summary: Export stories with nested subcollections
+      operationId: getData
+      responses:
+        '200':
+          description: Story export array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+        '404':
+          description: No stories found
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+    QueuedJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          example: queued
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Authenticated but not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Daily AI usage limit reached
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
