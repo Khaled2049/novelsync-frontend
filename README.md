@@ -219,6 +219,14 @@ yarn build
 firebase deploy
 ```
 
+## Documentation
+
+| Document | Description |
+| --- | --- |
+| [Setup & CI/CD](docs/setup.md) | Firebase Hosting deployment, GitHub Actions, secrets, and SMTP configuration |
+| [Terraform & CI/CD](docs/terraform-setup.md) | Terraform infrastructure, Workload Identity Federation, secret management, and local-vs-production setup |
+| [Local E2E Runbook](docs/runbook.md) | End-to-end local ETH tip flow using Anvil and the contracts repo |
+
 ## License
 
 MIT

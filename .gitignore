@@ -26,4 +26,3 @@ dist-ssr
 cors.json
 .firebase
 public/images/landing/*.png
-AGENTS.md
