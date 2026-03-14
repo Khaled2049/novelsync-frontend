@@ -14,7 +14,7 @@ export interface EditorState {
   activeTab: "chapters" | "ai";
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
-  rightTab: "stats" | "chat";
+  rightTab: "format" | "document";
 }
 
 // Action types
@@ -36,7 +36,7 @@ type EditorAction =
   | { type: "SET_ACTIVE_TAB"; payload: "chapters" | "ai" }
   | { type: "TOGGLE_LEFT_SIDEBAR" }
   | { type: "TOGGLE_RIGHT_SIDEBAR" }
-  | { type: "SET_RIGHT_TAB"; payload: "stats" | "chat" }
+  | { type: "SET_RIGHT_TAB"; payload: "format" | "document" }
   | { type: "RESET" };
 
 // Initial state
@@ -52,7 +52,7 @@ const initialState: EditorState = {
   activeTab: "chapters",
   leftSidebarOpen: true,
   rightSidebarOpen: false,
-  rightTab: "stats",
+  rightTab: "format",
 };
 
 // Reducer
@@ -224,7 +224,7 @@ export function useEditorState() {
 
       toggleRightSidebar: () => dispatch({ type: "TOGGLE_RIGHT_SIDEBAR" }),
 
-      setRightTab: (tab: "stats" | "chat") =>
+      setRightTab: (tab: "format" | "document") =>
         dispatch({ type: "SET_RIGHT_TAB", payload: tab }),
 
       reset: () => dispatch({ type: "RESET" }),

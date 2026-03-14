@@ -36,6 +36,8 @@ export function useAutosave({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestContentRef = useRef<string>("");
   const isSavingRef = useRef(false);
+  const hasQueuedSaveRef = useRef(false);
+  const lastSavedRef = useRef<Date | null>(null);
 
   const cancelPendingSave = useCallback(() => {
     if (timerRef.current) {
@@ -47,32 +49,64 @@ export function useAutosave({
   const resetSaveState = useCallback(() => {
     setSaveState({ status: "idle", lastSaved: null });
     setIsDirty(false);
+    lastSavedRef.current = null;
   }, []);
+
+  const runSave = useCallback(
+    async (initialContent: string) => {
+      let contentToSave = initialContent;
+
+      while (enabled) {
+        isSavingRef.current = true;
+        setSaveState((prev) => ({ ...prev, status: "saving" }));
+
+        try {
+          await onSave(contentToSave);
+          const now = new Date();
+          lastSavedRef.current = now;
+
+          if (hasQueuedSaveRef.current) {
+            hasQueuedSaveRef.current = false;
+            contentToSave = latestContentRef.current;
+            continue;
+          }
+
+          setSaveState({ status: "saved", lastSaved: now });
+          setIsDirty(false);
+          return;
+        } catch (error) {
+          setSaveState({
+            status: "error",
+            lastSaved: lastSavedRef.current,
+            errorMessage:
+              error instanceof Error ? error.message : "Save failed",
+          });
+          return;
+        } finally {
+          isSavingRef.current = false;
+        }
+      }
+    },
+    [enabled, onSave]
+  );
 
   const forceSave = useCallback(
     async (content: string) => {
       cancelPendingSave();
-      if (!enabled || isSavingRef.current) return;
+      if (!enabled) return;
 
-      isSavingRef.current = true;
-      setSaveState((prev) => ({ ...prev, status: "saving" }));
+      latestContentRef.current = content;
 
-      try {
-        await onSave(content);
-        setSaveState({ status: "saved", lastSaved: new Date() });
-        setIsDirty(false);
-      } catch (error) {
-        setSaveState({
-          status: "error",
-          lastSaved: saveState.lastSaved,
-          errorMessage:
-            error instanceof Error ? error.message : "Save failed",
-        });
-      } finally {
-        isSavingRef.current = false;
+      if (isSavingRef.current) {
+        hasQueuedSaveRef.current = true;
+        setIsDirty(true);
+        setSaveState((prev) => ({ ...prev, status: "pending" }));
+        return;
       }
+
+      await runSave(content);
     },
-    [onSave, enabled, cancelPendingSave, saveState.lastSaved]
+    [runSave, enabled, cancelPendingSave]
   );
 
   const triggerSave = useCallback(

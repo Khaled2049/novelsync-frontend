@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -u
+
+ports="4000 5001 5033 8080 8085 9000 9099 9199"
+
+kill_port() {
+  port="$1"
+
+  if command -v lsof >/dev/null 2>&1; then
+    pids=$(lsof -ti tcp:"$port" || true)
+  elif command -v fuser >/dev/null 2>&1; then
+    pids=$(fuser "$port"/tcp 2>/dev/null || true)
+  else
+    echo "Skipping port $port: neither lsof nor fuser is available."
+    return
+  fi
+
+  if [ -z "$pids" ]; then
+    echo "Port $port is already free."
+    return
+  fi
+
+  echo "Killing port $port: $pids"
+  if kill $pids 2>/dev/null || kill -9 $pids 2>/dev/null; then
+    return
+  fi
+
+  echo "Could not kill process on port $port. Try again with sufficient permissions."
+}
+
+for port in $ports; do
+  kill_port "$port"
+done

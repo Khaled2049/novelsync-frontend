@@ -38,7 +38,10 @@ const BookClubCard = ({
       className="group relative cursor-pointer border-b border-neutral-200 dark:border-neutral-800 py-8 md:py-10 transition-colors duration-300 hover:border-dark-green dark:hover:border-light-green"
     >
       {/* Left accent bar */}
-      <div className="absolute left-0 top-0 h-full w-[2px] bg-dark-green dark:bg-light-green origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+      <div
+        className="absolute left-0 top-0 h-full w-[2px] bg-dark-green dark:bg-light-green origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300"
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+      />
 
       <div className="flex items-start gap-5 md:gap-8 pl-5 md:pl-7">
         {/* Index number */}

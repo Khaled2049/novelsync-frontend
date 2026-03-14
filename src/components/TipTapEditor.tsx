@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent, BubbleMenu, Editor } from "@tiptap/react";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -12,13 +6,20 @@ import Text from "@tiptap/extension-text";
 import Bold from "@tiptap/extension-bold";
 import Underline from "@tiptap/extension-underline";
 import Italic from "@tiptap/extension-italic";
+import Strike from "@tiptap/extension-strike";
 import Image from "@tiptap/extension-image";
 import CharacterCount from "@tiptap/extension-character-count";
 import Heading from "@tiptap/extension-heading";
 import History from "@tiptap/extension-history";
 import Placeholder from "@tiptap/extension-placeholder";
 import BulletList from "@tiptap/extension-bullet-list";
+import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
+import Blockquote from "@tiptap/extension-blockquote";
+import HorizontalRule from "@tiptap/extension-horizontal-rule";
+import Link from "@tiptap/extension-link";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
@@ -34,6 +35,13 @@ import { enhanceText } from "@/api/textEnhancementApi";
 import { SaveStatusIndicator } from "@/components/SaveStatusIndicator";
 import { SaveState } from "@/hooks/useAutosave";
 import { storiesRepo } from "@/services/StoriesRepo";
+import {
+  FontFamilyExtension,
+  FontSizeExtension,
+  HighlightColorExtension,
+  ParagraphStyleExtension,
+  TextAlignExtension,
+} from "@/components/editorExtensions";
 
 const limit = 50000;
 
@@ -46,8 +54,6 @@ interface TipTapEditorProps {
   storyId: string;
   chapterId?: string;
   onEditorReady?: (editor: Editor | null) => void;
-  onPageCountChange?: (pageCount: number) => void;
-  zoomLevel?: number;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -59,7 +65,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   storyId,
   chapterId,
   onEditorReady,
-  zoomLevel = 100,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -167,12 +172,18 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           throw new Error("Generated chapter content was empty.");
         }
 
-        editorInstance.chain().focus().setContent(generatedChapter.content).run();
+        editorInstance
+          .chain()
+          .focus()
+          .setContent(generatedChapter.content)
+          .run();
         await incrementAiUsage();
       } catch (error) {
         console.error("Error generating chapter:", error);
         const errorMessage =
-          error instanceof Error ? error.message : "Failed to generate chapter.";
+          error instanceof Error
+            ? error.message
+            : "Failed to generate chapter.";
         alert(errorMessage);
       } finally {
         setIsGenerating(false);
@@ -226,7 +237,15 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       Bold,
       Underline,
       Italic,
+      Strike,
       Image,
+      TextStyle,
+      Color,
+      FontFamilyExtension,
+      FontSizeExtension,
+      HighlightColorExtension,
+      TextAlignExtension,
+      ParagraphStyleExtension,
       LiteralTab,
       SlashCommandsExtension,
       CharacterCount.configure({
@@ -247,6 +266,16 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         HTMLAttributes: {
           class: "list-disc",
         },
+      }),
+      OrderedList.configure({
+        HTMLAttributes: {
+          class: "list-decimal",
+        },
+      }),
+      Blockquote,
+      HorizontalRule,
+      Link.configure({
+        openOnClick: false,
       }),
       ListItem,
     ],
@@ -411,45 +440,34 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       </BubbleMenu>
 
-      {/* Pageless editor container */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 flex justify-center">
-        <div
-          className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 min-h-[calc(100vh-200px)] transition-all duration-200"
-          style={{
-            zoom: zoomLevel / 100,
-            width: "800px",
-          }}
-        >
-          <div className="px-16 py-12">
-            <EditorContent
-              onClick={() => editor.commands.focus()}
-              className="w-full focus:outline-none prose prose-lg dark:prose-invert max-w-none"
-              editor={editor}
-            />
-          </div>
+      <div className="w-full bg-ns-elevated text-ns-ink transition-colors">
+        <div className="mx-auto w-full max-w-4xl px-6 py-10 sm:px-10 lg:px-16">
+          <EditorContent
+            onClick={() => editor.commands.focus()}
+            className="w-full focus:outline-none max-w-none"
+            editor={editor}
+          />
         </div>
-      </div>
-
-      {/* Save Status - Below the page */}
-      <div className="flex justify-center py-4">
-        <SaveStatusIndicator
-          status={saveState.status}
-          lastSaved={saveState.lastSaved}
-          errorMessage={saveState.errorMessage}
-          isOnline={isOnline}
-        />
+        <div className="flex justify-center px-6 pb-6">
+          <SaveStatusIndicator
+            status={saveState.status}
+            lastSaved={saveState.lastSaved}
+            errorMessage={saveState.errorMessage}
+            isOnline={isOnline}
+          />
+        </div>
       </div>
 
       {/* Loading indicator for generation */}
       {isGenerating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+          <div className="bg-ns-elevated border border-ns-border rounded-lg p-6 shadow-xl transition-colors">
             <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dark-green"></div>
-                <span className="text-gray-900 dark:text-white">Generating...</span>
-              </div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ns-accent"></div>
+              <span className="text-ns-ink">Generating...</span>
             </div>
           </div>
+        </div>
       )}
 
       {/* Suggestion Menu */}

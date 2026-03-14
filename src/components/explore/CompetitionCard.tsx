@@ -82,7 +82,8 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
     >
       {/* Left accent bar */}
       <div
-        className={`absolute left-0 top-0 h-full w-[2px] origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${meta.barClass}`}
+        className={`absolute left-0 top-0 h-full w-[2px] origin-top scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ${meta.barClass}`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
       />
 
       <div className="flex items-start gap-5 md:gap-8 pl-5 md:pl-7">

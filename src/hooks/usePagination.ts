@@ -8,7 +8,7 @@ export const PAGE_CONFIG = {
   paddingVertical: 72,     // 0.75 inch margins top/bottom
   paddingHorizontal: 72,   // 0.75 inch margins left/right
   contentHeight: 912,      // height - (padding * 2)
-  pageGap: 24,             // Gap between pages
+  pageGap: 24,
 };
 
 export interface PageInfo {
