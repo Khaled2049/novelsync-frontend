@@ -27,7 +27,7 @@ NovelSync is split across three repositories:
 - Optional local image generation module lives in `image-generation/`.
 - Infrastructure-as-code is in `terraform/`; CI/CD workflows in `.github/workflows/`.
 - Python dependencies: `requirements.txt` (full, includes ML libs) and `requirements-prod.txt` (Cloud Run-optimised, no ML libs).
-- See `DEPLOYMENT.md` for full GCP + Terraform + GitHub Actions deployment guide.
+- See `../novelsync-agents/docs/deployment.md` for the agents deployment guide.
 
 ### contracts
 
@@ -97,5 +97,5 @@ NovelSync is split across three repositories:
 
 - Copy `.env.example` for local setup; never commit secrets in `.env` or `terraform.tfvars`.
 - Keep Firebase rule changes (`firestore.rules`, `storage.rules`) explicit in PR notes due to production impact.
-- **Agents**: API keys (Google AI Studio) must be stored in GCP Secret Manager and as GitHub Actions secrets — never in code or Terraform files. See `DEPLOYMENT.md`.
+- **Agents**: API keys (Google AI Studio) must be stored in GCP Secret Manager and as GitHub Actions secrets — never in code or Terraform files. See `../novelsync-agents/docs/deployment.md`.
 - **Contracts**: `PRIVATE_KEY` and `RPC_URL` go in `contracts/.env` only; never commit them.
