@@ -1,4 +1,4 @@
-import axiosInstance from "./index";
+import api from "./index";
 import { SendChatMessageRequest, SendChatMessageResponse } from "@/types/IChat";
 
 /**
@@ -12,7 +12,7 @@ export const sendChatMessage = async (
   request: SendChatMessageRequest
 ): Promise<SendChatMessageResponse> => {
   try {
-    const response = await axiosInstance.post<SendChatMessageResponse>(
+    const response = await api.post<SendChatMessageResponse>(
       "/sendChatMessage",
       request
     );

@@ -1,4 +1,4 @@
-import axiosInstance from "./index";
+import api from "./index";
 
 export interface BrainstormIdeasRequest {
   storyId: string;
@@ -90,7 +90,7 @@ export const brainstormIdeas = async (
   request: BrainstormIdeasRequest,
 ): Promise<BrainstormIdeasResponse> => {
   try {
-    const response = await axiosInstance.post<BrainstormIdeasResponse>(
+    const response = await api.post<BrainstormIdeasResponse>(
       "/brainstormIdeas",
       request,
     );
@@ -113,7 +113,7 @@ export const generateNextLines = async (
   request: GenerateNextLinesRequest,
 ): Promise<GenerateNextLinesResponse> => {
   try {
-    const response = await axiosInstance.post<GenerateNextLinesResponse>(
+    const response = await api.post<GenerateNextLinesResponse>(
       "/generateNextLines",
       request,
     );
@@ -142,7 +142,7 @@ export const generateChapter = async (
   request: GenerateChapterRequest,
 ): Promise<GenerateChapterStartResponse> => {
   try {
-    const response = await axiosInstance.post<GenerateChapterStartResponse>(
+    const response = await api.post<GenerateChapterStartResponse>(
       "/generateChapter",
       request,
     );
@@ -174,7 +174,7 @@ export const getJobStatus = async (jobId: string): Promise<GenerationJob> => {
       endpoint: `/getJobStatus/${encodedJobId}`,
     });
 
-    const response = await axiosInstance.get<GenerationJob>(
+    const response = await api.get<GenerationJob>(
       `/getJobStatus/${encodedJobId}`,
     );
     console.debug("[generateChapter] job status response", response.data);
@@ -185,7 +185,7 @@ export const getJobStatus = async (jobId: string): Promise<GenerationJob> => {
       console.debug("[generateChapter] retrying job status with query param", {
         jobId,
       });
-      const fallbackResponse = await axiosInstance.get<GenerationJob>(
+      const fallbackResponse = await api.get<GenerationJob>(
         `/getJobStatus`,
         { params: { jobId } },
       );

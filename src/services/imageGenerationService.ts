@@ -3,7 +3,7 @@
  * Handles both local development (Python API) and production (Firebase Function + Replicate).
  */
 
-import axiosInstance from "@/api/index";
+import api from "@/api/index";
 
 const LOCAL_API_URL = "http://localhost:8000/generate-cover";
 const isDevelopment = import.meta.env.MODE === "development";
@@ -77,31 +77,22 @@ export async function generateCover(
       response = await fetchResponse.json();
     } else {
       try {
-        const axiosResponse = await axiosInstance.post<GenerateCoverResponse>(
+        const apiResponse = await api.post<GenerateCoverResponse>(
           "/generateCoverImage",
           { prompt: prompt.trim() }
         );
-        response = axiosResponse.data;
-      } catch (axiosError: any) {
-        console.error("Axios error details:", {
-          message: axiosError.message,
-          response: axiosError.response?.data,
-          status: axiosError.response?.status,
-          statusText: axiosError.response?.statusText,
+        response = apiResponse.data;
+      } catch (err: unknown) {
+        const apiError = err as { message?: string; response?: { data?: { error?: string } } };
+        console.error("API error details:", {
+          message: apiError.message,
+          response: apiError.response?.data,
         });
 
-        // Extract error message from response
-        if (axiosError.response?.data?.error) {
-          throw new Error(axiosError.response.data.error);
+        if (apiError.response?.data?.error) {
+          throw new Error(apiError.response.data.error);
         }
-        if (axiosError.response?.status) {
-          throw new Error(
-            `Server error: ${axiosError.response.status} - ${
-              axiosError.response.statusText || "Unknown error"
-            }`
-          );
-        }
-        throw axiosError;
+        throw err;
       }
     }
 

@@ -1,7 +1,6 @@
 /** Service for communicating with the Python agent. */
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
-import axios, { AxiosError } from "axios";
 import { GoogleAuth } from "google-auth-library";
 
 const agentServiceUrlParam = defineString("AGENT_SERVICE_URL", {
@@ -32,6 +31,21 @@ function getAgentServiceUrl(): string {
 
 // Initialize Auth only if not local
 const auth = isLocalDevelopment ? null : new GoogleAuth();
+
+class FetchError extends Error {
+  code?: string;
+  response?: { status: number; statusText: string; data: unknown };
+
+  constructor(
+    message: string,
+    options?: { code?: string; response?: { status: number; statusText: string; data: unknown } }
+  ) {
+    super(message);
+    this.name = "FetchError";
+    this.code = options?.code;
+    this.response = options?.response;
+  }
+}
 
 /**
  * Get an identity token for Cloud Run authentication.
@@ -86,48 +100,66 @@ export async function callAgent(
       requestSize: JSON.stringify(request).length,
     });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000);
+
     const startTime = Date.now();
-    const response = await axios.post(
-      `${agentUrl}/agent/execute`,
-      request,
-      {
+    let rawResponse: Response;
+    try {
+      rawResponse = await fetch(`${agentUrl}/agent/execute`, {
+        method: "POST",
         headers,
-        timeout: 300000,
-      },
-    );
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
     const duration = Date.now() - startTime;
+    const responseData: unknown = await rawResponse.json().catch(() => null);
+
+    if (!rawResponse.ok) {
+      throw new FetchError(
+        `HTTP ${rawResponse.status} ${rawResponse.statusText}`,
+        {
+          response: {
+            status: rawResponse.status,
+            statusText: rawResponse.statusText,
+            data: responseData,
+          },
+        }
+      );
+    }
 
     logger.info(`Agent service response received for ${action}`, {
-      status: response.status,
-      hasData: !!response.data,
+      status: rawResponse.status,
+      hasData: !!responseData,
       durationMs: duration,
-      responseKeys: response.data ? Object.keys(response.data) : [],
+      responseKeys: responseData && typeof responseData === "object" ? Object.keys(responseData as object) : [],
     });
 
     return {
       success: true,
-      data: response.data,
+      data: responseData,
     };
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      const errorMessage = axiosError.response?.data
-        ? JSON.stringify(axiosError.response.data)
-        : axiosError.message;
+    if (error instanceof FetchError) {
+      const errorMessage = error.response?.data
+        ? JSON.stringify(error.response.data)
+        : error.message;
 
-      // Build detailed error info
       const errorDetails = {
-        code: axiosError.code,
-        status: axiosError.response?.status,
-        statusText: axiosError.response?.statusText,
-        message: axiosError.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
         url: `${agentUrl}/agent/execute`,
         isLocalDevelopment,
       };
 
-      // Check if it's a connection refused error
       if (
-        axiosError.code === "ECONNREFUSED" ||
+        error.code === "ECONNREFUSED" ||
         errorMessage.includes("ECONNREFUSED")
       ) {
         const helpfulError = isLocalDevelopment
@@ -151,7 +183,6 @@ export async function callAgent(
         };
       }
 
-      // Log detailed error information
       logger.error(
         `Agent service error [${action}]: ${errorMessage}`,
         errorDetails,
@@ -160,24 +191,47 @@ export async function callAgent(
       return {
         success: false,
         error: `${errorMessage}${
-          axiosError.code ? ` (${axiosError.code})` : ""
+          error.code ? ` (${error.code})` : ""
         }${
-          axiosError.response?.status
-            ? ` [HTTP ${axiosError.response.status}]`
+          error.response?.status
+            ? ` [HTTP ${error.response.status}]`
             : ""
         }`,
       };
     }
 
-    const genericError = error instanceof Error ? error.message : String(error);
+    // Network errors (ECONNREFUSED, ETIMEDOUT, abort, etc.)
+    const networkError = error instanceof Error ? error : new Error(String(error));
+    const errorMessage = networkError.message;
+
+    if (errorMessage.includes("ECONNREFUSED")) {
+      const helpfulError = isLocalDevelopment
+        ? `Connection refused to ${agentUrl}. ` +
+          `Make sure the Python agent service is running locally on port 8000. ` +
+          `Start it with: cd python && python server.py`
+        : `Connection refused to ${agentUrl}. ` +
+          `This usually means AGENT_SERVICE_URL environment variable is not set ` +
+          `or is set to localhost. Please set it to your Cloud Run service URL ` +
+          `(e.g., https://story-agent-xxxxx.run.app) in Firebase Console → ` +
+          `Functions → Configuration → Environment variables.`;
+
+      logger.error(`Agent service error [${action}]: ${helpfulError}`, {
+        message: errorMessage,
+        url: `${agentUrl}/agent/execute`,
+        isLocalDevelopment,
+      });
+
+      return { success: false, error: helpfulError };
+    }
+
     logger.error(`Error calling agent service: ${action}`, {
-      error: genericError,
+      error: errorMessage,
       url: `${agentUrl}/agent/execute`,
       isLocalDevelopment,
     });
     return {
       success: false,
-      error: genericError,
+      error: errorMessage,
     };
   }
 }

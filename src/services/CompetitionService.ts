@@ -11,8 +11,7 @@ import {
   Timestamp,
   updateDoc,
 } from "firebase/firestore";
-import axios from "axios";
-import api from "@/api";
+import api, { ApiError } from "@/api";
 import { firestore } from "@/config/firebase";
 import {
   CompetitionStatus,
@@ -254,10 +253,10 @@ class CompetitionService {
     try {
       await api.post("/joinCompetition", { competitionId });
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (error instanceof ApiError) {
         const message =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
+          (error.response.data?.error as string) ||
+          (error.response.data?.message as string) ||
           "Failed to join competition";
         throw new Error(message);
       }

@@ -45,7 +45,7 @@ import { plotService } from "@/services/PlotService";
 import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
-import axios from "axios";
+
 
 // Helper to ensure event has all required fields with defaults
 function ensureEventDefaults(
@@ -272,16 +272,13 @@ const PlotTimeline: React.FC = () => {
     }
 
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5001/story-6f89f/us-central1/createContext`,
-        {
-          params: {
-            storyId: storyId,
-          },
-        },
+      const url = new URL(
+        "http://127.0.0.1:5001/story-6f89f/us-central1/createContext",
       );
-
-      const generatedText = response.data.generatedText;
+      url.searchParams.set("storyId", storyId);
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      const generatedText = data.generatedText;
       console.log("Generated text:", generatedText);
     } catch (error) {
       console.error("Error generating plot text:", error);

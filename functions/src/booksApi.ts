@@ -5,10 +5,19 @@
  */
 import { onRequest } from "firebase-functions/v2/https";
 import { corsOptions } from "./corsConfig";
-import axios from "axios";
 
 const BOOKS_API_KEY = process.env.BOOKS_API_KEY;
 const BOOKS_API_BASE_URL = "https://www.googleapis.com/books/v1";
+
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 /**
  * Search books endpoint.
@@ -39,25 +48,24 @@ export const searchBooks = onRequest(corsOptions, async (req, res) => {
       return;
     }
 
-    // Proxy request to Google Books API
-    const response = await axios.get(`${BOOKS_API_BASE_URL}/volumes`, {
-      params: {
-        q: query,
-        key: BOOKS_API_KEY,
-        maxResults: maxResults,
-      },
-      timeout: 10000, // 10 second timeout
-    });
+    const url = new URL(`${BOOKS_API_BASE_URL}/volumes`);
+    url.searchParams.set("q", query);
+    url.searchParams.set("key", BOOKS_API_KEY);
+    url.searchParams.set("maxResults", String(maxResults));
 
-    res.status(200).json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status || 500;
-      const message = error.response?.data?.error?.message || error.message;
-      res.status(status).json({ error: message });
-    } else {
-      res.status(500).json({ error: "Internal server error" });
+    const response = await fetchWithTimeout(url.toString(), 10000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      const message = errorData?.error?.message || response.statusText;
+      res.status(response.status).json({ error: message });
+      return;
     }
+
+    res.status(200).json(await response.json());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -105,25 +113,21 @@ export const getBookDetails = onRequest(corsOptions, async (req, res) => {
       return;
     }
 
-    // Proxy request to Google Books API
-    const response = await axios.get(
-      `${BOOKS_API_BASE_URL}/volumes/${volumeId}`,
-      {
-        params: {
-          key: BOOKS_API_KEY,
-        },
-        timeout: 10000, // 10 second timeout
-      }
-    );
+    const url = new URL(`${BOOKS_API_BASE_URL}/volumes/${volumeId}`);
+    url.searchParams.set("key", BOOKS_API_KEY);
 
-    res.status(200).json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status || 500;
-      const message = error.response?.data?.error?.message || error.message;
-      res.status(status).json({ error: message });
-    } else {
-      res.status(500).json({ error: "Internal server error" });
+    const response = await fetchWithTimeout(url.toString(), 10000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      const message = errorData?.error?.message || response.statusText;
+      res.status(response.status).json({ error: message });
+      return;
     }
+
+    res.status(200).json(await response.json());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    res.status(500).json({ error: message });
   }
 });

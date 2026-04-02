@@ -1,4 +1,4 @@
-import axiosInstance from "./index";
+import api from "./index";
 
 export interface EnhanceTextRequest {
   storyId: string;
@@ -28,7 +28,7 @@ export const enhanceText = async (
   request: EnhanceTextRequest
 ): Promise<EnhanceTextResponse> => {
   try {
-    const response = await axiosInstance.post<EnhanceTextResponse>(
+    const response = await api.post<EnhanceTextResponse>(
       "/enhanceText",
       request
     );

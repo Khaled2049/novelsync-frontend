@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import * as Icons from "./Icons";
 import { Editor } from "@tiptap/react";
 import { LinkModal } from "./LinkModal";
-import axiosInstance from "../api";
+import api from "../api";
 import { List, ZoomIn, ZoomOut } from "lucide-react";
 
 interface EditorHeaderProps {
@@ -41,7 +41,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
   const generateImage = async (prompt: string) => {
     setIsLoading(true);
     try {
-      const response = await axiosInstance.post("/generate", { prompt });
+      const response = await api.post("/generate", { prompt });
       const imageData = response.data.image;
       editor
         .chain()

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import axiosInstance from "../api/index";
+import api from "../api/index";
 
 const GenerateImage = () => {
   const [prompt, setprompt] = useState("");
   const [imageData, setImageData] = useState<string | null>(null);
   const handleGenerate = async () => {
     try {
-      const response = await axiosInstance.post("/generate", { prompt });
+      const response = await api.post("/generate", { prompt });
       const imageData = response.data.image;
       setImageData(imageData);
       // Handle the response data as needed

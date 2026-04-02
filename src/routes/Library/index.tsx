@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SearchIcon } from "lucide-react";
-import axiosInstance from "../../api";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { IBook } from "../../types/IBook";
 
@@ -15,7 +15,7 @@ const Library = () => {
 
   const searchBooks = async () => {
     try {
-      const response = await axiosInstance.get("/searchBooks", {
+      const response = await api.get("/searchBooks", {
         params: {
           q: query,
         },

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import axiosInstance from "../api";
+import api from "../api";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { rateLimitService } from "@/services/RateLimitService";
 
@@ -47,7 +47,7 @@ const BookSearch: React.FC<BookSearchProps> = ({ onBookSelect }) => {
     try {
       setIsSearching(true);
       setError(null);
-      const response = await axiosInstance.get("/searchBooks", {
+      const response = await api.get("/searchBooks", {
         params: {
           q: searchQuery,
           maxResults: 3,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axiosInstance from "../../api";
+import api from "../../api";
 import { SEOHead } from "@/components/SEO/SEOHead";
 import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 
@@ -31,7 +31,7 @@ const BookDetails: React.FC<BookDetailsProps> = () => {
   useEffect(() => {
     const fetchBookDetails = async () => {
       try {
-        const response = await axiosInstance.get("/getBookDetails", {
+        const response = await api.get("/getBookDetails", {
           params: {
             volumeId: id,
           },
