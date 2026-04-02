@@ -6,7 +6,7 @@ const GenerateImage = () => {
   const [imageData, setImageData] = useState<string | null>(null);
   const handleGenerate = async () => {
     try {
-      const response = await api.post("/generate", { prompt });
+      const response = await api.post<{ image: string }>("/generate", { prompt });
       const imageData = response.data.image;
       setImageData(imageData);
       // Handle the response data as needed

@@ -47,7 +47,7 @@ const BookSearch: React.FC<BookSearchProps> = ({ onBookSelect }) => {
     try {
       setIsSearching(true);
       setError(null);
-      const response = await api.get("/searchBooks", {
+      const response = await api.get<{ error?: string; items?: Book[] }>("/searchBooks", {
         params: {
           q: searchQuery,
           maxResults: 3,

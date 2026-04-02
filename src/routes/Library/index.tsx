@@ -15,7 +15,7 @@ const Library = () => {
 
   const searchBooks = async () => {
     try {
-      const response = await api.get("/searchBooks", {
+      const response = await api.get<{ items?: IBook[] }>("/searchBooks", {
         params: {
           q: query,
         },

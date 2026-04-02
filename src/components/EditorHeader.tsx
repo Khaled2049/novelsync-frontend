@@ -41,7 +41,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
   const generateImage = async (prompt: string) => {
     setIsLoading(true);
     try {
-      const response = await api.post("/generate", { prompt });
+      const response = await api.post<{ image: string }>("/generate", { prompt });
       const imageData = response.data.image;
       editor
         .chain()

@@ -31,9 +31,9 @@ const BookDetails: React.FC<BookDetailsProps> = () => {
   useEffect(() => {
     const fetchBookDetails = async () => {
       try {
-        const response = await api.get("/getBookDetails", {
+        const response = await api.get<Book>("/getBookDetails", {
           params: {
-            volumeId: id,
+            volumeId: id as string,
           },
         });
         setBook(response.data);
