@@ -4,7 +4,7 @@
  */
 
 // Application name from environment variable (allows easy rebranding)
-export const APP_NAME = import.meta.env.VITE_APP_NAME || "ScribeOS";
+export const APP_NAME = import.meta.env.VITE_APP_NAME || "thetaletribe";
 
 // Get the base URL from environment or use a default
 const getBaseUrl = () => {
@@ -12,13 +12,13 @@ const getBaseUrl = () => {
     return window.location.origin;
   }
   // Fallback for SSR or build time
-  return import.meta.env.VITE_SITE_URL || "https://scribeos.web.app";
+  return import.meta.env.VITE_SITE_URL || "https://thetaletribe.web.app";
 };
 
 export const SEO_CONFIG = {
   siteName: APP_NAME,
   siteUrl: getBaseUrl(),
-  defaultTitle: `${APP_NAME} - AI-Powered Novel Writing Platform`,
+  defaultTitle: `${APP_NAME} — Where Your Stories Live`,
   defaultDescription:
     "Create, organize, and enhance your stories with AI-powered writing assistants. Join book clubs, discover stories, and connect with writers in a collaborative writing community.",
   defaultKeywords: [

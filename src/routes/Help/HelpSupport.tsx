@@ -10,6 +10,8 @@ import {
   Shield,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const HelpSupport = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -53,6 +55,13 @@ const HelpSupport = () => {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-black text-black dark:text-white py-8 px-4">
+      <SEOHead
+        title={`Help & Support - ${APP_NAME}`}
+        description={`Get help using ${APP_NAME}. Find answers to frequently asked questions about writing, publishing, wallets, and account settings.`}
+        keywords={["help", "support", "FAQ", "how to write", "how to publish"]}
+        url="/help"
+        canonical="/help"
+      />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-12 text-center">

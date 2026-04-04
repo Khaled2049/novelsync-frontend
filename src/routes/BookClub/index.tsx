@@ -7,6 +7,8 @@ import UpdateBookClub from "./UpdateBookClub";
 
 import { useAuthContext } from "../../contexts/AuthContext";
 import { bookClubRepo } from "./bookClubRepo";
+import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const BookClubs = () => {
   const { user } = useAuthContext();
@@ -111,6 +113,13 @@ const BookClubs = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title={`Book Clubs - ${APP_NAME}`}
+        description={`Join reading communities and book clubs on ${APP_NAME}. Read together, discuss stories, and connect with fellow readers.`}
+        keywords={["book clubs", "reading groups", "reading community", "book discussions"]}
+        url="/book-clubs"
+        canonical="/book-clubs"
+      />
       <div className="max-w-4xl mx-auto px-5 md:px-10 py-12 md:py-16">
         {/* Masthead */}
         <header className="mb-2">

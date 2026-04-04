@@ -101,7 +101,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
         <meta name="twitter:site" content={`@${SEO_CONFIG.twitterHandle}`} />
       )}
       {/* Additional Meta Tags */}
-      <meta name="theme-color" content="#f97316" /> {/* Orange-500 */}
+      <meta name="theme-color" content="#B91C1C" />
       <meta name="mobile-web-app-capable" content="yes" />
       <meta
         name="apple-mobile-web-app-status-bar-style"

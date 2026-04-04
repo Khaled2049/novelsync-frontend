@@ -1,5 +1,5 @@
-# robots.txt for NovelSync
-# https://novelsync.web.app/robots.txt
+# robots.txt for TheTaleTribe
+# https://thetaletribe.web.app/robots.txt
 
 User-agent: *
 Allow: /
@@ -25,4 +25,4 @@ Allow: /privacy-policy
 Allow: /terms-of-use
 
 # Sitemap location
-Sitemap: https://novelsync.web.app/sitemap.xml
+Sitemap: https://thetaletribe.web.app/sitemap.xml

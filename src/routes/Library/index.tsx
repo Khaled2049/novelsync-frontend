@@ -3,6 +3,8 @@ import { SearchIcon } from "lucide-react";
 import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { IBook } from "../../types/IBook";
+import { SEOHead } from "@/components/SEO/SEOHead";
+import { APP_NAME } from "@/config/seo";
 
 const Library = () => {
   const [query, setQuery] = useState<string>("");
@@ -28,6 +30,13 @@ const Library = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen  p-4">
+      <SEOHead
+        title={`Library - ${APP_NAME}`}
+        description={`Search and discover books in the ${APP_NAME} library. Find your next great read.`}
+        keywords={["library", "book search", "discover books", "reading list"]}
+        url="/library"
+        canonical="/library"
+      />
       {/* Search Bar */}
       <div className="w-full max-w-md mb-8">
         <div className="flex items-center border  rounded-lg shadow-md ">
