@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Loader, Lightbulb } from "lucide-react";
-import { brainstormIdeas, BrainstormIdeasRequest } from "../api/brainstormApi";
+import { brainstormIdeas, BrainstormIdeasRequest } from "../../api/brainstormApi";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 
 interface BrainstormIdeasProps {

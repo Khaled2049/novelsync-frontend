@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
+import { useFirebaseAuth } from "../../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
-import { useAuthContext } from "../../contexts/AuthContext";
+import { useAuthContext } from "../../../contexts/AuthContext";
 import { useState } from "react";
 import { Shield, HelpCircle, BookOpen, LogOut, X, Loader2 } from "lucide-react";
 import { useWalletState } from "@/hooks/useWalletState";

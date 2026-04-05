@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useRef, useEffect, RefObject, useState } from "react";
-import { useFirebaseAuth } from "../../hooks/useFirebaseAuth";
+import { useFirebaseAuth } from "../../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { useWalletState } from "@/hooks/useWalletState";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import {
   LogOut,
   Loader2,
 } from "lucide-react";
-import { IUser } from "../../types/IUser";
+import { IUser } from "../../../types/IUser";
 
 interface UserDropdownProps {
   isOpen: boolean;

@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { useAuthContext } from "../contexts/AuthContext";
+import { useAuthContext } from "../../contexts/AuthContext";
 import { useState, useRef } from "react";
 import { Loader, Menu, User } from "lucide-react";
-import { WalletConnectButton } from "./WalletConnectButton";
+import { WalletConnectButton } from "../web3/WalletConnectButton";
 import UserDropdown from "./navbar/UserDropdown";
 import MobileMenu from "./navbar/MobileMenu";
-import { APP_NAME } from "../config/seo";
+import { APP_NAME } from "../../config/seo";
 
 const Navbar = () => {
   const { user, loading } = useAuthContext();

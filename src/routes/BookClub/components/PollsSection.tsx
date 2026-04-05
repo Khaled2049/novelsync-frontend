@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import BookSearch from "@/components/BookSearch";
+import BookSearch from "@/components/common/BookSearch";
 import { RATE_LIMITS } from "@/config/rateLimits";
 import { rateLimitService } from "@/services/RateLimitService";
 

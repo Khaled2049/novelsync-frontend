@@ -50,6 +50,7 @@ export const SlashCommandExtension = Extension.create({
 export const slashCommandSuggestion = (
   onGenerateNextLine: () => Promise<void>,
   onGenerateChapter: () => Promise<void>,
+  onGenerateImage: () => void,
 ): Partial<SuggestionOptions> => ({
   char: "/",
   pluginKey: new PluginKey("slashCommand"),
@@ -72,6 +73,15 @@ export const slashCommandSuggestion = (
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateChapter();
+        },
+      },
+      {
+        title: "Generate Image",
+        description: "AI generates an image from your description",
+        icon: "✨",
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).run();
+          onGenerateImage();
         },
       },
       {

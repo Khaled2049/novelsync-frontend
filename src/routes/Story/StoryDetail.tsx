@@ -14,7 +14,7 @@ import { StoryAuthorBio } from "./components/StoryAuthorBio";
 import { StoryCommentsSection } from "./components/StoryCommentsSection";
 import { ChapterReader } from "./components/reader/ChapterReader";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl } from "@/config/seo";
 
 interface StoryDetailState {

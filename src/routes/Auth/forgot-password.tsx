@@ -2,7 +2,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_NAME } from "@/config/seo";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");

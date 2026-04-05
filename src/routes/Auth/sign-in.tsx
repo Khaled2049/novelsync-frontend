@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 
 const Signin: React.FC = () => {

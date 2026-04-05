@@ -1,4 +1,4 @@
-import "./style.css";
+import "../style.css";
 import { useCallback, useEffect, useState } from "react";
 import {
   AlignCenter,
@@ -28,24 +28,24 @@ import {
 } from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuthContext } from "../contexts/AuthContext";
-import { storiesRepo } from "../services/StoriesRepo";
+import { useAuthContext } from "../../contexts/AuthContext";
+import { storiesRepo } from "../../services/StoriesRepo";
 import { Chapter } from "@/types/IStory";
 
 // Import components
-import { SidebarPanel } from "@/components/SidebarPanel";
-import { TipTapEditor } from "@/components/TipTapEditor";
+import { SidebarPanel } from "@/components/layout/SidebarPanel";
+import { TipTapEditor } from "@/components/editor/TipTapEditor";
 import {
   ConfirmDialog,
   UnsavedChangesDialog,
-} from "@/components/ConfirmDialog";
+} from "@/components/common/ConfirmDialog";
 import { Editor } from "@tiptap/react";
 
 // Import hooks
 import { useEditorState } from "@/hooks/useEditorState";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { FloatingChatButton } from "./chat/FloatingChatButton";
+import { FloatingChatButton } from "../chat/FloatingChatButton";
 
 export function SimpleEditor() {
   const navigate = useNavigate();
@@ -352,6 +352,7 @@ export function SimpleEditor() {
                     isOnline={isOnline}
                     storyId={state.story?.id || ""}
                     chapterId={state.currentChapter?.id || ""}
+                    userId={user?.uid}
                     onEditorReady={setEditor}
                   />
                 </div>

@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, BookOpen } from "lucide-react";
-import { SEOHead } from "@/components/SEO/SEOHead";
-import { WebSiteSchema, OrganizationSchema } from "@/components/SEO/StructuredData";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { WebSiteSchema, OrganizationSchema } from "@/components/seo/StructuredData";
 import { APP_NAME, SEO_CONFIG } from "@/config/seo";
 
 /* ------------------------------------------------------------------ */

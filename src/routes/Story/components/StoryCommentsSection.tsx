@@ -1,6 +1,6 @@
 import React from "react";
-import { CommentInput } from "@/components/CommentInput";
-import { CommentList } from "@/components/CommentList";
+import { CommentInput } from "@/components/community/CommentInput";
+import { CommentList } from "@/components/community/CommentList";
 import { Comment as IComment } from "@/types/IComment";
 import { IUser } from "@/types/IUser";
 

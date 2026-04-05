@@ -1,6 +1,6 @@
 import React from "react";
 import { FeeSplit } from "@/types/tipping";
-import { Card } from "./ui/card";
+import { Card } from "../ui/card";
 
 interface FeePreviewCardProps {
   feeSplit: FeeSplit | null;
