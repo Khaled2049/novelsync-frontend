@@ -9,7 +9,7 @@ import { storiesRepo } from "@/services/StoriesRepo";
 import { userService } from "@/services/UserService";
 import { StoryMetadata } from "@/types/IStory";
 import { EditableField } from "@/components/ui/editable-field";
-import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import {
   User,
   DollarSign,

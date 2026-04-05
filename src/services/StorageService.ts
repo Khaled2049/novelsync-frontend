@@ -9,6 +9,7 @@ import {
 const COVERS_PATH = "book-covers";
 const CHARACTER_ART_PATH = "character-art";
 const PLACE_IMAGE_PATH = "place-images";
+const CHAPTER_IMAGE_PATH = "chapter-images";
 
 class StorageService {
   /**
@@ -63,6 +64,27 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${PLACE_IMAGE_PATH}/${userId}/${placeId}-${Date.now()}.${ext}`;
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type,
+      cacheControl: "public, max-age=31536000",
+    });
+    return getDownloadURL(snapshot.ref);
+  }
+
+  /**
+   * Upload an inline image used inside a chapter to Firebase Storage.
+   * Path: chapter-images/{userId}/{storyId}/{chapterId}-{timestamp}.{ext}
+   * Returns the permanent public download URL.
+   */
+  async uploadChapterImage(
+    file: File,
+    userId: string,
+    storyId: string,
+    chapterId: string
+  ): Promise<string> {
+    const ext = file.type.split("/")[1] || "png";
+    const path = `${CHAPTER_IMAGE_PATH}/${userId}/${storyId}/${chapterId}-${Date.now()}.${ext}`;
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,

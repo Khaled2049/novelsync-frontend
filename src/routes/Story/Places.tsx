@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Place } from "@/types/IPlace";
-import AddPlaceModal from "@/components/places/AddPlaceModal";
+import AddPlaceModal from "@/components/story/places/AddPlaceModal";
 import { placeService } from "@/services/PlaceService";
 import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";

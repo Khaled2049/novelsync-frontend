@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { MessageCircle, Edit2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { IPostComment } from "@/types/IPostComment";
 import { IUser } from "@/types/IUser";
-import VoteButtons from "@/components/VoteButtons";
+import VoteButtons from "@/components/community/VoteButtons";
 import { voteService } from "@/services/VoteService";
 
 interface PostCommentProps {

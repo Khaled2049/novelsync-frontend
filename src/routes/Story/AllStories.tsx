@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { StoryMetadata } from "@/types/IStory";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
-import StoriesHeader from "@/components/StoriesHeader";
+import StoriesHeader from "@/components/story/StoriesHeader";
 
 const CATEGORIES = [
   { id: "all", name: "All", value: "all", symbol: "◆" },

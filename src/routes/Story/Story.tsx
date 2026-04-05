@@ -1,4 +1,4 @@
-import { AIUsageProgressBar } from "@/components/AIUsageProgressBar";
+import { AIUsageProgressBar } from "@/components/common/AIUsageProgressBar";
 import { Outlet, NavLink } from "react-router-dom";
 import { BookOpen, Layers, Users, MapPin } from "lucide-react";
 

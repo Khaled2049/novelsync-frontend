@@ -3,7 +3,7 @@ import { SearchIcon } from "lucide-react";
 import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { IBook } from "../../types/IBook";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 
 const Library = () => {

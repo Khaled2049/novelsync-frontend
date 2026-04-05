@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { TransactionStatus as TxStatus } from "@/types/tipping";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Loader, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 
 interface TransactionStatusProps {

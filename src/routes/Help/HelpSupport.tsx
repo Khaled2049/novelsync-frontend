@@ -10,7 +10,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 
 const HelpSupport = () => {

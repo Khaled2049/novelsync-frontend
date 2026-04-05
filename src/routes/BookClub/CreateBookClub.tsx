@@ -4,7 +4,7 @@ import { IClub } from "../../types/IClub";
 import { IUser } from "../../types/IUser";
 import { ArrowLeft } from "lucide-react";
 import { IBook } from "../../types/IBook";
-import BookSearch from "../../components/BookSearch";
+import BookSearch from "../../components/common/BookSearch";
 
 const CATEGORIES = [
   "Fantasy",

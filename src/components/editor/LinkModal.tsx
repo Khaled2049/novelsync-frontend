@@ -1,6 +1,6 @@
 import ReactModal from "react-modal";
-import * as Icons from "./Icons";
-import { Modal } from "./Modal";
+import * as Icons from "../common/Icons";
+import { Modal } from "../common/Modal";
 
 interface IProps extends ReactModal.Props {
   url: string;

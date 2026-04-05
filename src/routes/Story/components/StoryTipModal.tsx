@@ -5,8 +5,8 @@ import { useTippingContract } from "@/hooks/useTippingContract";
 import { useUSDCApproval } from "@/hooks/useUSDCApproval";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useWalletState } from "@/hooks/useWalletState";
-import { FeePreviewCard } from "@/components/FeePreviewCard";
-import { TransactionStatus } from "@/components/TransactionStatus";
+import { FeePreviewCard } from "@/components/web3/FeePreviewCard";
+import { TransactionStatus } from "@/components/web3/TransactionStatus";
 import { TransactionStatus as TxStatus } from "@/types/tipping";
 import { USDC_ADDRESS } from "@/blockchain/tokens";
 

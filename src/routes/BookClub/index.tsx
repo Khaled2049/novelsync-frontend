@@ -7,7 +7,7 @@ import UpdateBookClub from "./UpdateBookClub";
 
 import { useAuthContext } from "../../contexts/AuthContext";
 import { bookClubRepo } from "./bookClubRepo";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 
 const BookClubs = () => {

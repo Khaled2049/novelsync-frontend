@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useChainId } from "wagmi";
-import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import { userService } from "@/services/UserService";
 import { useWalletState } from "@/hooks/useWalletState";
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 import { useWalletState, WalletState } from "@/hooks/useWalletState";
 

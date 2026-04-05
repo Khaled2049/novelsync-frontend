@@ -23,7 +23,7 @@ import ReadingScheduleSection from "./components/ReadingScheduleSection";
 import DiscussionPromptsSection from "./components/DiscussionPromptsSection";
 import PollsSection from "./components/PollsSection";
 import ReadingProgressTracker from "./components/ReadingProgressTracker";
-import { SEOHead } from "@/components/SEO/SEOHead";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 
 interface MemberInfo {

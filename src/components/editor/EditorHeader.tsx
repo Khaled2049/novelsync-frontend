@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import * as Icons from "./Icons";
+import * as Icons from "../common/Icons";
 import { Editor } from "@tiptap/react";
 import { LinkModal } from "./LinkModal";
-import api from "../api";
+import api from "../../api";
 import { List, ZoomIn, ZoomOut } from "lucide-react";
 
 interface EditorHeaderProps {

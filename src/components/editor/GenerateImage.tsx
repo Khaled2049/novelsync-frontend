@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/index";
+import api from "../../api/index";
 
 const GenerateImage = () => {
   const [prompt, setprompt] = useState("");
