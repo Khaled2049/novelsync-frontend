@@ -89,7 +89,6 @@ const ImageNodeView: React.FC<NodeViewProps> = ({
   const imgRef = useRef<HTMLImageElement>(null);
 
   const layoutClass = getLayoutClasses(displayMode, align);
-  const isInlineMode = displayMode === "inline";
 
   const btnBase =
     "p-1 rounded transition-colors text-ns-ink-secondary hover:text-ns-ink";
@@ -152,7 +151,7 @@ const ImageNodeView: React.FC<NodeViewProps> = ({
     <NodeViewWrapper
       as="figure"
       className={`relative max-w-full ${layoutClass}`}
-      style={isInlineMode ? { display: "inline-block", verticalAlign: "middle" } : undefined}
+      style={isInline ? { display: "inline-block", verticalAlign: "middle" } : undefined}
       data-drag-handle=""
     >
       {selected && (

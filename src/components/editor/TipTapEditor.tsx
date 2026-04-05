@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import Document from "@tiptap/extension-document";
@@ -13,7 +19,12 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { storageService } from "@/services/StorageService";
 import CharacterCount from "@tiptap/extension-character-count";
 import Heading from "@tiptap/extension-heading";
-import { UndoRedo, Gapcursor, Dropcursor, TrailingNode } from "@tiptap/extensions";
+import {
+  UndoRedo,
+  Gapcursor,
+  Dropcursor,
+  TrailingNode,
+} from "@tiptap/extensions";
 import Placeholder from "@tiptap/extension-placeholder";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
@@ -33,7 +44,13 @@ import {
   waitForJobCompletion,
 } from "@/api/brainstormApi";
 import { useAiUsage } from "@/contexts/AiUsageContext";
-import { ImageIcon, Loader, Maximize2, MessageSquare, Sparkles } from "lucide-react";
+import {
+  ImageIcon,
+  Loader,
+  Maximize2,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import { generateCover } from "@/services/imageGenerationService";
 import { enhanceText } from "@/api/textEnhancementApi";
 import { SaveStatusIndicator } from "@/components/editor/SaveStatusIndicator";
@@ -48,6 +65,26 @@ import {
 } from "@/components/editor/editorExtensions";
 
 const limit = 50000;
+
+const MAX_CHAPTER_IMAGES = 5;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function countEditorImages(editor: Editor): number {
+  let count = 0;
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === "image") count++;
+  });
+  return count;
+}
+
+function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type))
+    return "Unsupported format. Use JPEG, PNG, or WebP.";
+  if (file.size > MAX_IMAGE_BYTES)
+    return "Image too large. Maximum size is 2 MB.";
+  return null;
+}
 
 interface TipTapEditorProps {
   initialContent: string;
@@ -77,7 +114,13 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const uploadContextRef = useRef({ userId, storyId, chapterId });
   // Ref to the editor instance so callbacks defined before useEditor can access it
   const editorRef = useRef<Editor | null>(null);
+  // Refs for onUpdate callbacks to avoid stale closures in the editor instance
+  const onContentChangeRef = useRef(onContentChange);
+  const debouncedSaveRef = useRef<(content: string) => void>(() => {});
+  // Ref so the paste plugin (created once) can surface errors via React state
+  const pasteErrorRef = useRef<((msg: string) => void) | null>(null);
   uploadContextRef.current = { userId, storyId, chapterId };
+  onContentChangeRef.current = onContentChange;
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestionMenu, setShowSuggestionMenu] = useState(false);
@@ -88,7 +131,11 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const [imagePrompt, setImagePrompt] = useState("");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const { incrementAiUsage, canUseAI } = useAiUsage();
-  // Initialize the AI generator
+  // Keep pasteErrorRef current so the paste plugin (initialized once) can show toasts
+  pasteErrorRef.current = (msg: string) => {
+    setEnhancementError(msg);
+    setTimeout(() => setEnhancementError(""), 3000);
+  };
 
   // Function to call your backend API
   const fetchNextLineSuggestions = useCallback(
@@ -217,16 +264,32 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const handleGenerateImage = useCallback(async () => {
     const editorInstance = editorRef.current;
     if (!editorInstance || !imagePrompt.trim()) return;
+    if (countEditorImages(editorInstance) >= MAX_CHAPTER_IMAGES) {
+      setEnhancementError(`Maximum ${MAX_CHAPTER_IMAGES} images per chapter.`);
+      setTimeout(() => setEnhancementError(""), 3000);
+      return;
+    }
     if (!canUseAI()) {
-      setEnhancementError("Daily AI usage limit reached. Please try again tomorrow.");
+      setEnhancementError(
+        "Daily AI usage limit reached. Please try again tomorrow.",
+      );
       setTimeout(() => setEnhancementError(""), 3000);
       return;
     }
     setIsGeneratingImage(true);
     try {
       const { file } = await generateCover(imagePrompt.trim());
-      const { userId: uid, storyId: sid, chapterId: cid } = uploadContextRef.current;
-      const url = await storageService.uploadChapterImage(file, uid ?? "", sid, cid ?? "");
+      const {
+        userId: uid,
+        storyId: sid,
+        chapterId: cid,
+      } = uploadContextRef.current;
+      const url = await storageService.uploadChapterImage(
+        file,
+        uid ?? "",
+        sid,
+        cid ?? "",
+      );
       await incrementAiUsage();
       editorInstance.chain().focus().setImage({ src: url }).run();
       setImagePromptOpen(false);
@@ -239,17 +302,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       setIsGeneratingImage(false);
     }
   }, [imagePrompt, canUseAI, incrementAiUsage]);
-
-  // Create Tab key extension for AI generation
-  const LiteralTab = Extension.create({
-    name: "literalTab",
-
-    addOptions() {
-      return {
-        cooldown: 5000,
-      };
-    },
-  });
 
   // Paste handler: intercepts clipboard images, uploads to Firebase Storage, inserts URL
   const ImagePasteExtension = useMemo(() => {
@@ -269,8 +321,25 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     event.preventDefault();
                     const file = item.getAsFile();
                     if (!file) continue;
-                    const { userId: uid, storyId: sid, chapterId: cid } =
-                      uploadContextRef.current;
+
+                    const validationError = validateImageFile(file);
+                    if (validationError) {
+                      pasteErrorRef.current?.(validationError);
+                      return true;
+                    }
+
+                    if (countEditorImages(editorInstance) >= MAX_CHAPTER_IMAGES) {
+                      pasteErrorRef.current?.(
+                        `Maximum ${MAX_CHAPTER_IMAGES} images per chapter.`,
+                      );
+                      return true;
+                    }
+
+                    const {
+                      userId: uid,
+                      storyId: sid,
+                      chapterId: cid,
+                    } = uploadContextRef.current;
                     void (async () => {
                       try {
                         const url = await storageService.uploadChapterImage(
@@ -350,7 +419,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       HighlightColorExtension,
       TextAlignExtension,
       ParagraphStyleExtension,
-      LiteralTab,
       SlashCommandsExtension,
       CharacterCount.configure({
         limit,
@@ -386,8 +454,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     content: initialContent,
     onUpdate: ({ editor }) => {
       const content = editor.getHTML();
-      onContentChange(content);
-      debouncedSave(content);
+      onContentChangeRef.current(content);
+      debouncedSaveRef.current(content);
     },
   });
 
@@ -479,6 +547,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     },
     [onSave],
   );
+  debouncedSaveRef.current = debouncedSave;
 
   // Clean up on unmount
   useEffect(() => {
@@ -606,7 +675,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <div className="bg-ns-elevated border border-ns-border rounded-lg shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-ns-accent" />
-              <h2 className="font-heading text-lg text-ns-ink">Generate Image</h2>
+              <h2 className="font-heading text-lg text-ns-ink">
+                Generate Image
+              </h2>
             </div>
             <p className="font-ui text-sm text-ns-ink-secondary">
               Describe the image you want to create.

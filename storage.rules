@@ -10,9 +10,12 @@ service firebase.storage {
       allow read: if true;
     }
 
-    match /chapter-images/{userId}/{allPaths=**} {
+    match /chapter-images/{userId}/{storyId}/{file} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
     match /character-art/{userId}/{allPaths=**} {
