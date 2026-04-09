@@ -38,11 +38,7 @@ import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
-import {
-  generateChapter as generateChapterApi,
-  generateNextLines,
-  waitForJobCompletion,
-} from "@/api/brainstormApi";
+import { InteractiveStoryPanel } from "./InteractiveStoryPanel";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 import {
   ImageIcon,
@@ -51,11 +47,8 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react";
-import { generateCover } from "@/services/imageGenerationService";
-import { enhanceText } from "@/api/textEnhancementApi";
 import { SaveStatusIndicator } from "@/components/editor/SaveStatusIndicator";
 import { SaveState } from "@/hooks/useAutosave";
-import { storiesRepo } from "@/services/StoriesRepo";
 import {
   FontFamilyExtension,
   FontSizeExtension,
@@ -63,28 +56,17 @@ import {
   ParagraphStyleExtension,
   TextAlignExtension,
 } from "@/components/editor/editorExtensions";
+import { useAiSuggestions } from "@/hooks/useAiSuggestions";
+import { useTextEnhancement } from "@/hooks/useTextEnhancement";
+import {
+  useImageGeneration,
+  MAX_CHAPTER_IMAGES,
+  countEditorImages,
+  validateImageFile,
+} from "@/hooks/useImageGeneration";
+import { useCoWrite } from "@/hooks/useCoWrite";
 
 const limit = 50000;
-
-const MAX_CHAPTER_IMAGES = 5;
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-function countEditorImages(editor: Editor): number {
-  let count = 0;
-  editor.state.doc.descendants((node) => {
-    if (node.type.name === "image") count++;
-  });
-  return count;
-}
-
-function validateImageFile(file: File): string | null {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type))
-    return "Unsupported format. Use JPEG, PNG, or WebP.";
-  if (file.size > MAX_IMAGE_BYTES)
-    return "Image too large. Maximum size is 2 MB.";
-  return null;
-}
 
 interface TipTapEditorProps {
   initialContent: string;
@@ -96,6 +78,7 @@ interface TipTapEditorProps {
   chapterId?: string;
   userId?: string;
   onEditorReady?: (editor: Editor | null) => void;
+  openInteractivePanelOnMount?: boolean;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -108,200 +91,79 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   chapterId,
   userId,
   onEditorReady,
+  openInteractivePanelOnMount,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Keep a ref so the paste plugin always reads the current ids without stale closure
+  // Keep a ref so plugins always read the current ids without stale closure
   const uploadContextRef = useRef({ userId, storyId, chapterId });
-  // Ref to the editor instance so callbacks defined before useEditor can access it
   const editorRef = useRef<Editor | null>(null);
-  // Refs for onUpdate callbacks to avoid stale closures in the editor instance
   const onContentChangeRef = useRef(onContentChange);
   const debouncedSaveRef = useRef<(content: string) => void>(() => {});
   // Ref so the paste plugin (created once) can surface errors via React state
   const pasteErrorRef = useRef<((msg: string) => void) | null>(null);
+
   uploadContextRef.current = { userId, storyId, chapterId };
   onContentChangeRef.current = onContentChange;
 
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestionMenu, setShowSuggestionMenu] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhancementError, setEnhancementError] = useState<string>("");
-  const [imagePromptOpen, setImagePromptOpen] = useState(false);
-  const [imagePrompt, setImagePrompt] = useState("");
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const { incrementAiUsage, canUseAI } = useAiUsage();
-  // Keep pasteErrorRef current so the paste plugin (initialized once) can show toasts
-  pasteErrorRef.current = (msg: string) => {
-    setEnhancementError(msg);
-    setTimeout(() => setEnhancementError(""), 3000);
-  };
 
-  // Function to call your backend API
-  const fetchNextLineSuggestions = useCallback(
-    async (editorInstance: Editor) => {
-      setIsGenerating(true);
-      try {
-        const content = editorInstance.getHTML();
-        const cursorPosition = editorInstance.state.selection.from;
-
-        const response = await generateNextLines({
-          storyId,
-          content,
-          cursorPosition,
-          chapterId,
-        });
-
-        await incrementAiUsage();
-
-        let suggestionsArray: string[] = [];
-
-        if (response.data && Array.isArray(response.data.suggestions)) {
-          suggestionsArray = response.data.suggestions;
-        }
-        if (suggestionsArray.length === 0) {
-          alert("No suggestions were generated. Please try again.");
-          return;
-        }
-
-        setSuggestions(suggestionsArray);
-        setShowSuggestionMenu(true);
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        alert("Failed to generate suggestions. Please try again.");
-      } finally {
-        setIsGenerating(false);
-      }
-    },
-    [storyId, chapterId, incrementAiUsage],
-  );
-
-  const generateChapter = useCallback(
-    async (editorInstance: Editor) => {
-      if (!chapterId) {
-        alert("Please select a chapter first.");
-        return;
-      }
-
-      if (!canUseAI()) {
-        alert("Daily AI usage limit reached. Please try again tomorrow.");
-        return;
-      }
-
-      setIsGenerating(true);
-      try {
-        const chapter = await storiesRepo.getChapter(storyId, chapterId);
-        if (!chapter) {
-          throw new Error("Current chapter not found.");
-        }
-
-        const chapterNumber = (chapter.order ?? 0) + 1;
-        console.debug("[generateChapter] starting chapter generation", {
-          storyId,
-          chapterId,
-          chapterNumber,
-          currentChapterTitle: chapter.title,
-        });
-
-        const startResponse = await generateChapterApi({
-          storyId,
-          chapterNumber,
-        });
-        console.debug("[generateChapter] job queued", startResponse);
-
-        const completedJob = await waitForJobCompletion(startResponse.jobId);
-        console.debug("[generateChapter] job completed", completedJob);
-        const generatedChapterId =
-          typeof completedJob.result?.chapterId === "string"
-            ? completedJob.result.chapterId
-            : "";
-
-        if (!generatedChapterId) {
-          throw new Error("No generated chapter was returned.");
-        }
-
-        const generatedChapter = await storiesRepo.getChapter(
-          storyId,
-          generatedChapterId,
-        );
-        console.debug("[generateChapter] fetched generated chapter", {
-          generatedChapterId,
-          title: generatedChapter?.title,
-          hasContent: Boolean(generatedChapter?.content?.trim()),
-        });
-
-        if (!generatedChapter?.content?.trim()) {
-          throw new Error("Generated chapter content was empty.");
-        }
-
-        editorInstance
-          .chain()
-          .focus()
-          .setContent(generatedChapter.content)
-          .run();
-        await incrementAiUsage();
-      } catch (error) {
-        console.error("Error generating chapter:", error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to generate chapter.";
-        alert(errorMessage);
-      } finally {
-        setIsGenerating(false);
-      }
-    },
-    [storyId, chapterId, canUseAI, incrementAiUsage],
-  );
-
-  // Opens the image generation modal (called by the slash command)
-  const openImagePrompt = useCallback(() => {
-    setImagePrompt("");
-    setImagePromptOpen(true);
+  // Timed error banner shared by all AI features and the paste plugin
+  const [editorError, setEditorError] = useState("");
+  const showError = useCallback((msg: string) => {
+    setEditorError(msg);
+    setTimeout(() => setEditorError(""), 3000);
   }, []);
 
-  // Generates an image from the prompt, uploads to Storage, inserts into editor
-  const handleGenerateImage = useCallback(async () => {
-    const editorInstance = editorRef.current;
-    if (!editorInstance || !imagePrompt.trim()) return;
-    if (countEditorImages(editorInstance) >= MAX_CHAPTER_IMAGES) {
-      setEnhancementError(`Maximum ${MAX_CHAPTER_IMAGES} images per chapter.`);
-      setTimeout(() => setEnhancementError(""), 3000);
-      return;
-    }
-    if (!canUseAI()) {
-      setEnhancementError(
-        "Daily AI usage limit reached. Please try again tomorrow.",
-      );
-      setTimeout(() => setEnhancementError(""), 3000);
-      return;
-    }
-    setIsGeneratingImage(true);
-    try {
-      const { file } = await generateCover(imagePrompt.trim());
-      const {
-        userId: uid,
-        storyId: sid,
-        chapterId: cid,
-      } = uploadContextRef.current;
-      const url = await storageService.uploadChapterImage(
-        file,
-        uid ?? "",
-        sid,
-        cid ?? "",
-      );
-      await incrementAiUsage();
-      editorInstance.chain().focus().setImage({ src: url }).run();
-      setImagePromptOpen(false);
-      setImagePrompt("");
-    } catch (err) {
-      console.error("Image generation failed:", err);
-      setEnhancementError("Image generation failed. Please try again.");
-      setTimeout(() => setEnhancementError(""), 3000);
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  }, [imagePrompt, canUseAI, incrementAiUsage]);
+  pasteErrorRef.current = showError;
+
+  // ── Feature hooks ──────────────────────────────────────────────────────────
+
+  const {
+    suggestions,
+    setSuggestions,
+    showSuggestionMenu,
+    setShowSuggestionMenu,
+    isGenerating,
+    fetchNextLineSuggestions,
+    generateChapter,
+  } = useAiSuggestions({ storyId, chapterId, canUseAI, incrementAiUsage });
+
+  const { isEnhancing, handleTextEnhancement } = useTextEnhancement({
+    editor: editorRef.current,
+    storyId,
+    chapterId,
+    canUseAI,
+    incrementAiUsage,
+    onError: showError,
+  });
+
+  const {
+    imagePromptOpen,
+    setImagePromptOpen,
+    imagePrompt,
+    setImagePrompt,
+    isGeneratingImage,
+    openImagePrompt,
+    handleGenerateImage,
+  } = useImageGeneration({
+    editorRef,
+    uploadContextRef,
+    canUseAI,
+    incrementAiUsage,
+    onError: showError,
+  });
+
+  const {
+    isInteractivePanelOpen,
+    setIsInteractivePanelOpen,
+    interactivePanelMode,
+    setInteractivePanelMode,
+    coWriteTurnCount,
+    setCoWriteTurnCount,
+    openCoWrite,
+  } = useCoWrite({ openInteractivePanelOnMount, editor: editorRef.current });
+
+  // ── TipTap extensions ──────────────────────────────────────────────────────
 
   // Paste handler: intercepts clipboard images, uploads to Firebase Storage, inserts URL
   const ImagePasteExtension = useMemo(() => {
@@ -335,11 +197,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                       return true;
                     }
 
-                    const {
-                      userId: uid,
-                      storyId: sid,
-                      chapterId: cid,
-                    } = uploadContextRef.current;
+                    const { userId: uid, storyId: sid, chapterId: cid } =
+                      uploadContextRef.current;
                     void (async () => {
                       try {
                         const url = await storageService.uploadChapterImage(
@@ -369,34 +228,28 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Create Slash Command Extension - memoized to prevent recreation
   const SlashCommandsExtension = useMemo(() => {
     return Extension.create({
       name: "slashCommands",
-
       addProseMirrorPlugins() {
         const editorInstance = this.editor;
         return [
           Suggestion({
             editor: editorInstance,
             ...slashCommandSuggestion(
-              async () => {
-                await fetchNextLineSuggestions(editorInstance);
-              },
-              async () => {
-                await generateChapter(editorInstance);
-              },
-              () => {
-                openImagePrompt();
-              },
+              async () => { await fetchNextLineSuggestions(editorInstance); },
+              async () => { await generateChapter(editorInstance); },
+              () => { openImagePrompt(); },
+              () => { openCoWrite(); },
             ),
           }),
         ];
       },
     });
-  }, [fetchNextLineSuggestions, generateChapter, openImagePrompt]);
+  }, [fetchNextLineSuggestions, generateChapter, openImagePrompt, openCoWrite]);
 
-  // Initialize the editor
+  // ── Editor instance ────────────────────────────────────────────────────────
+
   const editor = useEditor({
     extensions: [
       Document,
@@ -420,9 +273,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       TextAlignExtension,
       ParagraphStyleExtension,
       SlashCommandsExtension,
-      CharacterCount.configure({
-        limit,
-      }),
+      CharacterCount.configure({ limit }),
       Heading.configure({
         levels: [1, 2],
         HTMLAttributes: {
@@ -434,21 +285,11 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         placeholder:
           "Write something already ya silly goose… or type / for commands",
       }),
-      BulletList.configure({
-        HTMLAttributes: {
-          class: "list-disc",
-        },
-      }),
-      OrderedList.configure({
-        HTMLAttributes: {
-          class: "list-decimal",
-        },
-      }),
+      BulletList.configure({ HTMLAttributes: { class: "list-disc" } }),
+      OrderedList.configure({ HTMLAttributes: { class: "list-decimal" } }),
       Blockquote,
       HorizontalRule,
-      Link.configure({
-        openOnClick: false,
-      }),
+      Link.configure({ openOnClick: false }),
       ListItem,
     ],
     content: initialContent,
@@ -459,87 +300,23 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     },
   });
 
-  // Keep editorRef in sync so callbacks defined before useEditor can use it
   editorRef.current = editor;
 
-  // Update editor content when initialContent changes
+  // ── Effects ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (editor && editor.getHTML() !== initialContent) {
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
 
-  // Notify parent when editor is ready
   useEffect(() => {
-    if (onEditorReady) {
-      onEditorReady(editor);
-    }
+    if (onEditorReady) onEditorReady(editor);
   }, [editor, onEditorReady]);
 
-  // Handle text enhancement (expand, dialogue, rewrite)
-  const handleTextEnhancement = useCallback(
-    async (action: "expand" | "dialogue" | "rewrite") => {
-      if (!editor) return;
-
-      // Check AI limit BEFORE API call
-      if (!canUseAI()) {
-        setEnhancementError(
-          "Daily AI usage limit reached. Please try again tomorrow.",
-        );
-        setTimeout(() => setEnhancementError(""), 3000);
-        return;
-      }
-
-      // Get selected text
-      const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, " ");
-
-      if (!selectedText.trim()) {
-        setEnhancementError("Please select some text first");
-        setTimeout(() => setEnhancementError(""), 3000);
-        return;
-      }
-
-      setIsEnhancing(true);
-      setEnhancementError("");
-
-      try {
-        const response = await enhanceText({
-          storyId,
-          action,
-          selectedText,
-          chapterId,
-        });
-
-        // Increment usage counter
-        await incrementAiUsage();
-
-        // Replace selected text with AI result
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from, to })
-          .insertContentAt(from, response.data.enhancedText)
-          .run();
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to enhance text";
-        setEnhancementError(errorMessage);
-        setTimeout(() => setEnhancementError(""), 3000);
-      } finally {
-        setIsEnhancing(false);
-      }
-    },
-    [editor, storyId, chapterId, canUseAI, incrementAiUsage],
-  );
-
-  // Debounce save function
   const debouncedSave = useCallback(
     (content: string) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         onSave(content);
         debounceTimerRef.current = null;
@@ -549,18 +326,15 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   );
   debouncedSaveRef.current = debouncedSave;
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
 
-  if (!editor) {
-    return null;
-  }
+  if (!editor) return null;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col">
@@ -657,11 +431,30 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         />
       )}
 
-      {/* Error Toast Notification */}
-      {enhancementError && (
+      {/* Error Toast */}
+      {editorError && (
         <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-md">
-          <p className="text-sm">{enhancementError}</p>
+          <p className="text-sm">{editorError}</p>
         </div>
+      )}
+
+      {/* Interactive Co-Write Panel */}
+      {isInteractivePanelOpen && editor && (
+        <InteractiveStoryPanel
+          storyId={storyId}
+          chapterId={chapterId}
+          editor={editor}
+          mode={interactivePanelMode}
+          turnCount={coWriteTurnCount}
+          onClose={() => {
+            setIsInteractivePanelOpen(false);
+            setCoWriteTurnCount(0);
+          }}
+          onChoiceInserted={() => {
+            setInteractivePanelMode("continuation");
+            setCoWriteTurnCount((n) => n + 1);
+          }}
+        />
       )}
 
       {/* Image Generation Modal */}
@@ -675,9 +468,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <div className="bg-ns-elevated border border-ns-border rounded-lg shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-ns-accent" />
-              <h2 className="font-heading text-lg text-ns-ink">
-                Generate Image
-              </h2>
+              <h2 className="font-heading text-lg text-ns-ink">Generate Image</h2>
             </div>
             <p className="font-ui text-sm text-ns-ink-secondary">
               Describe the image you want to create.
@@ -690,9 +481,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
               value={imagePrompt}
               onChange={(e) => setImagePrompt(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
                   void handleGenerateImage();
-                }
                 if (e.key === "Escape") setImagePromptOpen(false);
               }}
             />

@@ -28,10 +28,12 @@ export {
 export { authenticate } from "./authenticate";
 export { getData } from "./getData";
 export { generateNextLines } from "./generateNextLines";
+export { generateStoryChoices } from "./generateStoryChoices";
 export { searchBooks, getBookDetails } from "./booksApi";
 export { generateCoverImage } from "./generateCoverImage";
 export { sendChatMessage } from "./sendChatMessage";
 export { enhanceText } from "./enhanceText";
+export { enhanceWizardInput } from "./enhanceWizardInput";
 export { onInviteApproved } from "./inviteService";
 export { joinCompetition } from "./competitionEndpoints";
 export { createUserByAdmin, setUserAdmin } from "./adminUserService";

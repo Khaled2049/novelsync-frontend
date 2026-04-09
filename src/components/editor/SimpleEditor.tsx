@@ -27,7 +27,7 @@ import {
   Upload,
 } from "lucide-react";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { Chapter } from "@/types/IStory";
@@ -50,6 +50,8 @@ import { FloatingChatButton } from "../chat/FloatingChatButton";
 export function SimpleEditor() {
   const navigate = useNavigate();
   const { storyId } = useParams<{ storyId: string }>();
+  const [searchParams] = useSearchParams();
+  const openInteractivePanelOnMount = searchParams.get("wizard") === "true";
   const { user } = useAuthContext();
 
   // Use the new consolidated state hook
@@ -354,6 +356,7 @@ export function SimpleEditor() {
                     chapterId={state.currentChapter?.id || ""}
                     userId={user?.uid}
                     onEditorReady={setEditor}
+                    openInteractivePanelOnMount={openInteractivePanelOnMount}
                   />
                 </div>
               </div>
