@@ -23,6 +23,7 @@ import {
   Redo2,
   RemoveFormatting,
   Save,
+  Sparkles,
   Undo2,
   Upload,
 } from "lucide-react";
@@ -46,6 +47,8 @@ import { useEditorState } from "@/hooks/useEditorState";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { FloatingChatButton } from "../chat/FloatingChatButton";
+import { useCoWrite } from "@/hooks/useCoWrite";
+import { InteractiveStoryPanel } from "@/components/editor/InteractiveStoryPanel";
 
 export function SimpleEditor() {
   const navigate = useNavigate();
@@ -62,6 +65,15 @@ export function SimpleEditor() {
 
   // Editor instance for header
   const [editor, setEditor] = useState<Editor | null>(null);
+  const {
+    isInteractivePanelOpen,
+    setIsInteractivePanelOpen,
+    interactivePanelMode,
+    setInteractivePanelMode,
+    coWriteTurnCount,
+    setCoWriteTurnCount,
+    openCoWrite,
+  } = useCoWrite({ openInteractivePanelOnMount, editor });
 
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -356,7 +368,7 @@ export function SimpleEditor() {
                     chapterId={state.currentChapter?.id || ""}
                     userId={user?.uid}
                     onEditorReady={setEditor}
-                    openInteractivePanelOnMount={openInteractivePanelOnMount}
+                    onOpenCoWrite={openCoWrite}
                   />
                 </div>
               </div>
@@ -389,10 +401,40 @@ export function SimpleEditor() {
             {/* ── Status Bar ── */}
             {state.currentChapter && (
               <div className="flex-shrink-0 border-t border-ns-border bg-ns-surface">
+                {isInteractivePanelOpen && editor && (
+                  <div className="border-b border-ns-border bg-transparent px-3 py-3 sm:px-4 sm:py-4">
+                    <div className="mx-auto w-full max-w-4xl">
+                      <InteractiveStoryPanel
+                        storyId={state.story?.id || ""}
+                        chapterId={state.currentChapter?.id || ""}
+                        editor={editor}
+                        mode={interactivePanelMode}
+                        turnCount={coWriteTurnCount}
+                        onClose={() => {
+                          setIsInteractivePanelOpen(false);
+                          setCoWriteTurnCount(0);
+                        }}
+                        onChoiceInserted={() => {
+                          setInteractivePanelMode("continuation");
+                          setCoWriteTurnCount((n) => n + 1);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* 3-column grid: left | center | right — right column has padding to clear ThemeToggle */}
                 <div className="grid grid-cols-3 items-center px-4 py-2">
-                  {/* Left: New Chapter + Save */}
+                  {/* Left: Co-Write + New Chapter + Save */}
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={openCoWrite}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Co-Write</span>
+                      <span className="sm:hidden">AI</span>
+                    </button>
                     <button
                       onClick={handleNewChapter}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"

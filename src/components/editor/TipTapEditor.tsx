@@ -38,7 +38,6 @@ import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
-import { InteractiveStoryPanel } from "./InteractiveStoryPanel";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 import {
   ImageIcon,
@@ -64,7 +63,6 @@ import {
   countEditorImages,
   validateImageFile,
 } from "@/hooks/useImageGeneration";
-import { useCoWrite } from "@/hooks/useCoWrite";
 
 const limit = 50000;
 
@@ -78,7 +76,7 @@ interface TipTapEditorProps {
   chapterId?: string;
   userId?: string;
   onEditorReady?: (editor: Editor | null) => void;
-  openInteractivePanelOnMount?: boolean;
+  onOpenCoWrite?: () => void;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -91,7 +89,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   chapterId,
   userId,
   onEditorReady,
-  openInteractivePanelOnMount,
+  onOpenCoWrite,
 }) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a ref so plugins always read the current ids without stale closure
@@ -152,16 +150,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     incrementAiUsage,
     onError: showError,
   });
-
-  const {
-    isInteractivePanelOpen,
-    setIsInteractivePanelOpen,
-    interactivePanelMode,
-    setInteractivePanelMode,
-    coWriteTurnCount,
-    setCoWriteTurnCount,
-    openCoWrite,
-  } = useCoWrite({ openInteractivePanelOnMount, editor: editorRef.current });
 
   // ── TipTap extensions ──────────────────────────────────────────────────────
 
@@ -240,13 +228,13 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
               async () => { await fetchNextLineSuggestions(editorInstance); },
               async () => { await generateChapter(editorInstance); },
               () => { openImagePrompt(); },
-              () => { openCoWrite(); },
+              () => { onOpenCoWrite?.(); },
             ),
           }),
         ];
       },
     });
-  }, [fetchNextLineSuggestions, generateChapter, openImagePrompt, openCoWrite]);
+  }, [fetchNextLineSuggestions, generateChapter, openImagePrompt, onOpenCoWrite]);
 
   // ── Editor instance ────────────────────────────────────────────────────────
 
@@ -436,25 +424,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-md">
           <p className="text-sm">{editorError}</p>
         </div>
-      )}
-
-      {/* Interactive Co-Write Panel */}
-      {isInteractivePanelOpen && editor && (
-        <InteractiveStoryPanel
-          storyId={storyId}
-          chapterId={chapterId}
-          editor={editor}
-          mode={interactivePanelMode}
-          turnCount={coWriteTurnCount}
-          onClose={() => {
-            setIsInteractivePanelOpen(false);
-            setCoWriteTurnCount(0);
-          }}
-          onChoiceInserted={() => {
-            setInteractivePanelMode("continuation");
-            setCoWriteTurnCount((n) => n + 1);
-          }}
-        />
       )}
 
       {/* Image Generation Modal */}
