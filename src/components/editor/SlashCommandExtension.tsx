@@ -51,6 +51,7 @@ export const slashCommandSuggestion = (
   onGenerateNextLine: () => Promise<void>,
   onGenerateChapter: () => Promise<void>,
   onGenerateImage: () => void,
+  onCoWrite: () => void,
 ): Partial<SuggestionOptions> => ({
   char: "/",
   pluginKey: new PluginKey("slashCommand"),
@@ -58,9 +59,18 @@ export const slashCommandSuggestion = (
   items: ({ query }: { query: string }): SlashCommand[] => {
     const commands: SlashCommand[] = [
       {
+        title: "Co-Write",
+        description: "Open interactive storytelling panel",
+        icon: "💬",
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).run();
+          onCoWrite();
+        },
+      },
+      {
         title: "Generate Next Line",
         description: "AI generates suggestions for the next line",
-        icon: "✨",
+        icon: "✍️",
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateNextLine();
@@ -69,7 +79,7 @@ export const slashCommandSuggestion = (
       {
         title: "Generate Chapter",
         description: "AI generates current chapter",
-        icon: "✨",
+        icon: "📖",
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateChapter();
@@ -78,7 +88,7 @@ export const slashCommandSuggestion = (
       {
         title: "Generate Image",
         description: "AI generates an image from your description",
-        icon: "✨",
+        icon: "🖼️",
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           onGenerateImage();

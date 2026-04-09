@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import CoWriteWizard from "./CoWriteWizard";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ import {
   ParsedChapter,
 } from "@/utils/textFileParser";
 
-type Mode = "scratch" | "import";
+type Mode = "scratch" | "import" | "cowrite";
 
 const CATEGORIES: { value: string; label: string }[] = [
   { value: "fiction", label: "Fiction" },
@@ -320,7 +321,20 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </p>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto px-6 py-4">
+        {mode === "cowrite" ? (
+          <div className="flex-grow flex flex-col min-h-0">
+            <CoWriteWizard
+              userId={userId}
+              onClose={onClose}
+              onSuccess={(id) => {
+                onClose();
+                navigate(`/create/${id}?wizard=true`);
+              }}
+            />
+          </div>
+        ) : null}
+
+        <div className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "cowrite" ? "hidden" : ""}`}>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ── Mode toggle ───────────────────────────────────────────────── */}
             <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
@@ -347,6 +361,18 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
               >
                 <Upload className="w-4 h-4" />
                 Import Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange("cowrite")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
+                  mode === "cowrite"
+                    ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white"
+                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                Start with AI
               </button>
             </div>
 
@@ -722,7 +748,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </form>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
+        {mode !== "cowrite" && <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
           <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
             <Button
               type="button"
@@ -753,7 +779,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
               )}
             </Button>
           </div>
-        </DialogFooter>
+        </DialogFooter>}
       </DialogContent>
     </Dialog>
   );

@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { ChatMessage } from "@/types/IChat";
 import { chatService } from "@/services/ChatService";
-import { sendChatMessage } from "@/api/chatApi";
+import { sendChatMessage } from "@/api/chat";
 import { useAuthContext } from "./AuthContext";
 import { useAiUsage } from "./AiUsageContext";
 

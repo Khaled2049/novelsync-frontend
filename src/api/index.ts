@@ -83,3 +83,19 @@ const apiClient = {
 };
 
 export default apiClient;
+
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === "object") {
+    const e = error as {
+      response?: { data?: { error?: string; details?: string } };
+      message?: string;
+    };
+    return (
+      e.response?.data?.error ||
+      e.response?.data?.details ||
+      e.message ||
+      fallback
+    );
+  }
+  return fallback;
+}
