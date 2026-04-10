@@ -16,6 +16,7 @@ import { ChapterReader } from "./components/reader/ChapterReader";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl } from "@/config/seo";
+import { readingProgressService } from "@/services/ReadingProgressService";
 
 interface StoryDetailState {
   story: Story | null;
@@ -189,14 +190,26 @@ const StoryDetail: React.FC = () => {
   );
 
   const handlePrevChapter = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentChapterIndex: Math.max(prev.currentChapterIndex - 1, 0),
-      currentChapter:
-        prev.chapters[Math.max(prev.currentChapterIndex - 1, 0)] || null,
-    }));
+    setState((prev) => {
+      const prevIndex = Math.max(prev.currentChapterIndex - 1, 0);
+      if (id && user && prev.story) {
+        readingProgressService.saveProgress(user.uid, {
+          storyId: id,
+          chapterIndex: prevIndex,
+          storyTitle: prev.story.title,
+          storyAuthor: prev.story.author,
+          coverImageUrl: prev.story.coverImageUrl ?? "",
+          totalChapters: prev.chapters.length,
+        });
+      }
+      return {
+        ...prev,
+        currentChapterIndex: prevIndex,
+        currentChapter: prev.chapters[prevIndex] || null,
+      };
+    });
     window.scrollTo(0, 0);
-  }, []);
+  }, [id, user]);
 
   const handleNextChapter = useCallback(() => {
     setState((prev) => {
@@ -204,6 +217,16 @@ const StoryDetail: React.FC = () => {
         prev.currentChapterIndex + 1,
         prev.chapters.length - 1,
       );
+      if (id && user && prev.story) {
+        readingProgressService.saveProgress(user.uid, {
+          storyId: id,
+          chapterIndex: nextIndex,
+          storyTitle: prev.story.title,
+          storyAuthor: prev.story.author,
+          coverImageUrl: prev.story.coverImageUrl ?? "",
+          totalChapters: prev.chapters.length,
+        });
+      }
       return {
         ...prev,
         currentChapterIndex: nextIndex,
@@ -211,7 +234,7 @@ const StoryDetail: React.FC = () => {
       };
     });
     window.scrollTo(0, 0);
-  }, []);
+  }, [id, user]);
 
   // --- Comment Logic ---
   const handleCommentLike = useCallback(
@@ -285,10 +308,17 @@ const StoryDetail: React.FC = () => {
 
   // --- Effects ---
   useEffect(() => {
-    if (id) {
-      loadStory(id, state.currentChapterIndex);
-    }
-  }, [id, loadStory]);
+    if (!id) return;
+    const init = async () => {
+      let startIndex = 0;
+      if (user) {
+        startIndex = await readingProgressService.getProgress(user.uid, id);
+      }
+      loadStory(id, startIndex);
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => {
     if (!id || !state.currentChapter) {
@@ -484,7 +514,19 @@ const StoryDetail: React.FC = () => {
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => setViewMode("reader")}
+                    onClick={() => {
+                      setViewMode("reader");
+                      if (id && user && state.story) {
+                        readingProgressService.saveProgress(user.uid, {
+                          storyId: id,
+                          chapterIndex: state.currentChapterIndex,
+                          storyTitle: state.story.title,
+                          storyAuthor: state.story.author,
+                          coverImageUrl: state.story.coverImageUrl ?? "",
+                          totalChapters: state.chapters.length,
+                        });
+                      }
+                    }}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
                   >
                     <BookOpen className="w-4 h-4" />

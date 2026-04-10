@@ -404,6 +404,11 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create, update, delete: if false;
       }
+
+      // Reading progress subcollection — private to the owning user
+      match /readingProgress/{storyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
       
       // Nested rules for posts
       match /posts/{postId} {

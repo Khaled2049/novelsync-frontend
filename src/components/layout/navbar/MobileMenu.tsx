@@ -59,7 +59,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const userMenuItems = [
     { icon: Shield, label: "Privacy Policy", to: "/privacy-policy" },
     { icon: HelpCircle, label: "Help & Support", to: "/help" },
-    { icon: BookOpen, label: "My Stories", to: "/user-stories" },
+    { icon: BookOpen, label: "My Shelf", to: "/user-stories" },
   ];
 
   return (

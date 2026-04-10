@@ -111,7 +111,7 @@ const UserDropdown = ({
     },
     {
       icon: BookOpen,
-      label: "My Stories",
+      label: "My Shelf",
       to: "/user-stories",
       onClick: onClose,
     },

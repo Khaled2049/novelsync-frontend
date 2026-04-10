@@ -1,6 +1,6 @@
 // src/components/reader/ChapterReader.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Chapter } from "@/types/IReader";
 import { READER_THEMES } from "../../constants/readerThemes";
@@ -67,6 +67,17 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
   const currentTheme = READER_THEMES[settings.theme];
   const isFirstChapter = currentChapterIndex === 0;
   const isLastChapter = currentChapterIndex === totalChapters - 1;
+
+  // Keyboard chapter navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowLeft" && !isFirstChapter) onPrevChapter();
+      if (e.key === "ArrowRight" && !isLastChapter) onNextChapter();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFirstChapter, isLastChapter, onPrevChapter, onNextChapter]);
 
   // Top bar visibility
   const [showTopBar, setShowTopBar] = useState(true);
