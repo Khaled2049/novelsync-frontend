@@ -114,7 +114,7 @@ const BookDetails: React.FC<BookDetailsProps> = () => {
         description={
           book.volumeInfo.description ||
           `Read ${book.volumeInfo.title} by ${book.volumeInfo.authors?.join(
-            ", "
+            ", ",
           )} on ${APP_NAME} Library.`
         }
         keywords={book.volumeInfo.categories || []}
@@ -148,7 +148,7 @@ const BookDetails: React.FC<BookDetailsProps> = () => {
           </p>
           <div className="text-sm">
             {parseHtmlContent(
-              book.volumeInfo.description || "No description available."
+              book.volumeInfo.description || "No description available.",
             )}
           </div>
           {book.volumeInfo.averageRating && (

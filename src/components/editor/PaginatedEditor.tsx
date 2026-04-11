@@ -1,6 +1,10 @@
-import React, { useEffect } from 'react';
-import { Editor } from '@tiptap/react';
-import { usePagination, PAGE_CONFIG, PaginationState } from '@/hooks/usePagination';
+import React, { useEffect } from "react";
+import { Editor } from "@tiptap/react";
+import {
+  usePagination,
+  PAGE_CONFIG,
+  PaginationState,
+} from "@/hooks/usePagination";
 
 interface PaginatedEditorProps {
   editor: Editor | null;
@@ -31,19 +35,19 @@ export const PaginatedEditor: React.FC<PaginatedEditorProps> = ({
     <div
       className="paginated-editor-container"
       style={{
-        position: 'relative',
+        position: "relative",
         width: `${PAGE_CONFIG.width}px`,
         minHeight: `${totalHeight}px`,
-        margin: '0 auto',
+        margin: "0 auto",
       }}
     >
       {/* Page backgrounds layer */}
       <div
         className="page-backgrounds"
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          pointerEvents: 'none',
+          pointerEvents: "none",
           zIndex: 0,
         }}
       >
@@ -61,7 +65,7 @@ export const PaginatedEditor: React.FC<PaginatedEditorProps> = ({
       <div
         className="editor-content-layer"
         style={{
-          position: 'relative',
+          position: "relative",
           zIndex: 1,
         }}
       >
@@ -86,24 +90,24 @@ const PageBackground: React.FC<PageBackgroundProps> = ({
     <div
       className="page-background"
       style={{
-        position: 'absolute',
+        position: "absolute",
         top: `${topPosition}px`,
         left: 0,
-        width: '100%',
+        width: "100%",
         height: `${PAGE_CONFIG.height}px`,
-        marginBottom: isLastPage ? '0' : `${PAGE_CONFIG.pageGap}px`,
+        marginBottom: isLastPage ? "0" : `${PAGE_CONFIG.pageGap}px`,
       }}
     >
       {/* Page number positioned at bottom right */}
       <div
         className="page-number"
         style={{
-          position: 'absolute',
-          bottom: '24px',
-          right: '48px',
-          fontSize: '11pt',
+          position: "absolute",
+          bottom: "24px",
+          right: "48px",
+          fontSize: "11pt",
           fontFamily: "'Merriweather', Georgia, serif",
-          userSelect: 'none',
+          userSelect: "none",
         }}
       >
         {pageNumber}

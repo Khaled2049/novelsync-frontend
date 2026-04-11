@@ -14,16 +14,14 @@ interface StatisticsDashboardProps {
 export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   stories,
 }) => {
-  
   const totalEthEarnings = stories.reduce(
     (sum, s) => sum + parseFloat(s.earnings?.eth || "0"),
-    0
+    0,
   );
   const totalUsdcEarnings = stories.reduce(
     (sum, s) => sum + parseFloat(s.earnings?.usdc || "0"),
-    0
+    0,
   );
-
 
   return (
     <div className="mb-8">
@@ -73,10 +71,6 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
           </div>
         </div>
       )}
-
-
-
     </div>
   );
 };
-

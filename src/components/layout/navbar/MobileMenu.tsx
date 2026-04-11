@@ -29,7 +29,10 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
         try {
           await disconnectWallet();
         } catch (disconnectError) {
-          console.warn("Wallet disconnect failed during sign-out:", disconnectError);
+          console.warn(
+            "Wallet disconnect failed during sign-out:",
+            disconnectError,
+          );
         }
       }
 

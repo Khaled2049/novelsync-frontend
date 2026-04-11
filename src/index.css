@@ -11,38 +11,37 @@
    ═══════════════════════════════════════════════════════════════ */
 
 @layer base {
-
   /* ─── Light Theme (Daylight Edition) ─── */
   :root {
     /* Surfaces */
-    --ns-bg: #FDFCF9;
-    --ns-surface: #F4F2EC;
-    --ns-surface-hover: #ECE9E0;
-    --ns-elevated: #FFFFFF;
+    --ns-bg: #fdfcf9;
+    --ns-surface: #f4f2ec;
+    --ns-surface-hover: #ece9e0;
+    --ns-elevated: #ffffff;
 
     /* Ink (text) */
-    --ns-ink: #1C1C19;
-    --ns-ink-secondary: #5C5B53;
-    --ns-ink-muted: #9C9B93;
+    --ns-ink: #1c1c19;
+    --ns-ink-secondary: #5c5b53;
+    --ns-ink-muted: #9c9b93;
 
     /* Accent — Vermillion (sealing wax) */
-    --ns-accent: #B91C1C;
-    --ns-accent-hover: #991B1B;
-    --ns-accent-deep: #7F1D1D;
+    --ns-accent: #b91c1c;
+    --ns-accent-hover: #991b1b;
+    --ns-accent-deep: #7f1d1d;
     --ns-accent-subtle: rgba(185, 28, 28, 0.07);
     --ns-accent-glow: rgba(185, 28, 28, 0.15);
 
     /* Gold — secondary accent */
-    --ns-gold: #92400E;
-    --ns-gold-bright: #B45309;
+    --ns-gold: #92400e;
+    --ns-gold-bright: #b45309;
 
     /* Borders */
-    --ns-border: #E5E3DB;
-    --ns-border-strong: #D4D1C6;
+    --ns-border: #e5e3db;
+    --ns-border-strong: #d4d1c6;
 
     /* Destructive */
-    --ns-destructive: #DC2626;
-    --ns-destructive-hover: #B91C1C;
+    --ns-destructive: #dc2626;
+    --ns-destructive-hover: #b91c1c;
 
     /* Shadows — warm tinted */
     --ns-shadow: rgba(28, 28, 25, 0.05);
@@ -50,56 +49,56 @@
 
     /* Ring */
     --ns-ring: rgba(185, 28, 28, 0.35);
-    --ns-ring-offset: #FDFCF9;
+    --ns-ring-offset: #fdfcf9;
 
     /* Selection */
     --ns-selection-bg: rgba(185, 28, 28, 0.12);
-    --ns-selection-text: #1C1C19;
+    --ns-selection-text: #1c1c19;
 
     /* Scrollbar */
-    --ns-scrollbar-track: #F4F2EC;
-    --ns-scrollbar-thumb: #D4D1C6;
-    --ns-scrollbar-thumb-hover: #B8B5AA;
+    --ns-scrollbar-track: #f4f2ec;
+    --ns-scrollbar-thumb: #d4d1c6;
+    --ns-scrollbar-thumb-hover: #b8b5aa;
   }
 
   /* ─── Dark Theme (Midnight Edition) ─── */
   .dark {
-    --ns-bg: #0E0E0D;
+    --ns-bg: #0e0e0d;
     --ns-surface: #191918;
     --ns-surface-hover: #242422;
     --ns-elevated: #222220;
 
-    --ns-ink: #EBEBEA;
-    --ns-ink-secondary: #A3A29C;
-    --ns-ink-muted: #6B6A64;
+    --ns-ink: #ebebea;
+    --ns-ink-secondary: #a3a29c;
+    --ns-ink-muted: #6b6a64;
 
-    --ns-accent: #EF4444;
-    --ns-accent-hover: #DC2626;
-    --ns-accent-deep: #F87171;
+    --ns-accent: #ef4444;
+    --ns-accent-hover: #dc2626;
+    --ns-accent-deep: #f87171;
     --ns-accent-subtle: rgba(239, 68, 68, 0.1);
     --ns-accent-glow: rgba(239, 68, 68, 0.2);
 
-    --ns-gold: #F59E0B;
-    --ns-gold-bright: #FBBF24;
+    --ns-gold: #f59e0b;
+    --ns-gold-bright: #fbbf24;
 
-    --ns-border: #2D2D2B;
-    --ns-border-strong: #3D3D3A;
+    --ns-border: #2d2d2b;
+    --ns-border-strong: #3d3d3a;
 
-    --ns-destructive: #EF4444;
-    --ns-destructive-hover: #DC2626;
+    --ns-destructive: #ef4444;
+    --ns-destructive-hover: #dc2626;
 
     --ns-shadow: rgba(0, 0, 0, 0.25);
     --ns-shadow-strong: rgba(0, 0, 0, 0.45);
 
     --ns-ring: rgba(239, 68, 68, 0.4);
-    --ns-ring-offset: #0E0E0D;
+    --ns-ring-offset: #0e0e0d;
 
     --ns-selection-bg: rgba(239, 68, 68, 0.2);
-    --ns-selection-text: #EBEBEA;
+    --ns-selection-text: #ebebea;
 
     --ns-scrollbar-track: #191918;
-    --ns-scrollbar-thumb: #3D3D3A;
-    --ns-scrollbar-thumb-hover: #4D4D4A;
+    --ns-scrollbar-thumb: #3d3d3a;
+    --ns-scrollbar-thumb-hover: #4d4d4a;
   }
 
   /* ─── Global Resets & Base ─── */
@@ -120,28 +119,50 @@
     @apply font-body;
     background-color: var(--ns-bg);
     color: var(--ns-ink);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
   }
 
   /* ─── Typography Base ─── */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
     color: var(--ns-ink);
     text-wrap: balance;
   }
 
-  h1 { @apply text-display-lg font-light tracking-tight; }
-  h2 { @apply text-display font-normal; }
-  h3 { @apply text-title-lg font-medium; }
-  h4 { @apply text-title font-medium; }
+  h1 {
+    @apply text-display-lg font-light tracking-tight;
+  }
+  h2 {
+    @apply text-display font-normal;
+  }
+  h3 {
+    @apply text-title-lg font-medium;
+  }
+  h4 {
+    @apply text-title font-medium;
+  }
 
   p {
     text-wrap: pretty;
   }
 
   /* UI elements use sans-serif */
-  button, input, select, textarea, label, nav, [role="tab"], [role="menuitem"] {
-    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  nav,
+  [role="tab"],
+  [role="menuitem"] {
+    font-family: "Hanken Grotesk", system-ui, sans-serif;
   }
 
   /* ─── Selection ─── */
@@ -162,7 +183,9 @@
     color: var(--ns-accent);
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
-    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+    transition:
+      color 0.2s ease,
+      text-decoration-color 0.2s ease;
   }
 
   a:hover {
@@ -220,7 +243,7 @@
     align-items: center;
     gap: 1rem;
     color: var(--ns-ink-muted);
-    font-family: 'Cormorant', serif;
+    font-family: "Cormorant", serif;
     font-style: italic;
     font-size: 0.875rem;
   }
@@ -259,13 +282,16 @@
 
   /* ─── Card Hover Lift ─── */
   .ns-lift {
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .ns-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--ns-shadow), 0 20px 60px var(--ns-shadow-strong);
+    box-shadow:
+      0 8px 30px var(--ns-shadow),
+      0 20px 60px var(--ns-shadow-strong);
   }
 
   /* ─── Prose Overrides for Reading ─── */
@@ -307,14 +333,30 @@
   }
 
   /* Stagger animation delays for lists */
-  .ns-stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .ns-stagger > *:nth-child(2) { animation-delay: 60ms; }
-  .ns-stagger > *:nth-child(3) { animation-delay: 120ms; }
-  .ns-stagger > *:nth-child(4) { animation-delay: 180ms; }
-  .ns-stagger > *:nth-child(5) { animation-delay: 240ms; }
-  .ns-stagger > *:nth-child(6) { animation-delay: 300ms; }
-  .ns-stagger > *:nth-child(7) { animation-delay: 360ms; }
-  .ns-stagger > *:nth-child(8) { animation-delay: 420ms; }
+  .ns-stagger > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .ns-stagger > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .ns-stagger > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .ns-stagger > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .ns-stagger > *:nth-child(5) {
+    animation-delay: 240ms;
+  }
+  .ns-stagger > *:nth-child(6) {
+    animation-delay: 300ms;
+  }
+  .ns-stagger > *:nth-child(7) {
+    animation-delay: 360ms;
+  }
+  .ns-stagger > *:nth-child(8) {
+    animation-delay: 420ms;
+  }
 
   /* Warm underline accent */
   .ns-underline {

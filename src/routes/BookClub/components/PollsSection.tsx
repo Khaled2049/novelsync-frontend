@@ -55,7 +55,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
     // Check option limit
     if (newPoll.options.length >= RATE_LIMITS.MAX_POLL_OPTIONS) {
       setError(
-        `Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed per poll`
+        `Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed per poll`,
       );
       return;
     }
@@ -64,7 +64,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
       const optionText = selectedBookForOption.volumeInfo.title;
       if (optionText.length > RATE_LIMITS.MAX_POLL_OPTION_LENGTH) {
         setError(
-          `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`
+          `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`,
         );
         return;
       }
@@ -83,7 +83,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
     } else if (newOptionText.trim()) {
       if (newOptionText.length > RATE_LIMITS.MAX_POLL_OPTION_LENGTH) {
         setError(
-          `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`
+          `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`,
         );
         return;
       }
@@ -113,7 +113,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
     }
     if (newPoll.question.length > RATE_LIMITS.MAX_POLL_QUESTION_LENGTH) {
       setError(
-        `Question is too long. Maximum ${RATE_LIMITS.MAX_POLL_QUESTION_LENGTH} characters allowed.`
+        `Question is too long. Maximum ${RATE_LIMITS.MAX_POLL_QUESTION_LENGTH} characters allowed.`,
       );
       return;
     }
@@ -125,7 +125,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
     }
     if (newPoll.options.length > RATE_LIMITS.MAX_POLL_OPTIONS) {
       setError(
-        `Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed per poll`
+        `Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed per poll`,
       );
       return;
     }
@@ -136,7 +136,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
         setError(
           `Option "${option.text.substring(0, 20)}..." is too long. Maximum ${
             RATE_LIMITS.MAX_POLL_OPTION_LENGTH
-          } characters allowed.`
+          } characters allowed.`,
         );
         return;
       }
@@ -205,7 +205,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
       const rateLimitCheck = await rateLimitService.canChangePollVote(user.uid);
       if (!rateLimitCheck.allowed) {
         setError(
-          rateLimitCheck.message || "Rate limit exceeded for vote changes"
+          rateLimitCheck.message || "Rate limit exceeded for vote changes",
         );
         return;
       }
@@ -365,8 +365,8 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
                               isSelected
                                 ? "border-dark-green dark:border-light-green bg-dark-green/10 dark:bg-light-green/20 hover:bg-dark-green/20 dark:hover:bg-light-green/30"
                                 : userVote !== null
-                                ? "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-dark-green dark:hover:border-light-green"
-                                : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-dark-green dark:hover:border-light-green"
+                                  ? "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-dark-green dark:hover:border-light-green"
+                                  : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-dark-green dark:hover:border-light-green"
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -385,7 +385,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
                                     <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                                       by{" "}
                                       {option.bookData.volumeInfo.authors?.join(
-                                        ", "
+                                        ", ",
                                       )}
                                     </p>
                                   )}
@@ -428,7 +428,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
                     const voteCounts = getVoteCounts(poll);
                     const totalVotes = getTotalVotes(poll);
                     const winningIndex = voteCounts.indexOf(
-                      Math.max(...voteCounts)
+                      Math.max(...voteCounts),
                     );
 
                     return (
@@ -665,7 +665,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
                   newPoll.options.length > RATE_LIMITS.MAX_POLL_OPTIONS ||
                   newPoll.options.some(
                     (opt) =>
-                      opt.text.length > RATE_LIMITS.MAX_POLL_OPTION_LENGTH
+                      opt.text.length > RATE_LIMITS.MAX_POLL_OPTION_LENGTH,
                   )
                 }
                 className="bg-dark-green dark:bg-light-green text-white hover:opacity-90"

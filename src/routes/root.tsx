@@ -4,7 +4,10 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
-import { WebSiteSchema, OrganizationSchema } from "@/components/seo/StructuredData";
+import {
+  WebSiteSchema,
+  OrganizationSchema,
+} from "@/components/seo/StructuredData";
 import { APP_NAME, SEO_CONFIG } from "@/config/seo";
 
 /* ------------------------------------------------------------------ */
@@ -136,7 +139,6 @@ export default function HomePage() {
       <OrganizationSchema />
 
       <div className="min-h-screen bg-ns-bg text-ns-ink ns-grain overflow-x-hidden">
-
         {/* ============================================================ */}
         {/*  HERO                                                         */}
         {/* ============================================================ */}
@@ -149,7 +151,11 @@ export default function HomePage() {
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.6,
+                delay: 0.15,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="font-ui text-overline text-ns-ink-muted mb-8"
             >
               For independent authors
@@ -159,7 +165,11 @@ export default function HomePage() {
             <motion.h1
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.9,
+                delay: 0.3,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="font-heading text-[clamp(3.2rem,8vw,6.5rem)] leading-[0.92] tracking-tight mb-8 max-w-4xl"
             >
               Where your
@@ -171,7 +181,11 @@ export default function HomePage() {
             <motion.p
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.7,
+                delay: 0.5,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="font-body text-body-lg text-ns-ink-secondary max-w-md leading-relaxed mb-12"
             >
               Write your stories. Publish to readers who care.
@@ -183,7 +197,11 @@ export default function HomePage() {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.68, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.6,
+                delay: 0.68,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="flex flex-wrap gap-4 items-center"
             >
               {!user && (
@@ -317,8 +335,8 @@ export default function HomePage() {
               className="font-heading text-[clamp(1.6rem,4vw,2.75rem)] italic leading-snug tracking-tight text-ns-ink max-w-3xl mx-auto mb-10"
             >
               "For writers who publish without permission.
-              <br className="hidden sm:block" />{" "}
-              For readers who want something real."
+              <br className="hidden sm:block" /> For readers who want something
+              real."
             </motion.blockquote>
 
             <motion.div
@@ -373,7 +391,6 @@ export default function HomePage() {
           {/* Bottom accent mirror */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-ns-accent opacity-25" />
         </Section>
-
       </div>
     </>
   );

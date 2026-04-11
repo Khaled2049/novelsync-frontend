@@ -17,14 +17,18 @@ interface PostFeedProps {
   feedType?: FeedType;
 }
 
-const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) => {
+const PostFeed: React.FC<PostFeedProps> = ({
+  currentUser,
+  feedType = "home",
+}) => {
   const [posts, setPosts] = useState<IPost[]>([]);
   const [bookClubs, setBookClubs] = useState<IClub[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [lastDoc, setLastDoc] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const loadingRef = useRef(false);
 
@@ -66,14 +70,14 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
           case "popular":
             result = await postsService.getPopularPosts(
               POSTS_PER_PAGE,
-              isInitialLoad ? undefined : lastDoc || undefined
+              isInitialLoad ? undefined : lastDoc || undefined,
             );
             break;
           case "home":
           default:
             result = await postsService.getTrendingPosts(
               POSTS_PER_PAGE,
-              isInitialLoad ? undefined : lastDoc || undefined
+              isInitialLoad ? undefined : lastDoc || undefined,
             );
             break;
         }
@@ -84,7 +88,10 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
 
         if (currentUser && fetchedPosts.length > 0) {
           const postIds = fetchedPosts.map((p) => p.id);
-          const userVotes = await voteService.getUserVotesForPosts(postIds, currentUser.uid);
+          const userVotes = await voteService.getUserVotesForPosts(
+            postIds,
+            currentUser.uid,
+          );
           fetchedPosts.forEach((post) => {
             post.userVote = userVotes.get(post.id) || null;
           });
@@ -106,7 +113,7 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
         loadingRef.current = false;
       }
     },
-    [feedType, currentUser, lastDoc]
+    [feedType, currentUser, lastDoc],
   );
 
   const { ref: loadMoreRef, inView } = useInView({
@@ -123,7 +130,14 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
   }, [feedType, currentUser?.uid]);
 
   useEffect(() => {
-    if (inView && hasMore && !isLoading && !isLoadingMore && !loadingRef.current && posts.length > 0) {
+    if (
+      inView &&
+      hasMore &&
+      !isLoading &&
+      !isLoadingMore &&
+      !loadingRef.current &&
+      posts.length > 0
+    ) {
       loadPosts(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,13 +173,21 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
         downvoteCount: 0,
       });
       setPosts((prevPosts) =>
-        prevPosts.map((post) => (post.id === tempId ? { ...post, id: postId } : post))
+        prevPosts.map((post) =>
+          post.id === tempId ? { ...post, id: postId } : post,
+        ),
       );
     } catch (err: any) {
       console.error("Error creating post:", err);
       setPosts((prevPosts) => prevPosts.filter((post) => post.id !== tempId));
-      if (err?.code === "RATE_LIMIT_EXCEEDED" || err?.message?.includes("daily limit")) {
-        setError(err.message || "You have reached the daily post limit. Please try again tomorrow.");
+      if (
+        err?.code === "RATE_LIMIT_EXCEEDED" ||
+        err?.message?.includes("daily limit")
+      ) {
+        setError(
+          err.message ||
+            "You have reached the daily post limit. Please try again tomorrow.",
+        );
       } else {
         setError("Failed to create post. Please try again.");
       }
@@ -205,8 +227,12 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
 
       {posts.length === 0 && !isLoading ? (
         <div className="text-center py-16">
-          <p className="font-heading text-title font-light text-ns-ink-muted mb-1">No posts yet</p>
-          <p className="font-ui text-sm text-ns-ink-muted">Be the first to share your thoughts.</p>
+          <p className="font-heading text-title font-light text-ns-ink-muted mb-1">
+            No posts yet
+          </p>
+          <p className="font-ui text-sm text-ns-ink-muted">
+            Be the first to share your thoughts.
+          </p>
         </div>
       ) : (
         <div>
@@ -220,7 +246,10 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
             />
           ))}
 
-          <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+          <div
+            ref={loadMoreRef}
+            className="h-10 flex items-center justify-center"
+          >
             {isLoadingMore && (
               <Loader className="animate-spin text-ns-accent" size={20} />
             )}
@@ -228,7 +257,9 @@ const PostFeed: React.FC<PostFeedProps> = ({ currentUser, feedType = "home" }) =
 
           {!hasMore && posts.length > 0 && (
             <div className="text-center py-8">
-              <p className="font-ui text-xs text-ns-ink-muted tracking-wide">· · ·</p>
+              <p className="font-ui text-xs text-ns-ink-muted tracking-wide">
+                · · ·
+              </p>
             </div>
           )}
         </div>

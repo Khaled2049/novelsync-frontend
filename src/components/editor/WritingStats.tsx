@@ -21,7 +21,7 @@ export function WritingStats({
 
   const readingTime = currentChapter?.content
     ? Math.ceil(
-        currentChapter.content.split(/\s+/).filter(Boolean).length / 200
+        currentChapter.content.split(/\s+/).filter(Boolean).length / 200,
       )
     : 0;
 
@@ -44,8 +44,8 @@ export function WritingStats({
                 isAtLimit
                   ? "text-red-500"
                   : isNearLimit
-                  ? "text-amber-500"
-                  : "text-black dark:text-white"
+                    ? "text-amber-500"
+                    : "text-black dark:text-white"
               }`}
             >
               {wordCount.toLocaleString()} / {WORD_LIMIT.toLocaleString()}
@@ -57,8 +57,8 @@ export function WritingStats({
                 isAtLimit
                   ? "bg-red-500"
                   : isNearLimit
-                  ? "bg-amber-500"
-                  : "bg-dark-green dark:bg-light-green"
+                    ? "bg-amber-500"
+                    : "bg-dark-green dark:bg-light-green"
               }`}
               style={{ width: `${progressPercent}%` }}
             />

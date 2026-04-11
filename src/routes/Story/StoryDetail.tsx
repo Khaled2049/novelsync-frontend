@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useTransition,
+} from "react";
 import { useParams } from "react-router-dom";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { Chapter, Story } from "@/types/IStory";
@@ -20,12 +27,13 @@ import { readingProgressService } from "@/services/ReadingProgressService";
 
 interface StoryDetailState {
   story: Story | null;
-  chapters: Chapter[];
+  chapters: Omit<Chapter, "content">[];
   currentChapter: Chapter | null;
   currentChapterIndex: number;
   likes: number;
   comments: IComment[];
   loading: boolean;
+  chapterLoading: boolean;
   commentsLoading: boolean;
   error: string | null;
   isLiked: boolean;
@@ -51,6 +59,7 @@ const StoryDetail: React.FC = () => {
     likes: 0,
     comments: [],
     loading: true,
+    chapterLoading: false,
     commentsLoading: true,
     error: null,
     isLiked: false,
@@ -62,15 +71,56 @@ const StoryDetail: React.FC = () => {
     state.story?.userId,
   );
 
+  const chapterContentCache = useRef<Record<string, string>>({});
+  const [readNowPending, startReadNowTransition] = useTransition();
+
   // --- Data Loading ---
+  const loadChapterContent = useCallback(
+    async (index: number, chapters: Omit<Chapter, "content">[]) => {
+      if (!id) return;
+      const chapterMeta = chapters[index];
+      if (!chapterMeta) return;
+
+      const cached = chapterContentCache.current[chapterMeta.id];
+      if (cached) {
+        setState((prev) => ({
+          ...prev,
+          currentChapter: { ...chapterMeta, content: cached } as Chapter,
+          chapterLoading: false,
+        }));
+        return;
+      }
+
+      setState((prev) => ({ ...prev, chapterLoading: true }));
+      const fullChapter = await storiesRepo.getChapter(id, chapterMeta.id);
+      if (fullChapter) {
+        chapterContentCache.current[fullChapter.id] = fullChapter.content;
+        setState((prev) => ({
+          ...prev,
+          currentChapter: fullChapter,
+          chapterLoading: false,
+        }));
+      }
+
+      // Prefetch next chapter in the background
+      const nextMeta = chapters[index + 1];
+      if (nextMeta && !chapterContentCache.current[nextMeta.id]) {
+        storiesRepo.getChapter(id, nextMeta.id).then((c) => {
+          if (c) chapterContentCache.current[c.id] = c.content;
+        });
+      }
+    },
+    [id],
+  );
+
   const loadStory = useCallback(
     async (storyId: string, chapterIndex: number = 0) => {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
 
-        const [storyData, chaptersData] = await Promise.all([
+        const [storyData, chaptersMetaList] = await Promise.all([
           storiesRepo.getStory(storyId),
-          storiesRepo.getChapters(storyId),
+          storiesRepo.getChapterMetaList(storyId),
         ]);
 
         if (!storyData) {
@@ -84,9 +134,8 @@ const StoryDetail: React.FC = () => {
 
         const validChapterIndex = Math.max(
           0,
-          Math.min(chapterIndex, chaptersData.length - 1),
+          Math.min(chapterIndex, chaptersMetaList.length - 1),
         );
-        const currentChapter = chaptersData[validChapterIndex] || null;
 
         let isLiked = false;
         let userRating: number | null = null;
@@ -98,8 +147,8 @@ const StoryDetail: React.FC = () => {
         setState((prev) => ({
           ...prev,
           story: storyData,
-          chapters: chaptersData,
-          currentChapter,
+          chapters: chaptersMetaList,
+          currentChapter: null,
           currentChapterIndex: validChapterIndex,
           likes: storyData.likes || 0,
           isLiked,
@@ -107,6 +156,9 @@ const StoryDetail: React.FC = () => {
           ratingsCount: storyData.ratingsCount || 0,
           loading: false,
         }));
+
+        // Load the starting chapter content (prefetches next inside)
+        await loadChapterContent(validChapterIndex, chaptersMetaList);
       } catch (error) {
         console.error("Error fetching story:", error);
         setState((prev) => ({
@@ -116,7 +168,7 @@ const StoryDetail: React.FC = () => {
         }));
       }
     },
-    [user],
+    [user, loadChapterContent],
   );
 
   // --- Handlers ---
@@ -190,51 +242,85 @@ const StoryDetail: React.FC = () => {
   );
 
   const handlePrevChapter = useCallback(() => {
-    setState((prev) => {
-      const prevIndex = Math.max(prev.currentChapterIndex - 1, 0);
-      if (id && user && prev.story) {
-        readingProgressService.saveProgress(user.uid, {
-          storyId: id,
-          chapterIndex: prevIndex,
-          storyTitle: prev.story.title,
-          storyAuthor: prev.story.author,
-          coverImageUrl: prev.story.coverImageUrl ?? "",
-          totalChapters: prev.chapters.length,
-        });
-      }
-      return {
-        ...prev,
-        currentChapterIndex: prevIndex,
-        currentChapter: prev.chapters[prevIndex] || null,
-      };
-    });
+    const prevIndex = Math.max(state.currentChapterIndex - 1, 0);
+    const chapterMeta = state.chapters[prevIndex];
+    const cached = chapterMeta
+      ? chapterContentCache.current[chapterMeta.id]
+      : null;
+
+    if (id && user && state.story) {
+      readingProgressService.saveProgress(user.uid, {
+        storyId: id,
+        chapterIndex: prevIndex,
+        storyTitle: state.story.title,
+        storyAuthor: state.story.author,
+        coverImageUrl: state.story.coverImageUrl ?? "",
+        totalChapters: state.chapters.length,
+      });
+    }
+
+    setState((prev) => ({
+      ...prev,
+      currentChapterIndex: prevIndex,
+      currentChapter:
+        cached && chapterMeta
+          ? ({ ...chapterMeta, content: cached } as Chapter)
+          : null,
+      chapterLoading: !cached,
+    }));
+
+    if (!cached) loadChapterContent(prevIndex, state.chapters);
     window.scrollTo(0, 0);
-  }, [id, user]);
+  }, [
+    id,
+    user,
+    state.currentChapterIndex,
+    state.chapters,
+    state.story,
+    loadChapterContent,
+  ]);
 
   const handleNextChapter = useCallback(() => {
-    setState((prev) => {
-      const nextIndex = Math.min(
-        prev.currentChapterIndex + 1,
-        prev.chapters.length - 1,
-      );
-      if (id && user && prev.story) {
-        readingProgressService.saveProgress(user.uid, {
-          storyId: id,
-          chapterIndex: nextIndex,
-          storyTitle: prev.story.title,
-          storyAuthor: prev.story.author,
-          coverImageUrl: prev.story.coverImageUrl ?? "",
-          totalChapters: prev.chapters.length,
-        });
-      }
-      return {
-        ...prev,
-        currentChapterIndex: nextIndex,
-        currentChapter: prev.chapters[nextIndex] || null,
-      };
-    });
+    const nextIndex = Math.min(
+      state.currentChapterIndex + 1,
+      state.chapters.length - 1,
+    );
+    const chapterMeta = state.chapters[nextIndex];
+    const cached = chapterMeta
+      ? chapterContentCache.current[chapterMeta.id]
+      : null;
+
+    if (id && user && state.story) {
+      readingProgressService.saveProgress(user.uid, {
+        storyId: id,
+        chapterIndex: nextIndex,
+        storyTitle: state.story.title,
+        storyAuthor: state.story.author,
+        coverImageUrl: state.story.coverImageUrl ?? "",
+        totalChapters: state.chapters.length,
+      });
+    }
+
+    setState((prev) => ({
+      ...prev,
+      currentChapterIndex: nextIndex,
+      currentChapter:
+        cached && chapterMeta
+          ? ({ ...chapterMeta, content: cached } as Chapter)
+          : null,
+      chapterLoading: !cached,
+    }));
+
+    if (!cached) loadChapterContent(nextIndex, state.chapters);
     window.scrollTo(0, 0);
-  }, [id, user]);
+  }, [
+    id,
+    user,
+    state.currentChapterIndex,
+    state.chapters,
+    state.story,
+    loadChapterContent,
+  ]);
 
   // --- Comment Logic ---
   const handleCommentLike = useCallback(
@@ -515,22 +601,52 @@ const StoryDetail: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => {
-                      setViewMode("reader");
-                      if (id && user && state.story) {
-                        readingProgressService.saveProgress(user.uid, {
-                          storyId: id,
-                          chapterIndex: state.currentChapterIndex,
-                          storyTitle: state.story.title,
-                          storyAuthor: state.story.author,
-                          coverImageUrl: state.story.coverImageUrl ?? "",
-                          totalChapters: state.chapters.length,
-                        });
-                      }
+                      startReadNowTransition(() => {
+                        setViewMode("reader");
+                        if (id && user && state.story) {
+                          readingProgressService.saveProgress(user.uid, {
+                            storyId: id,
+                            chapterIndex: state.currentChapterIndex,
+                            storyTitle: state.story.title,
+                            storyAuthor: state.story.author,
+                            coverImageUrl: state.story.coverImageUrl ?? "",
+                            totalChapters: state.chapters.length,
+                          });
+                        }
+                      });
                     }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
+                    disabled={readNowPending}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 disabled:opacity-70 disabled:cursor-wait"
                   >
-                    <BookOpen className="w-4 h-4" />
-                    Read Now
+                    {readNowPending ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                        Opening…
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="w-4 h-4" />
+                        Read Now
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleLike}
@@ -596,6 +712,7 @@ const StoryDetail: React.FC = () => {
 
   // --- VIEW 2: READER ---
   if (!state.currentChapter) {
+    if (state.chapterLoading) return <StoryLoadingState />;
     return <StoryErrorState error="No chapter available" onRetry={() => {}} />;
   }
 

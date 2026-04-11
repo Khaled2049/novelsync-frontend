@@ -41,7 +41,7 @@ const ReadingProgressTracker: React.FC<ReadingProgressTrackerProps> = ({
   }, [clubId, members]);
 
   const sortedProgress = [...progress].sort(
-    (a, b) => b.currentChapter - a.currentChapter
+    (a, b) => b.currentChapter - a.currentChapter,
   );
 
   return (
@@ -124,7 +124,7 @@ const ReadingProgressTracker: React.FC<ReadingProgressTrackerProps> = ({
                       style={{
                         width: `${Math.min(
                           (p.currentChapter / 50) * 100,
-                          100
+                          100,
                         )}%`,
                       }}
                     />

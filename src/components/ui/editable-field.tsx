@@ -99,7 +99,7 @@ export function EditableField({
                 "placeholder:text-ns-ink-muted",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "resize-none"
+                "resize-none",
               )}
               placeholder={placeholder}
             />
@@ -119,7 +119,7 @@ export function EditableField({
                 "text-ns-ink",
                 "placeholder:text-ns-ink-muted",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)]",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
+                "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
               placeholder={placeholder}
             />
@@ -156,9 +156,7 @@ export function EditableField({
             </div>
           </div>
         </div>
-        {error && (
-          <p className="text-xs text-ns-destructive mt-1">{error}</p>
-        )}
+        {error && <p className="text-xs text-ns-destructive mt-1">{error}</p>}
       </div>
     );
   }
@@ -177,16 +175,14 @@ export function EditableField({
           "hover:border-ns-border-strong",
           "hover:bg-ns-surface-hover",
           "transition-all duration-200",
-          "group cursor-pointer"
+          "group cursor-pointer",
         )}
       >
         <div className="flex items-start justify-between gap-2">
           <span
             className={cn(
               "text-sm",
-              value
-                ? "text-ns-ink"
-                : "text-ns-ink-muted italic"
+              value ? "text-ns-ink" : "text-ns-ink-muted italic",
             )}
           >
             {value || placeholder}

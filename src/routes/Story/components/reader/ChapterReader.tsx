@@ -71,7 +71,11 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
   // Keyboard chapter navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
       if (e.key === "ArrowLeft" && !isFirstChapter) onPrevChapter();
       if (e.key === "ArrowRight" && !isLastChapter) onNextChapter();
     };

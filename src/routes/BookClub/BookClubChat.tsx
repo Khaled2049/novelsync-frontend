@@ -67,7 +67,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
     // Validate message length
     if (newMessage.length > maxMessageLength) {
       setErrorMessage(
-        `Message is too long. Maximum ${maxMessageLength} characters allowed.`
+        `Message is too long. Maximum ${maxMessageLength} characters allowed.`,
       );
       return;
     }
@@ -108,7 +108,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
     // Validate message length
     if (spoilerContent.length > maxMessageLength) {
       setErrorMessage(
-        `Message is too long. Maximum ${maxMessageLength} characters allowed.`
+        `Message is too long. Maximum ${maxMessageLength} characters allowed.`,
       );
       return;
     }
@@ -333,7 +333,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                   value={spoilerStartChapter}
                   onChange={(e) =>
                     setSpoilerStartChapter(
-                      Math.max(1, parseInt(e.target.value) || 1)
+                      Math.max(1, parseInt(e.target.value) || 1),
                     )
                   }
                   className="bg-white dark:bg-neutral-900 text-black dark:text-white"
@@ -356,7 +356,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                     setSpoilerEndChapter(
                       e.target.value
                         ? Math.max(1, parseInt(e.target.value) || 1)
-                        : undefined
+                        : undefined,
                     )
                   }
                   className="bg-white dark:bg-neutral-900 text-black dark:text-white"

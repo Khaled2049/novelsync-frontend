@@ -20,7 +20,7 @@ class StorageService {
   async uploadCoverImage(
     file: File,
     userId: string,
-    storyId: string
+    storyId: string,
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${COVERS_PATH}/${userId}/${storyId}-${Date.now()}.${ext}`;
@@ -40,7 +40,7 @@ class StorageService {
   async uploadCharacterArt(
     file: File,
     userId: string,
-    characterId: string
+    characterId: string,
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${CHARACTER_ART_PATH}/${userId}/${characterId}-${Date.now()}.${ext}`;
@@ -60,7 +60,7 @@ class StorageService {
   async uploadPlaceImage(
     file: File,
     userId: string,
-    placeId: string
+    placeId: string,
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${PLACE_IMAGE_PATH}/${userId}/${placeId}-${Date.now()}.${ext}`;
@@ -81,7 +81,7 @@ class StorageService {
     file: File,
     userId: string,
     storyId: string,
-    chapterId: string
+    chapterId: string,
   ): Promise<string> {
     const ext = file.type.split("/")[1] || "png";
     const path = `${CHAPTER_IMAGE_PATH}/${userId}/${storyId}/${chapterId}-${Date.now()}.${ext}`;

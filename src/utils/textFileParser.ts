@@ -75,7 +75,10 @@ function escapeHtml(text: string): string {
  * Paragraphs are delimited by blank lines; single newlines become spaces.
  */
 function textToHtml(text: string): string {
-  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (paragraphs.length === 0) return "<p></p>";
   return paragraphs
     .map((p) => `<p>${escapeHtml(p.replace(/\n/g, " "))}</p>`)
@@ -159,7 +162,7 @@ export function parseTextFile(fileContent: string): ParseResult {
   // Enforce chapter limit
   if (rawChapters.length > CHAPTER_LIMIT) {
     warnings.push(
-      `File contains ${rawChapters.length} chapters. Only the first ${CHAPTER_LIMIT} will be imported.`
+      `File contains ${rawChapters.length} chapters. Only the first ${CHAPTER_LIMIT} will be imported.`,
     );
     rawChapters = rawChapters.slice(0, CHAPTER_LIMIT);
   }
@@ -173,7 +176,7 @@ export function parseTextFile(fileContent: string): ParseResult {
       const words = raw.text.trim().split(/\s+/);
       text = words.slice(0, WORD_LIMIT).join(" ");
       warnings.push(
-        `"${raw.title}" exceeded the ${WORD_LIMIT.toLocaleString()}-word limit and was truncated (${rawWordCount.toLocaleString()} → ${WORD_LIMIT.toLocaleString()} words).`
+        `"${raw.title}" exceeded the ${WORD_LIMIT.toLocaleString()}-word limit and was truncated (${rawWordCount.toLocaleString()} → ${WORD_LIMIT.toLocaleString()} words).`,
       );
     }
 

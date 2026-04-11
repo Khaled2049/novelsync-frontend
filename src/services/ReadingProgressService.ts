@@ -27,7 +27,7 @@ class ReadingProgressService {
       storyAuthor: string;
       coverImageUrl: string;
       totalChapters: number;
-    }
+    },
   ): Promise<void> {
     try {
       const progressRef = doc(this.getProgressCollection(userId), data.storyId);
@@ -42,7 +42,7 @@ class ReadingProgressService {
           coverImageUrl: data.coverImageUrl,
           totalChapters: data.totalChapters,
         },
-        { merge: true }
+        { merge: true },
       );
     } catch (error) {
       console.error("Error saving reading progress:", error);
@@ -65,13 +65,13 @@ class ReadingProgressService {
 
   async getRecentlyRead(
     userId: string,
-    resultLimit: number = 5
+    resultLimit: number = 5,
   ): Promise<IReadingProgress[]> {
     try {
       const q = query(
         this.getProgressCollection(userId),
         orderBy("lastReadAt", "desc"),
-        limit(resultLimit)
+        limit(resultLimit),
       );
       const snap = await getDocs(q);
       return snap.docs.map((d) => {

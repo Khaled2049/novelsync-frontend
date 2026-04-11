@@ -25,7 +25,7 @@ export const StoryMetadata: React.FC<StoryMetadataProps> = ({
   // Handle changes with debounced saving
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    setter: (value: string) => void
+    setter: (value: string) => void,
   ) => {
     const value = e.target.value;
     setter(value);

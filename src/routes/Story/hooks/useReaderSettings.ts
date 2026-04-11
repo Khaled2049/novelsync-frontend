@@ -8,7 +8,7 @@ const STORAGE_KEY = "readerSettings";
 
 export const useReaderSettings = () => {
   const [settings, setSettings] = useState<ReaderSettings>(
-    DEFAULT_READER_SETTINGS
+    DEFAULT_READER_SETTINGS,
   );
   const [isLoading, setIsLoading] = useState(true);
 

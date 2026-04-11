@@ -37,6 +37,32 @@ const CATEGORIES = [
   { id: "young-adult", name: "Young Adult", value: "young-adult", symbol: "✶" },
 ] as const;
 
+const StoryCover: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  if (!src) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <FaBook className="text-4xl text-ns-ink-muted opacity-30" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!loaded && (
+        <div className="absolute inset-0 bg-ns-surface animate-pulse" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+};
+
 const AllStories: React.FC = () => {
   const { user } = useAuthContext();
 
@@ -196,17 +222,7 @@ const AllStories: React.FC = () => {
                 >
                   {/* Cover Image */}
                   <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
-                    {story.coverImageUrl ? (
-                      <img
-                        src={story.coverImageUrl}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <FaBook className="text-4xl text-ns-ink-muted opacity-30" />
-                      </div>
-                    )}
+                    <StoryCover src={story.coverImageUrl} alt={story.title} />
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-300 flex flex-col justify-between p-3 opacity-0 group-hover:opacity-100">
                       <div className="text-white text-xs space-y-2">

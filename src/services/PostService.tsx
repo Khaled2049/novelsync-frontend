@@ -51,7 +51,7 @@ class PostsService {
       const postsQuery = query(
         this.allPostsCollection,
         orderBy("createdAt", "desc"), // Sort by createdAt descending
-        limit(5) // Limit to 5 results
+        limit(5), // Limit to 5 results
       );
 
       const postsSnapshot = await getDocs(postsQuery);
@@ -73,7 +73,7 @@ class PostsService {
   // Get trending posts sorted by recency (most recent first)
   async getTrendingPosts(
     limitCount: number = 20,
-    lastDoc?: QueryDocumentSnapshot<DocumentData>
+    lastDoc?: QueryDocumentSnapshot<DocumentData>,
   ): Promise<{
     posts: IPost[];
     lastDoc: QueryDocumentSnapshot<DocumentData> | null;
@@ -85,13 +85,13 @@ class PostsService {
           this.allPostsCollection,
           orderBy("createdAt", "desc"),
           startAfter(lastDoc),
-          limit(limitCount)
+          limit(limitCount),
         );
       } else {
         postsQuery = query(
           this.allPostsCollection,
           orderBy("createdAt", "desc"),
-          limit(limitCount)
+          limit(limitCount),
         );
       }
 
@@ -121,7 +121,7 @@ class PostsService {
   // Get popular posts sorted by upvotes (most upvoted first)
   async getPopularPosts(
     limitCount: number = 20,
-    lastDoc?: QueryDocumentSnapshot<DocumentData>
+    lastDoc?: QueryDocumentSnapshot<DocumentData>,
   ): Promise<{
     posts: IPost[];
     lastDoc: QueryDocumentSnapshot<DocumentData> | null;
@@ -133,13 +133,13 @@ class PostsService {
           this.allPostsCollection,
           orderBy("upvoteCount", "desc"),
           startAfter(lastDoc),
-          limit(limitCount)
+          limit(limitCount),
         );
       } else {
         postsQuery = query(
           this.allPostsCollection,
           orderBy("upvoteCount", "desc"),
-          limit(limitCount)
+          limit(limitCount),
         );
       }
 
@@ -186,7 +186,7 @@ class PostsService {
       const postsQuery = query(
         this.allPostsCollection,
         where("bookClubId", "==", clubId),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
       );
 
       const postsSnapshot = await getDocs(postsQuery);
@@ -212,14 +212,14 @@ class PostsService {
       "id" | "createdAt" | "authorId" | "authorName" | "commentCount"
     > & {
       bookClubId?: string;
-    }
+    },
   ): Promise<string> {
     try {
       // Check rate limit before creating post
       const rateLimitCheck = await rateLimitService.canCreatePost(userId);
       if (!rateLimitCheck.allowed) {
         const error = new Error(
-          rateLimitCheck.message || "Rate limit exceeded"
+          rateLimitCheck.message || "Rate limit exceeded",
         );
         (error as any).code = "RATE_LIMIT_EXCEEDED";
         (error as any).count = rateLimitCheck.count;
@@ -308,7 +308,7 @@ class PostsService {
 
   async getPostsWithUserVotes(
     postIds: string[],
-    userId: string
+    userId: string,
   ): Promise<IPost[]> {
     try {
       // Fetch posts
@@ -358,7 +358,7 @@ class PostsService {
         const commentVotesCollection = collection(
           commentsCollection,
           commentDoc.id,
-          "votes"
+          "votes",
         );
         const votesSnapshot = await getDocs(commentVotesCollection);
         votesSnapshot.forEach((voteDoc) => {
@@ -389,7 +389,7 @@ class PostsService {
       // Delete from user's posts subcollection
       const userPostsCollection = collection(
         doc(this.usersCollection, authorId),
-        "posts"
+        "posts",
       );
       const userPostRef = doc(userPostsCollection, postId);
       batch.delete(userPostRef);

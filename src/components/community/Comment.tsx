@@ -37,7 +37,7 @@ export const Comment: React.FC<CommentProps> = React.memo(
 
     const replies = useMemo(
       () => allComments.filter((c) => c.parentId === comment.id),
-      [allComments, comment.id]
+      [allComments, comment.id],
     );
 
     // const isLiked = useMemo(
@@ -223,5 +223,5 @@ export const Comment: React.FC<CommentProps> = React.memo(
         )}
       </div>
     );
-  }
+  },
 );

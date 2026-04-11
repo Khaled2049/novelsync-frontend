@@ -10,7 +10,11 @@ interface AddPlaceModalProps {
   onAddPlace: (place: Place) => void;
 }
 
-const AddPlaceModal = ({ storyId, onClose, onAddPlace }: AddPlaceModalProps) => {
+const AddPlaceModal = ({
+  storyId,
+  onClose,
+  onAddPlace,
+}: AddPlaceModalProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [atmosphere, setAtmosphere] = useState("");
@@ -55,7 +59,7 @@ const AddPlaceModal = ({ storyId, onClose, onAddPlace }: AddPlaceModalProps) => 
           imageUrl = await storageService.uploadPlaceImage(
             imageFile,
             created.userId,
-            newId
+            newId,
           );
           await placeService.updatePlace(storyId, { ...created, imageUrl });
         }
@@ -96,7 +100,10 @@ const AddPlaceModal = ({ storyId, onClose, onAddPlace }: AddPlaceModalProps) => 
         </div>
 
         {/* Scrollable form */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 overflow-y-auto"
+        >
           <div className="px-5 py-4 space-y-4">
             {/* Image upload */}
             <div
@@ -119,7 +126,9 @@ const AddPlaceModal = ({ storyId, onClose, onAddPlace }: AddPlaceModalProps) => 
               )}
               {imagePreview && (
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="font-ui text-xs text-white">Change image</span>
+                  <span className="font-ui text-xs text-white">
+                    Change image
+                  </span>
                 </div>
               )}
               <input

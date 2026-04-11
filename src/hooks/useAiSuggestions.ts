@@ -86,7 +86,10 @@ export function useAiSuggestions({
           currentChapterTitle: chapter.title,
         });
 
-        const startResponse = await generateChapterApi({ storyId, chapterNumber });
+        const startResponse = await generateChapterApi({
+          storyId,
+          chapterNumber,
+        });
         console.debug("[generateChapter] job queued", startResponse);
 
         const completedJob = await waitForJobCompletion(startResponse.jobId);
@@ -97,7 +100,8 @@ export function useAiSuggestions({
             ? completedJob.result.chapterId
             : "";
 
-        if (!generatedChapterId) throw new Error("No generated chapter was returned.");
+        if (!generatedChapterId)
+          throw new Error("No generated chapter was returned.");
 
         const generatedChapter = await storiesRepo.getChapter(
           storyId,
@@ -117,7 +121,9 @@ export function useAiSuggestions({
       } catch (error) {
         console.error("Error generating chapter:", error);
         alert(
-          error instanceof Error ? error.message : "Failed to generate chapter.",
+          error instanceof Error
+            ? error.message
+            : "Failed to generate chapter.",
         );
       } finally {
         setIsGenerating(false);

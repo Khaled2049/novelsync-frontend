@@ -54,7 +54,7 @@ const SponsorSection: React.FC<SponsorSectionProps> = ({ sponsor }) => {
             {sponsor.tier && (
               <span
                 className={`px-2 py-1 rounded text-xs font-semibold uppercase ${getTierBadgeColor(
-                  sponsor.tier
+                  sponsor.tier,
                 )}`}
               >
                 {sponsor.tier}

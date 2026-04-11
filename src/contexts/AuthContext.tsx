@@ -99,14 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const fetchUsersOrderedByLastLogin = async (
-    userLimit: number
+    userLimit: number,
   ): Promise<IUser[]> => {
     try {
       const usersCollection = collection(firestore, "users");
       const usersQuery = query(
         usersCollection,
         orderBy("lastLogin", "desc"),
-        limit(userLimit)
+        limit(userLimit),
       );
       const usersSnapshot = await getDocs(usersQuery);
 
@@ -192,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Filter out undefined values
       const filteredData = Object.fromEntries(
-        Object.entries(data).filter(([, value]) => value !== undefined)
+        Object.entries(data).filter(([, value]) => value !== undefined),
       );
 
       if (Object.keys(filteredData).length === 0) {

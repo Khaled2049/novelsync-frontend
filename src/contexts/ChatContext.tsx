@@ -63,7 +63,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         // Get or create chat session
         const sessionId = await chatService.getOrCreateChatSession(
           storyId,
-          user.uid
+          user.uid,
         );
         setChatId(sessionId);
 
@@ -77,7 +77,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
           sessionId,
           (updatedMessages) => {
             setMessages(updatedMessages);
-          }
+          },
         );
 
         unsubscribeRef.current = unsubscribe;
@@ -86,7 +86,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         setError("Failed to initialize chat. Please try again.");
       }
     },
-    [user]
+    [user],
   );
 
   /**
@@ -144,13 +144,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Remove optimistic message on error
         setMessages((prev) =>
-          prev.filter((msg) => !msg.id.startsWith("temp-"))
+          prev.filter((msg) => !msg.id.startsWith("temp-")),
         );
       } finally {
         setIsLoading(false);
       }
     },
-    [user, chatId, canUseAI, incrementAiUsage]
+    [user, chatId, canUseAI, incrementAiUsage],
   );
 
   /**

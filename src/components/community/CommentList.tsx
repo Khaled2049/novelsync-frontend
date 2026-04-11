@@ -49,5 +49,5 @@ export const CommentList: React.FC<CommentListProps> = React.memo(
         )}
       </div>
     );
-  }
+  },
 );

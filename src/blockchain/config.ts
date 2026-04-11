@@ -1,6 +1,6 @@
-import { createConfig, http } from "wagmi"
-import { injected } from "wagmi/connectors"
-import { chainRpcUrls, supportedChains } from "./chains"
+import { createConfig, http } from "wagmi";
+import { injected } from "wagmi/connectors";
+import { chainRpcUrls, supportedChains } from "./chains";
 
 export const wagmiConfig = createConfig({
   chains: supportedChains,
@@ -10,4 +10,4 @@ export const wagmiConfig = createConfig({
     11155111: http(chainRpcUrls[11155111]),
     31337: http(chainRpcUrls[31337]),
   },
-})
+});

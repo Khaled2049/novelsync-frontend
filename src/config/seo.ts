@@ -46,7 +46,7 @@ export const SEO_CONFIG = {
  */
 export const truncateDescription = (
   text: string,
-  maxLength: number = 160
+  maxLength: number = 160,
 ): string => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength).trim() + "...";

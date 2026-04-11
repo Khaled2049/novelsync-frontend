@@ -17,7 +17,9 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
       <div className="text-gray-500 dark:text-gray-400 text-sm p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center">
         <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>No locations available.</p>
-        <p className="text-xs mt-1">Create places in the Places section first.</p>
+        <p className="text-xs mt-1">
+          Create places in the Places section first.
+        </p>
       </div>
     );
   }

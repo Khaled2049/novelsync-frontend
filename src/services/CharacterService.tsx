@@ -14,7 +14,7 @@ import { Character } from "@/types/ICharacter";
 // Firestore rejects undefined values — strip them before writing
 function omitUndefined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
+    Object.entries(obj).filter(([, v]) => v !== undefined),
   ) as Partial<T>;
 }
 
@@ -26,7 +26,7 @@ class CharacterService {
       const plotsCollection = collection(
         this.storiesCollection,
         storyId,
-        "characters"
+        "characters",
       );
       const charactersSnapshot = await getDocs(plotsCollection);
       return charactersSnapshot.docs.map((doc) => doc.data() as Character);
@@ -38,7 +38,7 @@ class CharacterService {
 
   async addCharacter(
     storyId: string,
-    character: Omit<Character, "id">
+    character: Omit<Character, "id">,
   ): Promise<string> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
@@ -70,7 +70,7 @@ class CharacterService {
       const storyRef = doc(this.storiesCollection, storyId);
       const characterRef = doc(
         collection(storyRef, "characters"),
-        character.id
+        character.id,
       );
       const characterSnapshot = await getDoc(characterRef);
       if (!characterSnapshot.exists()) {
@@ -78,7 +78,10 @@ class CharacterService {
       }
 
       const characterData = characterSnapshot.data() as Character;
-      await updateDoc(characterRef, omitUndefined({ ...characterData, ...character }));
+      await updateDoc(
+        characterRef,
+        omitUndefined({ ...characterData, ...character }),
+      );
     } catch (error) {
       console.error("Error updating character:", error);
       throw error;

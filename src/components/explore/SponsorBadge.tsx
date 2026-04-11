@@ -37,7 +37,7 @@ const SponsorBadge: React.FC<SponsorBadgeProps> = ({
     return (
       <div
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 cursor-pointer hover:shadow-md transition-all duration-200 ${getTierColor(
-          sponsor.tier
+          sponsor.tier,
         )} ${sponsor.website ? "hover:scale-105" : ""}`}
         onClick={sponsor.website ? handleClick : undefined}
       >

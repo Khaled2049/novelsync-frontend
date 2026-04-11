@@ -315,7 +315,9 @@ export function SimpleEditor() {
             className={`relative bg-ns-surface border-r border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
               state.leftSidebarOpen ? "w-80" : "w-0"
             }`}
-            style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+            style={{
+              transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
           >
             <div className="w-80 h-full">
               <SidebarPanel
@@ -519,7 +521,9 @@ export function SimpleEditor() {
             className={`relative bg-ns-surface border-l border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
               state.rightSidebarOpen ? "w-80" : "w-0"
             }`}
-            style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+            style={{
+              transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
           >
             <div className="w-80 h-full flex flex-col overflow-hidden">
               {/* Tab Bar */}

@@ -60,7 +60,10 @@ const Signin: React.FC = () => {
         </div>
 
         {/* Sign In Form Container */}
-        <div className="relative z-10 w-full max-w-md p-8 bg-ns-elevated rounded-ns-2xl shadow-ns border border-ns-border transition-all duration-300 opacity-0 animate-ns-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div
+          className="relative z-10 w-full max-w-md p-8 bg-ns-elevated rounded-ns-2xl shadow-ns border border-ns-border transition-all duration-300 opacity-0 animate-ns-slide-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <h2 className="text-3xl font-heading font-medium text-ns-ink mb-2 transition-colors duration-300">
             Sign In
           </h2>
@@ -69,7 +72,10 @@ const Signin: React.FC = () => {
           </p>
 
           <div className="space-y-5">
-            <div className="opacity-0 animate-ns-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div
+              className="opacity-0 animate-ns-fade-in"
+              style={{ animationDelay: "0.2s" }}
+            >
               <label
                 htmlFor="email"
                 className="block text-sm font-medium font-ui text-ns-ink mb-1 transition-colors duration-300"
@@ -97,7 +103,10 @@ const Signin: React.FC = () => {
               />
             </div>
 
-            <div className="opacity-0 animate-ns-fade-in" style={{ animationDelay: "0.3s" }}>
+            <div
+              className="opacity-0 animate-ns-fade-in"
+              style={{ animationDelay: "0.3s" }}
+            >
               <label
                 htmlFor="password"
                 className="block text-sm font-medium font-ui text-ns-ink mb-1 transition-colors duration-300"

@@ -7,15 +7,42 @@ interface DependencyEditorProps {
   event: PlotEvent;
   plotLineId: string; // Used for context, kept for future SVG dependency lines
   storyId?: string;
-  onUpdate: (dependencies: EventDependency[], dependents: EventDependency[]) => void;
+  onUpdate: (
+    dependencies: EventDependency[],
+    dependents: EventDependency[],
+  ) => void;
 }
 
-const RELATIONSHIP_TYPES: { value: EventDependency['relationshipType']; label: string; description: string }[] = [
-  { value: 'causes', label: 'Causes', description: 'This event directly causes the other' },
-  { value: 'requires', label: 'Requires', description: 'This event requires the other to happen first' },
-  { value: 'enables', label: 'Enables', description: 'This event makes the other possible' },
-  { value: 'blocks', label: 'Blocks', description: 'This event prevents the other from happening' },
-  { value: 'contradicts', label: 'Contradicts', description: 'These events cannot both be true' },
+const RELATIONSHIP_TYPES: {
+  value: EventDependency["relationshipType"];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "causes",
+    label: "Causes",
+    description: "This event directly causes the other",
+  },
+  {
+    value: "requires",
+    label: "Requires",
+    description: "This event requires the other to happen first",
+  },
+  {
+    value: "enables",
+    label: "Enables",
+    description: "This event makes the other possible",
+  },
+  {
+    value: "blocks",
+    label: "Blocks",
+    description: "This event prevents the other from happening",
+  },
+  {
+    value: "contradicts",
+    label: "Contradicts",
+    description: "These events cannot both be true",
+  },
 ];
 
 export const DependencyEditor: React.FC<DependencyEditorProps> = ({
@@ -25,11 +52,14 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
   onUpdate,
 }) => {
   // _plotLineId reserved for future SVG dependency line rendering
-  const [allEvents, setAllEvents] = useState<{ plotLineId: string; plotLineName: string; event: PlotEvent }[]>([]);
+  const [allEvents, setAllEvents] = useState<
+    { plotLineId: string; plotLineName: string; event: PlotEvent }[]
+  >([]);
   const [isAddingDependency, setIsAddingDependency] = useState(false);
   const [selectedPlotLine, setSelectedPlotLine] = useState<string>("");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [selectedRelationType, setSelectedRelationType] = useState<EventDependency['relationshipType']>('causes');
+  const [selectedRelationType, setSelectedRelationType] =
+    useState<EventDependency["relationshipType"]>("causes");
   const [dependencyDescription, setDependencyDescription] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +72,7 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
       try {
         const events = await plotService.getAllEvents(storyId);
         // Filter out the current event
-        setAllEvents(events.filter(e => e.event.id !== event.id));
+        setAllEvents(events.filter((e) => e.event.id !== event.id));
       } catch (error) {
         console.error("Error loading events:", error);
       } finally {
@@ -52,8 +82,17 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
     loadEvents();
   }, [storyId, event.id]);
 
-  const plotLines = [...new Map(allEvents.map(e => [e.plotLineId, { id: e.plotLineId, name: e.plotLineName }])).values()];
-  const eventsInSelectedPlotLine = allEvents.filter(e => e.plotLineId === selectedPlotLine);
+  const plotLines = [
+    ...new Map(
+      allEvents.map((e) => [
+        e.plotLineId,
+        { id: e.plotLineId, name: e.plotLineName },
+      ]),
+    ).values(),
+  ];
+  const eventsInSelectedPlotLine = allEvents.filter(
+    (e) => e.plotLineId === selectedPlotLine,
+  );
 
   const addDependency = () => {
     if (!selectedEventId || !selectedPlotLine) return;
@@ -67,7 +106,9 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
 
     // Check if dependency already exists
     const exists = event.dependencies.some(
-      d => d.eventId === newDependency.eventId && d.plotLineId === newDependency.plotLineId
+      (d) =>
+        d.eventId === newDependency.eventId &&
+        d.plotLineId === newDependency.plotLineId,
     );
 
     if (!exists) {
@@ -78,25 +119,29 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
     setIsAddingDependency(false);
     setSelectedPlotLine("");
     setSelectedEventId("");
-    setSelectedRelationType('causes');
+    setSelectedRelationType("causes");
     setDependencyDescription("");
   };
 
   const removeDependency = (dep: EventDependency) => {
     onUpdate(
-      event.dependencies.filter(d => !(d.eventId === dep.eventId && d.plotLineId === dep.plotLineId)),
-      event.dependents
+      event.dependencies.filter(
+        (d) => !(d.eventId === dep.eventId && d.plotLineId === dep.plotLineId),
+      ),
+      event.dependents,
     );
   };
 
   const getEventName = (dep: EventDependency): string => {
-    const found = allEvents.find(e => e.event.id === dep.eventId && e.plotLineId === dep.plotLineId);
-    return found ? found.event.name : 'Unknown Event';
+    const found = allEvents.find(
+      (e) => e.event.id === dep.eventId && e.plotLineId === dep.plotLineId,
+    );
+    return found ? found.event.name : "Unknown Event";
   };
 
   const getPlotLineName = (dep: EventDependency): string => {
-    const found = allEvents.find(e => e.plotLineId === dep.plotLineId);
-    return found ? found.plotLineName : 'Unknown Plot';
+    const found = allEvents.find((e) => e.plotLineId === dep.plotLineId);
+    return found ? found.plotLineName : "Unknown Plot";
   };
 
   if (loading) {
@@ -124,7 +169,9 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
           This event depends on:
         </h4>
         {event.dependencies.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-sm italic">No dependencies set</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm italic">
+            No dependencies set
+          </p>
         ) : (
           <div className="space-y-2">
             {event.dependencies.map((dep, index) => (
@@ -186,11 +233,15 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
       {/* Add Dependency Form */}
       {isAddingDependency ? (
         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Add Dependency</h4>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Add Dependency
+          </h4>
 
           {/* Plot Line Selection */}
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Plot Line</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Plot Line
+            </label>
             <select
               value={selectedPlotLine}
               onChange={(e) => {
@@ -201,7 +252,9 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
             >
               <option value="">Select a plot line...</option>
               {plotLines.map((pl) => (
-                <option key={pl.id} value={pl.id}>{pl.name}</option>
+                <option key={pl.id} value={pl.id}>
+                  {pl.name}
+                </option>
               ))}
             </select>
           </div>
@@ -209,7 +262,9 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
           {/* Event Selection */}
           {selectedPlotLine && (
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Event</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Event
+              </label>
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
@@ -217,7 +272,9 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
               >
                 <option value="">Select an event...</option>
                 {eventsInSelectedPlotLine.map((e) => (
-                  <option key={e.event.id} value={e.event.id}>{e.event.name}</option>
+                  <option key={e.event.id} value={e.event.id}>
+                    {e.event.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -227,20 +284,30 @@ export const DependencyEditor: React.FC<DependencyEditorProps> = ({
           {selectedEventId && (
             <>
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Relationship</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Relationship
+                </label>
                 <select
                   value={selectedRelationType}
-                  onChange={(e) => setSelectedRelationType(e.target.value as EventDependency['relationshipType'])}
+                  onChange={(e) =>
+                    setSelectedRelationType(
+                      e.target.value as EventDependency["relationshipType"],
+                    )
+                  }
                   className="w-full p-2 text-sm border border-black/20 dark:border-white/20 rounded bg-neutral-50 dark:bg-gray-800 text-black dark:text-white"
                 >
                   {RELATIONSHIP_TYPES.map((rt) => (
-                    <option key={rt.value} value={rt.value}>{rt.label} - {rt.description}</option>
+                    <option key={rt.value} value={rt.value}>
+                      {rt.label} - {rt.description}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description (optional)</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Description (optional)
+                </label>
                 <input
                   type="text"
                   value={dependencyDescription}

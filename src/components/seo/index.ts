@@ -1,2 +1,2 @@
-export { SEOHead } from './SEOHead';
-export * from './StructuredData';
+export { SEOHead } from "./SEOHead";
+export * from "./StructuredData";

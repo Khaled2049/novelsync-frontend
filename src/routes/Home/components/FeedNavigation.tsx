@@ -9,12 +9,25 @@ interface FeedNavigationProps {
 }
 
 const navItems = [
-  { id: "home" as FeedType,       label: "Home",       icon: Home,       symbol: "◆" },
-  { id: "popular" as FeedType,    label: "Popular",    icon: TrendingUp, symbol: "↑" },
-  { id: "book-clubs" as FeedType, label: "Book Clubs", icon: Book,       symbol: "◎" },
+  { id: "home" as FeedType, label: "Home", icon: Home, symbol: "◆" },
+  {
+    id: "popular" as FeedType,
+    label: "Popular",
+    icon: TrendingUp,
+    symbol: "↑",
+  },
+  {
+    id: "book-clubs" as FeedType,
+    label: "Book Clubs",
+    icon: Book,
+    symbol: "◎",
+  },
 ];
 
-const FeedNavigation: React.FC<FeedNavigationProps> = ({ activeFeed, onFeedChange }) => {
+const FeedNavigation: React.FC<FeedNavigationProps> = ({
+  activeFeed,
+  onFeedChange,
+}) => {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-3 mb-3">
@@ -35,13 +48,17 @@ const FeedNavigation: React.FC<FeedNavigationProps> = ({ activeFeed, onFeedChang
                 flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
                 rounded-full border text-xs font-ui font-medium tracking-wide
                 transition-all duration-200
-                ${isActive
-                  ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
-                  : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
+                ${
+                  isActive
+                    ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                    : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
                 }
               `}
             >
-              <span className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`} aria-hidden="true">
+              <span
+                className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`}
+                aria-hidden="true"
+              >
                 {symbol}
               </span>
               {label}

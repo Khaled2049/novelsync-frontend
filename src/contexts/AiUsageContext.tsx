@@ -25,7 +25,7 @@ export const AiUsageProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user } = useAuthContext();
   const [aiUsage, setAiUsage] = useState(0);
   const [lastAiUsageDate, setLastAiUsageDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const maxAiUsage = import.meta.env.VITE_MAX_AI_USAGE || 10;
   // Sync local state when the Auth User loads or changes
@@ -33,7 +33,7 @@ export const AiUsageProvider: React.FC<{ children: React.ReactNode }> = ({
     if (user) {
       setAiUsage(user.aiUsage || 0);
       setLastAiUsageDate(
-        user.lastAiUsageDate || new Date().toISOString().split("T")[0]
+        user.lastAiUsageDate || new Date().toISOString().split("T")[0],
       );
     } else {
       setAiUsage(0);

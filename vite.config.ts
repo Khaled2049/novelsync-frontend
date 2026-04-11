@@ -20,7 +20,13 @@ export default defineConfig(({ mode }) => ({
       buffer: "buffer/",
     },
   },
+  worker: {
+    format: "es",
+  },
   optimizeDeps: {
     include: ["buffer"],
+    // Pre-bundling this package causes stale "504 Outdated Optimize Dep" errors in dev
+    // (WASM/workers + size). Load it as native ESM instead.
+    exclude: ["@huggingface/transformers"],
   },
 }));

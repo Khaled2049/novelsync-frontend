@@ -47,19 +47,18 @@ export interface ICompetitionInput {
   category: string;
 }
 
-export interface ICompetitionUpdate
-  extends Partial<
-    Pick<
-      ICompetitionInput,
-      | "title"
-      | "description"
-      | "prizeAmount"
-      | "prizeCurrency"
-      | "startDate"
-      | "deadline"
-      | "difficulty"
-      | "maxParticipants"
-      | "tags"
-      | "category"
-    >
-  > {}
+export interface ICompetitionUpdate extends Partial<
+  Pick<
+    ICompetitionInput,
+    | "title"
+    | "description"
+    | "prizeAmount"
+    | "prizeCurrency"
+    | "startDate"
+    | "deadline"
+    | "difficulty"
+    | "maxParticipants"
+    | "tags"
+    | "category"
+  >
+> {}

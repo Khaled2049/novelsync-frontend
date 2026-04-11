@@ -90,7 +90,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
     // Validate question length
     if (newPrompt.question.length > RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH) {
       setError(
-        `Question is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH} characters allowed.`
+        `Question is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH} characters allowed.`,
       );
       return;
     }
@@ -100,7 +100,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
       newPrompt.description.length > RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH
     ) {
       setError(
-        `Description is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH} characters allowed.`
+        `Description is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH} characters allowed.`,
       );
       return;
     }
@@ -108,7 +108,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
     // Check rate limits
     if (user) {
       const rateLimitCheck = await rateLimitService.canCreateDiscussionPrompt(
-        user.uid
+        user.uid,
       );
       if (!rateLimitCheck.allowed) {
         setError(rateLimitCheck.message || "Rate limit exceeded");
@@ -153,14 +153,14 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
     // Validate response length
     if (newResponse.length > RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH) {
       setError(
-        `Response is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH} characters allowed.`
+        `Response is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH} characters allowed.`,
       );
       return;
     }
 
     // Check rate limits
     const rateLimitCheck = await rateLimitService.canAddPromptResponse(
-      user.uid
+      user.uid,
     );
     if (!rateLimitCheck.allowed) {
       setError(rateLimitCheck.message || "Rate limit exceeded");
@@ -211,7 +211,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
         const newResponses = { ...prev };
         if (newResponses[promptId]) {
           newResponses[promptId] = newResponses[promptId].filter(
-            (r) => r.id !== tempResponse.id
+            (r) => r.id !== tempResponse.id,
           );
           if (newResponses[promptId].length === 0) {
             delete newResponses[promptId];
@@ -225,7 +225,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
   };
 
   const sortedPrompts = [...prompts].sort(
-    (a, b) => a.chapterNumber - b.chapterNumber
+    (a, b) => a.chapterNumber - b.chapterNumber,
   );
 
   return (
@@ -554,7 +554,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
             </div>
 
             {isPromptUnlocked(
-              prompts.find((p) => p.id === selectedPrompt)!
+              prompts.find((p) => p.id === selectedPrompt)!,
             ) && (
               <div className="space-y-2">
                 {error && (

@@ -70,7 +70,7 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
     competition.maxParticipants && competition.maxParticipants > 0
       ? Math.min(
           (competition.participants / competition.maxParticipants) * 100,
-          100
+          100,
         )
       : null;
 
@@ -99,7 +99,9 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
             <p className="font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-dark-green dark:text-light-green">
               {competition.category}
             </p>
-            <span className="text-neutral-300 dark:text-neutral-700 select-none">·</span>
+            <span className="text-neutral-300 dark:text-neutral-700 select-none">
+              ·
+            </span>
             <p
               className={`font-ui text-[10px] font-semibold tracking-[0.18em] uppercase ${
                 difficultyLabel[difficulty] ?? "text-neutral-400"
@@ -107,13 +109,17 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
             >
               {difficulty}
             </p>
-            <span className="text-neutral-300 dark:text-neutral-700 select-none">·</span>
+            <span className="text-neutral-300 dark:text-neutral-700 select-none">
+              ·
+            </span>
             <p className="font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-400 dark:text-neutral-600">
               {meta.label}
             </p>
             {competition.sponsor && (
               <>
-                <span className="text-neutral-300 dark:text-neutral-700 select-none">·</span>
+                <span className="text-neutral-300 dark:text-neutral-700 select-none">
+                  ·
+                </span>
                 <p className="font-ui text-[10px] tracking-wide italic text-neutral-400 dark:text-neutral-600">
                   {competition.sponsor.tier} · {competition.sponsor.name}
                 </p>
@@ -153,9 +159,7 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
 
           {/* Meta row */}
           <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] font-ui text-neutral-400 dark:text-neutral-600">
-            <span>
-              {isCompleted ? "Closed" : `Closes ${timeRemaining}`}
-            </span>
+            <span>{isCompleted ? "Closed" : `Closes ${timeRemaining}`}</span>
             <span className="w-[3px] h-[3px] rounded-full bg-neutral-300 dark:bg-neutral-700" />
             <span>by {competition.organizer}</span>
             {competition.tags.slice(0, 3).map((tag, i) => (

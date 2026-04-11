@@ -4,7 +4,13 @@ import {
   ReactNodeViewRenderer,
   NodeViewProps,
 } from "@tiptap/react";
-import { NodeSelection, TextSelection, Selection, Plugin, PluginKey } from "@tiptap/pm/state";
+import {
+  NodeSelection,
+  TextSelection,
+  Selection,
+  Plugin,
+  PluginKey,
+} from "@tiptap/pm/state";
 import React, { useCallback, useRef, useState } from "react";
 import {
   AlignCenter,
@@ -132,7 +138,10 @@ const ImageNodeView: React.FC<NodeViewProps> = ({
       const onMouseUp = (ev: MouseEvent) => {
         const dx = (ev.clientX - startXRef.current) * xSign;
         const ar = aspectRatioRef.current ?? 1;
-        const finalWidth = Math.max(MIN_WIDTH, Math.round(startWidthRef.current + dx));
+        const finalWidth = Math.max(
+          MIN_WIDTH,
+          Math.round(startWidthRef.current + dx),
+        );
         const finalHeight = Math.round(finalWidth / ar);
 
         updateAttributes({ width: finalWidth, height: finalHeight });
@@ -151,7 +160,11 @@ const ImageNodeView: React.FC<NodeViewProps> = ({
     <NodeViewWrapper
       as="figure"
       className={`relative max-w-full ${layoutClass}`}
-      style={isInline ? { display: "inline-block", verticalAlign: "middle" } : undefined}
+      style={
+        isInline
+          ? { display: "inline-block", verticalAlign: "middle" }
+          : undefined
+      }
       data-drag-handle=""
     >
       {selected && (
@@ -328,7 +341,10 @@ export const ImageNode = Image.extend({
   addKeyboardShortcuts() {
     const isImageSelected = () => {
       const { selection } = this.editor.state;
-      return selection instanceof NodeSelection && selection.node.type.name === this.name;
+      return (
+        selection instanceof NodeSelection &&
+        selection.node.type.name === this.name
+      );
     };
 
     const moveCursorAfter = (): boolean => {
@@ -390,7 +406,12 @@ export const ImageNode = Image.extend({
             if (!(selection instanceof NodeSelection)) return false;
             if (selection.node.type.name !== extensionName) return false;
 
-            if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) {
+            if (
+              event.key.length !== 1 ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.altKey
+            ) {
               return false;
             }
 
@@ -407,7 +428,9 @@ export const ImageNode = Image.extend({
                 view.state.schema.text(event.key),
               );
               tr = view.state.tr.insert(pos, paragraph);
-              tr.setSelection(TextSelection.create(tr.doc, pos + 1 + event.key.length));
+              tr.setSelection(
+                TextSelection.create(tr.doc, pos + 1 + event.key.length),
+              );
             }
             view.dispatch(tr);
             return true;

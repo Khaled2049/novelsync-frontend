@@ -32,8 +32,7 @@ const RELATIONSHIP_COLORS: Record<CharacterRelationship["type"], string> = {
     "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
   family:
     "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  neutral:
-    "bg-ns-surface text-ns-ink-muted border border-ns-border",
+  neutral: "bg-ns-surface text-ns-ink-muted border border-ns-border",
 };
 
 // Editable field component
@@ -72,7 +71,7 @@ const Characters: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
-    null
+    null,
   );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -158,14 +157,14 @@ const Characters: React.FC = () => {
         const url = await storageService.uploadCharacterArt(
           artFile,
           draft.userId,
-          draft.id
+          draft.id,
         );
         updatedDraft = { ...updatedDraft, artUrl: url };
       }
 
       await characterService.updateCharacter(storyId, updatedDraft);
       setCharacters((prev) =>
-        prev.map((c) => (c.id === updatedDraft.id ? updatedDraft : c))
+        prev.map((c) => (c.id === updatedDraft.id ? updatedDraft : c)),
       );
       setSelectedCharacter(updatedDraft);
       setEditing(false);
@@ -197,7 +196,7 @@ const Characters: React.FC = () => {
             ...prev,
             relationships: [...(prev.relationships ?? []), rel],
           }
-        : prev
+        : prev,
     );
     setNewRelationship({ characterId: "", type: "ally", description: "" });
   };
@@ -208,10 +207,10 @@ const Characters: React.FC = () => {
         ? {
             ...prev,
             relationships: (prev.relationships ?? []).filter(
-              (r) => r.characterId !== characterId
+              (r) => r.characterId !== characterId,
             ),
           }
-        : prev
+        : prev,
     );
   };
 
@@ -222,7 +221,7 @@ const Characters: React.FC = () => {
   const linkableCharacters = characters.filter(
     (c) =>
       c.id !== draft?.id &&
-      !(draft?.relationships ?? []).some((r) => r.characterId === c.id)
+      !(draft?.relationships ?? []).some((r) => r.characterId === c.id),
   );
 
   if (!storyId) {
@@ -313,9 +312,7 @@ const Characters: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p
                           className={`font-ui text-xs font-medium truncate transition-colors ${
-                            isSelected
-                              ? "text-ns-ink"
-                              : "text-ns-ink-secondary"
+                            isSelected ? "text-ns-ink" : "text-ns-ink-secondary"
                           }`}
                         >
                           {c.name}
@@ -387,7 +384,9 @@ const Characters: React.FC = () => {
                   editing ? "cursor-pointer group" : ""
                 }`}
                 style={{ minHeight: "200px", maxHeight: "320px" }}
-                onClick={editing ? () => artInputRef.current?.click() : undefined}
+                onClick={
+                  editing ? () => artInputRef.current?.click() : undefined
+                }
               >
                 {artSrc ? (
                   <img
@@ -439,7 +438,7 @@ const Characters: React.FC = () => {
                         value={draft?.name ?? ""}
                         onChange={(e) =>
                           setDraft((prev) =>
-                            prev ? { ...prev, name: e.target.value } : prev
+                            prev ? { ...prev, name: e.target.value } : prev,
                           )
                         }
                         placeholder="Character name"
@@ -468,7 +467,7 @@ const Characters: React.FC = () => {
                                       ? parseInt(e.target.value)
                                       : undefined,
                                   }
-                                : prev
+                                : prev,
                             )
                           }
                           placeholder="—"
@@ -476,7 +475,8 @@ const Characters: React.FC = () => {
                         />
                       </div>
                     ) : (
-                      selectedCharacter.age && selectedCharacter.age > 0 && (
+                      selectedCharacter.age &&
+                      selectedCharacter.age > 0 && (
                         <span className="inline-block font-ui text-xs text-ns-ink-muted bg-ns-surface border border-ns-border px-2 py-0.5 rounded-full">
                           Age {selectedCharacter.age}
                         </span>

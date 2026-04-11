@@ -3,15 +3,27 @@ import { X } from "lucide-react";
 import { StoryMetadata } from "@/types/IStory";
 
 interface StoryEditModalProps {
-  story: Pick<StoryMetadata, "id" | "title" | "description" | "category" | "tags">;
+  story: Pick<
+    StoryMetadata,
+    "id" | "title" | "description" | "category" | "tags"
+  >;
   onSave: (
     id: string,
-    data: { title: string; description: string; category?: string; tags?: string[] }
+    data: {
+      title: string;
+      description: string;
+      category?: string;
+      tags?: string[];
+    },
   ) => Promise<void>;
   onClose: () => void;
 }
 
-export const StoryEditModal = ({ story, onSave, onClose }: StoryEditModalProps) => {
+export const StoryEditModal = ({
+  story,
+  onSave,
+  onClose,
+}: StoryEditModalProps) => {
   const [title, setTitle] = useState(story.title);
   const [description, setDescription] = useState(story.description ?? "");
   const [category, setCategory] = useState(story.category ?? "");
@@ -93,7 +105,9 @@ export const StoryEditModal = ({ story, onSave, onClose }: StoryEditModalProps) 
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ns-border">
-          <h2 className="font-heading text-xl text-ns-ink">Edit story details</h2>
+          <h2 className="font-heading text-xl text-ns-ink">
+            Edit story details
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-ns text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors"

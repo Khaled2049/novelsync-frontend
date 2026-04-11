@@ -89,7 +89,7 @@ class PlotService {
   async updateEvent(
     storyId: string,
     plotId: string,
-    updatedEvent: PlotEvent
+    updatedEvent: PlotEvent,
   ): Promise<void> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
@@ -105,7 +105,7 @@ class PlotService {
 
       // Find the index of the event to update
       const eventIndex = plotData.events.findIndex(
-        (event) => event.id === updatedEvent.id
+        (event) => event.id === updatedEvent.id,
       );
 
       if (eventIndex === -1) {
@@ -128,7 +128,7 @@ class PlotService {
       const plotsCollection = collection(
         this.storiesCollection,
         storyId,
-        "plots"
+        "plots",
       );
       const plotsSnapshot = await getDocs(plotsCollection);
       return plotsSnapshot.docs.map((doc) => doc.data() as PlotLine);
@@ -143,7 +143,10 @@ class PlotService {
   }
 
   // Migrate a legacy event to the new format with default values
-  migrateEvent(event: Partial<PlotEvent> & { id: string; name: string; content: string }, orderIndex: number): PlotEvent {
+  migrateEvent(
+    event: Partial<PlotEvent> & { id: string; name: string; content: string },
+    orderIndex: number,
+  ): PlotEvent {
     return {
       ...DEFAULT_PLOT_EVENT_VALUES,
       ...event,
@@ -153,8 +156,8 @@ class PlotService {
       dependencies: event.dependencies ?? [],
       dependents: event.dependents ?? [],
       tensionLevel: event.tensionLevel ?? 5,
-      pacing: event.pacing ?? 'moderate',
-      storyBeat: event.storyBeat ?? 'rising_action',
+      pacing: event.pacing ?? "moderate",
+      storyBeat: event.storyBeat ?? "rising_action",
       updatedAt: new Date().toISOString(),
     };
   }
@@ -164,15 +167,21 @@ class PlotService {
     storyId: string,
     sourceEvent: { plotLineId: string; eventId: string },
     targetEvent: { plotLineId: string; eventId: string },
-    relationshipType: EventDependency['relationshipType'],
-    description?: string
+    relationshipType: EventDependency["relationshipType"],
+    description?: string,
   ): Promise<void> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
 
       // Get both plot lines
-      const sourcePlotRef = doc(collection(storyRef, "plots"), sourceEvent.plotLineId);
-      const targetPlotRef = doc(collection(storyRef, "plots"), targetEvent.plotLineId);
+      const sourcePlotRef = doc(
+        collection(storyRef, "plots"),
+        sourceEvent.plotLineId,
+      );
+      const targetPlotRef = doc(
+        collection(storyRef, "plots"),
+        targetEvent.plotLineId,
+      );
 
       const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
         getDoc(sourcePlotRef),
@@ -187,8 +196,12 @@ class PlotService {
       const targetPlotData = targetPlotSnapshot.data() as PlotLine;
 
       // Find the events
-      const sourceEventIndex = sourcePlotData.events.findIndex(e => e.id === sourceEvent.eventId);
-      const targetEventIndex = targetPlotData.events.findIndex(e => e.id === targetEvent.eventId);
+      const sourceEventIndex = sourcePlotData.events.findIndex(
+        (e) => e.id === sourceEvent.eventId,
+      );
+      const targetEventIndex = targetPlotData.events.findIndex(
+        (e) => e.id === targetEvent.eventId,
+      );
 
       if (sourceEventIndex === -1 || targetEventIndex === -1) {
         throw new Error("Event not found");
@@ -210,13 +223,25 @@ class PlotService {
       };
 
       // Update source event's dependencies
-      const sourceEventData = this.migrateEvent(sourcePlotData.events[sourceEventIndex], sourceEventIndex);
-      sourceEventData.dependencies = [...sourceEventData.dependencies, dependencyForSource];
+      const sourceEventData = this.migrateEvent(
+        sourcePlotData.events[sourceEventIndex],
+        sourceEventIndex,
+      );
+      sourceEventData.dependencies = [
+        ...sourceEventData.dependencies,
+        dependencyForSource,
+      ];
       sourcePlotData.events[sourceEventIndex] = sourceEventData;
 
       // Update target event's dependents
-      const targetEventData = this.migrateEvent(targetPlotData.events[targetEventIndex], targetEventIndex);
-      targetEventData.dependents = [...targetEventData.dependents, dependentForTarget];
+      const targetEventData = this.migrateEvent(
+        targetPlotData.events[targetEventIndex],
+        targetEventIndex,
+      );
+      targetEventData.dependents = [
+        ...targetEventData.dependents,
+        dependentForTarget,
+      ];
       targetPlotData.events[targetEventIndex] = targetEventData;
 
       // Save both plot lines
@@ -240,13 +265,19 @@ class PlotService {
   async removeEventDependency(
     storyId: string,
     sourceEvent: { plotLineId: string; eventId: string },
-    targetEvent: { plotLineId: string; eventId: string }
+    targetEvent: { plotLineId: string; eventId: string },
   ): Promise<void> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
 
-      const sourcePlotRef = doc(collection(storyRef, "plots"), sourceEvent.plotLineId);
-      const targetPlotRef = doc(collection(storyRef, "plots"), targetEvent.plotLineId);
+      const sourcePlotRef = doc(
+        collection(storyRef, "plots"),
+        sourceEvent.plotLineId,
+      );
+      const targetPlotRef = doc(
+        collection(storyRef, "plots"),
+        targetEvent.plotLineId,
+      );
 
       const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
         getDoc(sourcePlotRef),
@@ -260,24 +291,42 @@ class PlotService {
       const sourcePlotData = sourcePlotSnapshot.data() as PlotLine;
       const targetPlotData = targetPlotSnapshot.data() as PlotLine;
 
-      const sourceEventIndex = sourcePlotData.events.findIndex(e => e.id === sourceEvent.eventId);
-      const targetEventIndex = targetPlotData.events.findIndex(e => e.id === targetEvent.eventId);
+      const sourceEventIndex = sourcePlotData.events.findIndex(
+        (e) => e.id === sourceEvent.eventId,
+      );
+      const targetEventIndex = targetPlotData.events.findIndex(
+        (e) => e.id === targetEvent.eventId,
+      );
 
       if (sourceEventIndex === -1 || targetEventIndex === -1) {
         throw new Error("Event not found");
       }
 
       // Remove from source's dependencies
-      const sourceEventData = this.migrateEvent(sourcePlotData.events[sourceEventIndex], sourceEventIndex);
+      const sourceEventData = this.migrateEvent(
+        sourcePlotData.events[sourceEventIndex],
+        sourceEventIndex,
+      );
       sourceEventData.dependencies = sourceEventData.dependencies.filter(
-        d => !(d.eventId === targetEvent.eventId && d.plotLineId === targetEvent.plotLineId)
+        (d) =>
+          !(
+            d.eventId === targetEvent.eventId &&
+            d.plotLineId === targetEvent.plotLineId
+          ),
       );
       sourcePlotData.events[sourceEventIndex] = sourceEventData;
 
       // Remove from target's dependents
-      const targetEventData = this.migrateEvent(targetPlotData.events[targetEventIndex], targetEventIndex);
+      const targetEventData = this.migrateEvent(
+        targetPlotData.events[targetEventIndex],
+        targetEventIndex,
+      );
       targetEventData.dependents = targetEventData.dependents.filter(
-        d => !(d.eventId === sourceEvent.eventId && d.plotLineId === sourceEvent.plotLineId)
+        (d) =>
+          !(
+            d.eventId === sourceEvent.eventId &&
+            d.plotLineId === sourceEvent.plotLineId
+          ),
       );
       targetPlotData.events[targetEventIndex] = targetEventData;
 
@@ -296,10 +345,16 @@ class PlotService {
   }
 
   // Get all events across all plot lines for a story (useful for dependency selection)
-  async getAllEvents(storyId: string): Promise<{ plotLineId: string; plotLineName: string; event: PlotEvent }[]> {
+  async getAllEvents(
+    storyId: string,
+  ): Promise<{ plotLineId: string; plotLineName: string; event: PlotEvent }[]> {
     try {
       const plots = await this.getPlots(storyId);
-      const allEvents: { plotLineId: string; plotLineName: string; event: PlotEvent }[] = [];
+      const allEvents: {
+        plotLineId: string;
+        plotLineName: string;
+        event: PlotEvent;
+      }[] = [];
 
       for (const plot of plots) {
         for (let i = 0; i < plot.events.length; i++) {

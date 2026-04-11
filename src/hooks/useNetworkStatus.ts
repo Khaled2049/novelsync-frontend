@@ -8,7 +8,7 @@ interface UseNetworkStatusReturn {
 
 export function useNetworkStatus(): UseNetworkStatusReturn {
   const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true
+    typeof navigator !== "undefined" ? navigator.onLine : true,
   );
   const [wasOffline, setWasOffline] = useState(false);
 

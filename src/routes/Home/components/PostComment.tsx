@@ -1,5 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { MessageCircle, Edit2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  MessageCircle,
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { IPostComment } from "@/types/IPostComment";
 import { IUser } from "@/types/IUser";
 import VoteButtons from "@/components/community/VoteButtons";
@@ -26,14 +32,18 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [upvoteCount, setUpvoteCount] = useState(comment.upvoteCount || 0);
-    const [downvoteCount, setDownvoteCount] = useState(comment.downvoteCount || 0);
-    const [userVote, setUserVote] = useState<"up" | "down" | null>(comment.userVote || null);
+    const [downvoteCount, setDownvoteCount] = useState(
+      comment.downvoteCount || 0,
+    );
+    const [userVote, setUserVote] = useState<"up" | "down" | null>(
+      comment.userVote || null,
+    );
     const [isVoting, setIsVoting] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const replies = useMemo(
       () => allComments.filter((c) => c.parentId === comment.id),
-      [allComments, comment.id]
+      [allComments, comment.id],
     );
 
     const handleEdit = async () => {
@@ -59,8 +69,14 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
         setIsReplying(false);
         setError(null);
       } catch (err: any) {
-        if (err?.code === "RATE_LIMIT_EXCEEDED" || err?.message?.includes("daily limit")) {
-          setError(err.message || "You have reached the daily comment limit. Please try again tomorrow.");
+        if (
+          err?.code === "RATE_LIMIT_EXCEEDED" ||
+          err?.message?.includes("daily limit")
+        ) {
+          setError(
+            err.message ||
+              "You have reached the daily comment limit. Please try again tomorrow.",
+          );
         } else {
           setError("Failed to post reply");
         }
@@ -90,7 +106,12 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
       setIsVoting(true);
 
       try {
-        await voteService.voteComment(comment.postId, comment.id, currentUser.uid, voteType);
+        await voteService.voteComment(
+          comment.postId,
+          comment.id,
+          currentUser.uid,
+          voteType,
+        );
       } catch (error) {
         console.error("Error voting on comment:", error);
         setUpvoteCount(previousUpvotes);
@@ -132,7 +153,11 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
               className="mt-1 text-ns-ink-muted hover:text-ns-ink transition-colors flex-shrink-0"
               aria-label={isCollapsed ? "Expand" : "Collapse"}
             >
-              {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+              {isCollapsed ? (
+                <ChevronRight size={11} />
+              ) : (
+                <ChevronDown size={11} />
+              )}
             </button>
           ) : (
             <div className="w-[11px]" />
@@ -141,13 +166,19 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
           <div className="flex-1 min-w-0">
             <div className="px-3 py-2 rounded-ns bg-ns-surface border border-ns-border">
               {error && (
-                <p className="mb-1 text-[10px] font-ui text-ns-destructive">{error}</p>
+                <p className="mb-1 text-[10px] font-ui text-ns-destructive">
+                  {error}
+                </p>
               )}
 
               {/* Comment Header */}
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-ui font-semibold text-ns-ink text-xs">{comment.authorName}</span>
-                <span className="font-ui text-[10px] text-ns-ink-muted">{formatDate(comment.createdAt)}</span>
+                <span className="font-ui font-semibold text-ns-ink text-xs">
+                  {comment.authorName}
+                </span>
+                <span className="font-ui text-[10px] text-ns-ink-muted">
+                  {formatDate(comment.createdAt)}
+                </span>
               </div>
 
               {/* Content */}
@@ -276,11 +307,16 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
               {/* Collapsed preview */}
               {isCollapsed && (
                 <div className="flex items-center gap-1.5 font-ui text-xs text-ns-ink-muted">
-                  <span className="text-ns-ink font-medium">{comment.authorName}</span>
-                  <span className="text-[10px]">{formatDate(comment.createdAt)}</span>
+                  <span className="text-ns-ink font-medium">
+                    {comment.authorName}
+                  </span>
+                  <span className="text-[10px]">
+                    {formatDate(comment.createdAt)}
+                  </span>
                   {hasReplies && (
                     <span className="text-[10px]">
-                      · {replies.length} {replies.length === 1 ? "reply" : "replies"}
+                      · {replies.length}{" "}
+                      {replies.length === 1 ? "reply" : "replies"}
                     </span>
                   )}
                 </div>
@@ -308,7 +344,7 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 PostComment.displayName = "PostComment";

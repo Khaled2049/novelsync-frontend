@@ -49,7 +49,7 @@ const CategoriesPage = () => {
         : `subject:${query}`;
 
       const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${searchQuery}&maxResults=12`
+        `https://www.googleapis.com/books/v1/volumes?q=${searchQuery}&maxResults=12`,
       );
       const data = await response.json();
 
@@ -75,7 +75,7 @@ const CategoriesPage = () => {
       const searchQuery = isSearchBarQuery ? query : `subject:${query}`;
 
       const response = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${searchQuery}&maxResults=12`
+        `https://www.googleapis.com/books/v1/volumes?q=${searchQuery}&maxResults=12`,
       );
       const data = await response.json();
 

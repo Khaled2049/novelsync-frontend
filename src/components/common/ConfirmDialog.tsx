@@ -37,7 +37,7 @@ export function ConfirmDialog({
           className={cn(
             "fixed inset-0 z-50 bg-black/80",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           )}
         />
         <DialogPrimitive.Content
@@ -51,7 +51,7 @@ export function ConfirmDialog({
             "duration-200",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
           {/* Header with icon for danger variant */}
@@ -84,7 +84,7 @@ export function ConfirmDialog({
                 "hover:bg-gray-50 dark:hover:bg-gray-700",
                 "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-colors duration-200"
+                "transition-colors duration-200",
               )}
             >
               {cancelLabel}
@@ -99,7 +99,7 @@ export function ConfirmDialog({
                 "transition-colors duration-200",
                 variant === "danger"
                   ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                  : "bg-dark-green dark:bg-light-green hover:bg-light-green dark:hover:bg-dark-green focus:ring-dark-green dark:focus:ring-light-green"
+                  : "bg-dark-green dark:bg-light-green hover:bg-light-green dark:hover:bg-dark-green focus:ring-dark-green dark:focus:ring-light-green",
               )}
             >
               {isLoading ? "..." : confirmLabel}
@@ -112,7 +112,7 @@ export function ConfirmDialog({
               "absolute right-4 top-4 rounded-sm opacity-70",
               "transition-opacity hover:opacity-100",
               "focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2",
-              "disabled:pointer-events-none"
+              "disabled:pointer-events-none",
             )}
           >
             <X className="h-4 w-4" />
@@ -147,7 +147,7 @@ export function UnsavedChangesDialog({
           className={cn(
             "fixed inset-0 z-50 bg-black/80",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           )}
         />
         <DialogPrimitive.Content
@@ -161,7 +161,7 @@ export function UnsavedChangesDialog({
             "duration-200",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
           <div className="flex items-start gap-4">
@@ -173,7 +173,8 @@ export function UnsavedChangesDialog({
                 Unsaved Changes
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                You have unsaved changes. Would you like to save before continuing?
+                You have unsaved changes. Would you like to save before
+                continuing?
               </DialogPrimitive.Description>
             </div>
           </div>
@@ -190,7 +191,7 @@ export function UnsavedChangesDialog({
                 "hover:bg-gray-50 dark:hover:bg-gray-700",
                 "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-colors duration-200"
+                "transition-colors duration-200",
               )}
             >
               Cancel
@@ -209,7 +210,7 @@ export function UnsavedChangesDialog({
                 "hover:bg-red-50 dark:hover:bg-red-900/20",
                 "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-colors duration-200"
+                "transition-colors duration-200",
               )}
             >
               Discard
@@ -226,7 +227,7 @@ export function UnsavedChangesDialog({
                 "hover:bg-light-green dark:hover:bg-dark-green",
                 "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-green dark:focus:ring-light-green",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-colors duration-200"
+                "transition-colors duration-200",
               )}
             >
               {isSaving ? "Saving..." : "Save & Continue"}
@@ -238,7 +239,7 @@ export function UnsavedChangesDialog({
               "absolute right-4 top-4 rounded-sm opacity-70",
               "transition-opacity hover:opacity-100",
               "focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2",
-              "disabled:pointer-events-none"
+              "disabled:pointer-events-none",
             )}
           >
             <X className="h-4 w-4" />
