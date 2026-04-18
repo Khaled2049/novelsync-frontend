@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
-import { ThemeToggle } from "./components/common/ThemeToggle";
 
 export const NavbarWrapper = () => {
   const location = useLocation();
@@ -25,8 +24,6 @@ export const NavbarWrapper = () => {
       </main>
 
       {!isEditorPage && !isReaderPage && <Footer />}
-
-      <ThemeToggle />
     </div>
   );
 };

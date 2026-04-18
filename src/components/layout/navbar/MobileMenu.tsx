@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Shield, HelpCircle, BookOpen, LogOut, X, Loader2 } from "lucide-react";
 import { useWalletState } from "@/hooks/useWalletState";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -77,13 +78,16 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
           <h2 className="text-xl font-heading font-semibold text-ns-accent">
             Menu
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-ns-ink-secondary hover:text-ns-ink hover:bg-ns-surface rounded-ns transition-colors"
-            aria-label="Close menu"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={onClose}
+              className="p-2 text-ns-ink-secondary hover:text-ns-ink hover:bg-ns-surface rounded-ns transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

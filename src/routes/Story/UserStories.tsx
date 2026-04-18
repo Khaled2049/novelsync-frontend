@@ -7,6 +7,7 @@ import { storiesRepo } from "../../services/StoriesRepo";
 import { StoryMetadata } from "@/types/IStory";
 import { StoryRow } from "./components/StoryRow";
 import { StoryEditModal } from "./components/StoryEditModal";
+import StoryMetadataModal from "./StoryMetadataModal";
 import { useEarnings } from "@/hooks/useEarnings";
 import { readingProgressService } from "@/services/ReadingProgressService";
 import { IReadingProgress } from "@/types/IReadingProgress";
@@ -47,6 +48,7 @@ const UserStories = () => {
   const [editingStory, setEditingStory] = useState<StoryWithEarnings | null>(
     null,
   );
+  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
   const loadStories = useCallback(async () => {
@@ -213,7 +215,7 @@ const UserStories = () => {
             </div>
 
             <button
-              onClick={() => navigate("/create")}
+              onClick={() => setIsCreating(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-ns-accent hover:bg-ns-accent-hover text-white text-sm font-ui font-medium rounded-ns transition-colors flex-shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -376,7 +378,7 @@ const UserStories = () => {
                 Begin writing your first story.
               </p>
               <button
-                onClick={() => navigate("/create")}
+                onClick={() => setIsCreating(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent hover:bg-ns-accent-hover text-white text-sm font-ui font-medium rounded-ns transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -412,6 +414,14 @@ const UserStories = () => {
           story={editingStory}
           onSave={handleSaveMetadata}
           onClose={() => setEditingStory(null)}
+        />
+      )}
+
+      {user && (
+        <StoryMetadataModal
+          isOpen={isCreating}
+          onClose={() => setIsCreating(false)}
+          userId={user.uid}
         />
       )}
     </>

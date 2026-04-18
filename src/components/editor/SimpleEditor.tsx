@@ -359,7 +359,7 @@ export function SimpleEditor() {
             {/* Writing Canvas */}
             {state.currentChapter ? (
               <div className="flex-1 overflow-y-auto bg-ns-bg">
-                <div className="mx-auto px-4 sm:px-8 pt-4 pb-6">
+                <div className="mx-auto">
                   <TipTapEditor
                     initialContent={state.currentChapter.content}
                     onContentChange={handleContentChange}

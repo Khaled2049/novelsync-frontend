@@ -1199,7 +1199,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Step indicator */}
       <div className="px-6 pt-2 pb-4">
         <div className="flex items-center justify-between mb-2">

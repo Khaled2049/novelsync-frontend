@@ -8,7 +8,6 @@ import {
   Copy,
   ChevronDown,
 } from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletState, WalletState } from "@/hooks/useWalletState";
 import {
   DropdownMenu,
@@ -44,7 +43,6 @@ const getNetworkName = (chainId: number | undefined) => {
 
 export const WalletConnectButton: React.FC = () => {
   const chainId = useChainId();
-  const { theme } = useTheme();
   const { user } = useAuthContext();
   const {
     state,
@@ -290,7 +288,7 @@ export const WalletConnectButton: React.FC = () => {
           <Button
             onClick={handleConfirmWalletReplacement}
             disabled={isUpdatingWalletAddress}
-            className="bg-dark-green dark:bg-light-green text-white"
+            className="bg-ns-accent hover:bg-ns-accent-hover text-white"
           >
             {isUpdatingWalletAddress ? "Updating..." : "Use New Wallet"}
           </Button>
@@ -308,42 +306,42 @@ export const WalletConnectButton: React.FC = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:ring-offset-2"
+              className="flex items-center gap-2 px-3 py-2 rounded-ns hover:bg-ns-surface transition-colors focus:outline-none focus:ring-2 focus:ring-ns-accent focus:ring-offset-2"
               disabled={isDisconnecting}
             >
               {currentState.icon}
               <div className="flex flex-col items-start">
-                <span className="text-xs font-medium text-black dark:text-white">
+                <span className="text-xs font-medium text-ns-ink">
                   {truncatedAddress}
                 </span>
                 {currentState.text && (
-                  <span className="text-xs text-black/60 dark:text-white/60">
+                  <span className="text-xs text-ns-ink-muted">
                     {currentState.text}
                   </span>
                 )}
               </div>
-              <ChevronDown className="w-3 h-3 text-black/60 dark:text-white/60 ml-1" />
+              <ChevronDown className="w-3 h-3 text-ns-ink-muted ml-1" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-56 bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10"
+            className="w-56 bg-ns-elevated border border-ns-border"
           >
             <DropdownMenuLabel className="px-3 py-2">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-black dark:text-white">
+                <span className="text-xs font-semibold text-ns-ink">
                   Wallet Address
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-black/70 dark:text-white/70 truncate">
+                  <span className="text-xs font-mono text-ns-ink-secondary truncate">
                     {address}
                   </span>
                   <button
                     onClick={handleCopyAddress}
-                    className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors flex-shrink-0"
+                    className="p-1 hover:bg-ns-surface rounded transition-colors flex-shrink-0"
                     title="Copy address"
                   >
-                    <Copy className="w-3 h-3 text-black/60 dark:text-white/60" />
+                    <Copy className="w-3 h-3 text-ns-ink-muted" />
                   </button>
                 </div>
               </div>
@@ -351,12 +349,12 @@ export const WalletConnectButton: React.FC = () => {
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="px-3 py-2">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-black dark:text-white">
+                <span className="text-xs font-semibold text-ns-ink">
                   Network Status
                 </span>
                 <div className="flex items-center gap-2">
                   {currentState.icon}
-                  <span className="text-xs text-black/70 dark:text-white/70">
+                  <span className="text-xs text-ns-ink-secondary">
                     {currentState.detail}
                   </span>
                 </div>
@@ -403,8 +401,7 @@ export const WalletConnectButton: React.FC = () => {
       <button
         onClick={handleConnect}
         disabled={isConnecting}
-        className="bg-dark-green dark:bg-light-green text-white hover:bg-light-green dark:hover:bg-dark-green font-semibold py-2 px-4 rounded-small transition-colors duration-300 border-0 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-        data-theme={theme}
+        className="px-5 py-2 bg-ns-accent hover:bg-ns-accent-hover text-white font-ui font-semibold rounded-full transition-all duration-300 hover:scale-105 shadow-ns-sm hover:shadow-ns text-sm disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
         {isConnecting ? "Connecting..." : "Connect Wallet"}
       </button>

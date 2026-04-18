@@ -75,17 +75,14 @@ type HubProgress =
 function hubProgressToUpdate(info: HubProgress): ProgressUpdate | null {
   switch (info.status) {
     case "progress":
-      return {
-        progress: info.progress / 100,
-        status: `Downloading ${info.file}…`,
-      };
+      return { progress: info.progress / 100, status: "Loading…" };
     case "initiate":
     case "download":
-      return { status: `Fetching ${info.file}…` };
+      return { status: "Loading…" };
     case "done":
-      return { status: `Loaded ${info.file}` };
+      return { status: "Loading…" };
     case "ready":
-      return { progress: 1, status: "Model ready" };
+      return { progress: 1, status: "Ready" };
     default:
       return null;
   }
@@ -126,7 +123,7 @@ export function useContentModeration() {
     }
 
     setIsInitializing(true);
-    broadcast({ progress: 0, status: "Preparing safety model…" });
+    broadcast({ progress: 0, status: "Loading…" });
 
     classifierInitPromise = (async () => {
       const classifier = await pipeline("text-classification", MODEL_ID, {

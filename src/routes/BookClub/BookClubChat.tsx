@@ -90,6 +90,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
       const message: IMessage = {
         content: newMessage.trim(),
         sender: displayName || "Anonymous",
+        senderId: user.uid,
       };
 
       await bookClubRepo.sendMessage(clubId, message);
@@ -131,6 +132,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
       const message: IMessage = {
         content: spoilerContent.trim(),
         sender: displayName || "Anonymous",
+        senderId: user.uid,
         hasSpoiler: true,
         spoilerChapterRange: {
           start: spoilerStartChapter,
@@ -181,19 +183,19 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
             <div
               key={message.id}
               className={`flex ${
-                message.sender === displayName ? "justify-end" : "justify-start"
+                message.senderId === user?.uid ? "justify-end" : "justify-start"
               } animate-in slide-in-from-bottom-2 duration-300`}
             >
               <div
                 className={`max-w-[75%] sm:max-w-[65%] p-3 rounded-2xl shadow-md ${
-                  message.sender === displayName
+                  message.senderId === user?.uid
                     ? "bg-gradient-to-r from-dark-green to-emerald-600 dark:from-light-green dark:to-emerald-500 text-white rounded-br-sm"
                     : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-bl-sm"
                 }`}
               >
                 <p
                   className={`text-xs font-semibold mb-1 ${
-                    message.sender === displayName
+                    message.senderId === user?.uid
                       ? "text-white/90"
                       : "text-dark-green dark:text-light-green"
                   }`}
@@ -208,7 +210,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                 {renderMessageContent(message)}
                 <p
                   className={`text-xs mt-1 ${
-                    message.sender === displayName
+                    message.senderId === user?.uid
                       ? "text-white/70"
                       : "text-neutral-500 dark:text-neutral-400"
                   }`}
