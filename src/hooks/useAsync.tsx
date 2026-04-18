@@ -14,7 +14,7 @@ type AsyncFunction<T> = (...params: any[]) => Promise<T>;
 
 export function useAsync<T>(
   func: AsyncFunction<T>,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): AsyncState<T> {
   const { execute, ...state } = useAsyncInternal<T>(func, dependencies, true);
 
@@ -27,7 +27,7 @@ export function useAsync<T>(
 
 export function useAsyncFn<T>(
   func: AsyncFunction<T>,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ): AsyncFunctionState<T> {
   return useAsyncInternal<T>(func, dependencies, false);
 }
@@ -35,7 +35,7 @@ export function useAsyncFn<T>(
 function useAsyncInternal<T>(
   func: AsyncFunction<T>,
   dependencies: any[],
-  initialLoading = false
+  initialLoading = false,
 ): AsyncFunctionState<T> {
   const [loading, setLoading] = useState<boolean>(initialLoading);
   const [error, setError] = useState<Error>();

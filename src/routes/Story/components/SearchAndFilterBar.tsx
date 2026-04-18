@@ -45,7 +45,7 @@ export const SearchAndFilterBar: React.FC<SearchAndFilterBarProps> = ({
             value={statusFilter}
             onChange={(e) =>
               onStatusFilterChange(
-                e.target.value as "all" | "draft" | "published"
+                e.target.value as "all" | "draft" | "published",
               )
             }
             className="pl-9 pr-4 py-2 border border-black/20 dark:border-white/20 rounded-lg bg-white dark:bg-black text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green appearance-none cursor-pointer"
@@ -125,4 +125,3 @@ export const SearchAndFilterBar: React.FC<SearchAndFilterBarProps> = ({
     </div>
   );
 };
-

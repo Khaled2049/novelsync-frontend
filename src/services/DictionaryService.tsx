@@ -15,8 +15,8 @@ class DictionaryService {
       // Using Free Dictionary API
       const response = await fetch(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(
-          word
-        )}`
+          word,
+        )}`,
       );
 
       if (!response.ok) {

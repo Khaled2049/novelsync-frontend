@@ -46,7 +46,6 @@ import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 
-
 // Helper to ensure event has all required fields with defaults
 function ensureEventDefaults(
   event: Partial<PlotEvent> & { id: string; name: string; content: string },

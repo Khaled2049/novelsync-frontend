@@ -8,18 +8,27 @@ import {
   updateProfile,
   updatePassword,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { auth, firestore } from "../config/firebase";
 
 export const useFirebaseAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
-  const createUserDocument = async (userId: string, userData: {
-    username: string;
-    email: string;
-    isAnonymous?: boolean;
-    walletAddress?: string;
-  }) => {
+  const createUserDocument = async (
+    userId: string,
+    userData: {
+      username: string;
+      email: string;
+      isAnonymous?: boolean;
+      walletAddress?: string;
+    },
+  ) => {
     const dbUser = {
       username: userData.username,
       email: userData.email,
@@ -37,7 +46,9 @@ export const useFirebaseAuth = () => {
       bio: "Write an about me section here...",
       occupation: "Occupation",
       location: "Location",
-      ...(userData.walletAddress ? { walletAddress: userData.walletAddress } : {}),
+      ...(userData.walletAddress
+        ? { walletAddress: userData.walletAddress }
+        : {}),
     };
 
     await setDoc(doc(firestore, "users", userId), dbUser);
@@ -47,7 +58,9 @@ export const useFirebaseAuth = () => {
    * Request an invite by creating a pending invite document.
    * Returns success status and any error message.
    */
-  const requestInvite = async (email: string): Promise<{ success: boolean; message?: string }> => {
+  const requestInvite = async (
+    email: string,
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       // Check if invite already exists
       const inviteRef = doc(firestore, "invites", email);
@@ -58,16 +71,30 @@ export const useFirebaseAuth = () => {
         const status = data.status;
 
         if (status === "pending") {
-          return { success: false, message: "An invite request for this email is already pending." };
+          return {
+            success: false,
+            message: "An invite request for this email is already pending.",
+          };
         }
         if (status === "approved" || status === "sent") {
-          return { success: false, message: "Your invite has been approved! Check your email for the magic link." };
+          return {
+            success: false,
+            message:
+              "Your invite has been approved! Check your email for the magic link.",
+          };
         }
         if (status === "completed") {
-          return { success: false, message: "An account with this email already exists. Please sign in." };
+          return {
+            success: false,
+            message:
+              "An account with this email already exists. Please sign in.",
+          };
         }
         if (status === "rejected") {
-          return { success: false, message: "This invite request was declined." };
+          return {
+            success: false,
+            message: "This invite request was declined.",
+          };
         }
       }
 
@@ -96,7 +123,7 @@ export const useFirebaseAuth = () => {
     email: string,
     username: string,
     password: string,
-    walletAddress?: string
+    walletAddress?: string,
   ): Promise<{ success: boolean; message?: string }> => {
     try {
       const link = window.location.href;
@@ -137,7 +164,8 @@ export const useFirebaseAuth = () => {
       const error = err as { code?: string; message: string };
 
       if (error.code === "auth/invalid-action-code") {
-        const message = "This link has expired or already been used. Please request a new invite.";
+        const message =
+          "This link has expired or already been used. Please request a new invite.";
         setError(message);
         return { success: false, message };
       }
@@ -147,7 +175,8 @@ export const useFirebaseAuth = () => {
         return { success: false, message };
       }
       if (error.code === "auth/weak-password") {
-        const message = "Password is too weak. Please choose a stronger password.";
+        const message =
+          "Password is too weak. Please choose a stronger password.";
         setError(message);
         return { success: false, message };
       }
@@ -176,7 +205,7 @@ export const useFirebaseAuth = () => {
           {
             lastLogin: new Date().toISOString(),
           },
-          { merge: true }
+          { merge: true },
         );
       }
       setError(null);

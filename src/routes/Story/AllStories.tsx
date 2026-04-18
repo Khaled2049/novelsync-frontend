@@ -37,6 +37,32 @@ const CATEGORIES = [
   { id: "young-adult", name: "Young Adult", value: "young-adult", symbol: "✶" },
 ] as const;
 
+const StoryCover: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  if (!src) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <FaBook className="text-4xl text-ns-ink-muted opacity-30" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!loaded && (
+        <div className="absolute inset-0 bg-ns-surface animate-pulse" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+};
+
 const AllStories: React.FC = () => {
   const { user } = useAuthContext();
 
@@ -46,7 +72,7 @@ const AllStories: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [loading, setLoading] = useState(false);
 
-  const storiesPerPage = 12;
+  const storiesPerPage = 24;
   const indexOfLastNovel = currentPage * storiesPerPage;
   const indexOfFirstNovel = indexOfLastNovel - storiesPerPage;
   const currentStories = stories.slice(indexOfFirstNovel, indexOfLastNovel);
@@ -117,164 +143,174 @@ const AllStories: React.FC = () => {
       />
 
       <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <StoriesHeader
-          user={user}
-          onNewStory={handleNewStory}
-          isModalOpen={isModalOpen}
-          onCloseModal={() => setIsModalOpen(false)}
-        />
+        <div className="flex gap-8 items-start border-t border-ns-border pt-4">
+          {/* Left: header + mobile strip + grid */}
+          <div className="flex-1 min-w-0 border-r border-ns-border pr-8">
+            <StoriesHeader
+              user={user}
+              onNewStory={handleNewStory}
+              isModalOpen={isModalOpen}
+              onCloseModal={() => setIsModalOpen(false)}
+            />
 
-        {/* Genre Strip */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="font-ui text-xs tracking-widest uppercase text-ns-ink-muted whitespace-nowrap">
-              Browse by genre
-            </span>
-            <div className="flex-1 h-px bg-ns-border" />
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {CATEGORIES.map((category) => {
-              const isActive = selectedCategory === category.value;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.value)}
-                  className={`
-                    flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
-                    rounded-full border text-xs font-ui font-medium tracking-wide
-                    transition-all duration-200
-                    ${
-                      isActive
-                        ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
-                        : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
-                    }
-                  `}
-                >
-                  <span
-                    className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`}
-                    aria-hidden="true"
-                  >
-                    {category.symbol}
-                  </span>
-                  {category.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Stories Content */}
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <span className="text-ns-ink-muted font-ui text-sm">
-              Loading stories…
-            </span>
-          </div>
-        ) : currentStories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <FaBook className="text-5xl text-ns-ink-muted mb-4 opacity-30" />
-            <h3 className="font-heading text-title font-medium text-ns-ink mb-2">
-              No stories found
-            </h3>
-            <p className="text-ns-ink-secondary font-ui text-sm">
-              {selectedCategory === "all"
-                ? "No stories have been published yet."
-                : "No stories found in this category yet."}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Story Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {currentStories.map((story) => (
-                <div
-                  key={story.id}
-                  onClick={() => handleStoryClick(story)}
-                  className="group cursor-pointer"
-                >
-                  {/* Cover Image */}
-                  <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
-                    {story.coverImageUrl ? (
-                      <img
-                        src={story.coverImageUrl}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <FaBook className="text-4xl text-ns-ink-muted opacity-30" />
-                      </div>
-                    )}
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-300 flex flex-col justify-between p-3 opacity-0 group-hover:opacity-100">
-                      <div className="text-white text-xs space-y-2">
-                        <p className="line-clamp-4 leading-relaxed font-body">
-                          {story.description}
-                        </p>
-                        {story.tags && story.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {story.tags.slice(0, 3).map((tag, index) => (
-                              <span
-                                key={index}
-                                className="bg-ns-accent/80 text-white text-xs px-1.5 py-0.5 rounded font-ui"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-white text-xs flex items-center justify-between font-ui">
-                        <span className="flex items-center gap-1">
-                          <FaEye />
-                          {story.views >= 1000
-                            ? `${(story.views / 1000).toFixed(1)}K`
-                            : story.views}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <FaThumbsUp /> {story.likes}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Story Info */}
-                  <div className="space-y-0.5">
-                    <h3 className="font-ui font-medium text-sm line-clamp-2 text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
-                      {story.title}
-                    </h3>
-                    <p className="text-xs text-ns-ink-muted font-ui">
-                      {story.author}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            {/* Mobile genre strip */}
+            <div className="lg:hidden mb-6">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                {CATEGORIES.map((category) => {
+                  const isActive = selectedCategory === category.value;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.value)}
+                      className={`
+                        flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
+                        rounded-full border text-xs font-ui font-medium tracking-wide
+                        transition-all duration-200
+                        ${
+                          isActive
+                            ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                            : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
+                        }
+                      `}
+                    >
+                      <span
+                        className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`}
+                        aria-hidden="true"
+                      >
+                        {category.symbol}
+                      </span>
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center gap-2 mt-10">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      onClick={() => handlePageChange(pageNumber)}
-                      className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
-                        currentPage === pageNumber
-                          ? "bg-ns-accent text-white shadow-ns-sm"
-                          : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  ),
-                )}
+            {/* Story grid */}
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <span className="text-ns-ink-muted font-ui text-sm">
+                  Loading stories…
+                </span>
               </div>
+            ) : currentStories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <FaBook className="text-5xl text-ns-ink-muted mb-4 opacity-30" />
+                <h3 className="font-heading text-title font-medium text-ns-ink mb-2">
+                  No stories found
+                </h3>
+                <p className="text-ns-ink-secondary font-ui text-sm">
+                  {selectedCategory === "all"
+                    ? "No stories have been published yet."
+                    : "No stories found in this category yet."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
+                  {currentStories.map((story) => (
+                    <div
+                      key={story.id}
+                      onClick={() => handleStoryClick(story)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="max-w-[100px] mx-auto">
+                        <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
+                          <StoryCover
+                            src={story.coverImageUrl}
+                            alt={story.title}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-300 flex flex-col justify-between p-2 opacity-0 group-hover:opacity-100">
+                            <p className="text-white text-[10px] line-clamp-3 leading-relaxed font-body">
+                              {story.description}
+                            </p>
+                            <div className="text-white text-[10px] flex items-center justify-between font-ui">
+                              <span className="flex items-center gap-0.5">
+                                <FaEye />
+                                {story.views >= 1000
+                                  ? `${(story.views / 1000).toFixed(1)}K`
+                                  : story.views}
+                              </span>
+                              <span className="flex items-center gap-0.5">
+                                <FaThumbsUp /> {story.likes}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <h3 className="font-ui font-medium text-sm line-clamp-2 text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
+                          {story.title}
+                        </h3>
+                        <p className="text-xs text-ns-ink-muted font-ui">
+                          {story.author}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center gap-2 mt-10">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (pageNumber) => (
+                        <button
+                          key={pageNumber}
+                          onClick={() => handlePageChange(pageNumber)}
+                          className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
+                            currentPage === pageNumber
+                              ? "bg-ns-accent text-white shadow-ns-sm"
+                              : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+
+          {/* Right: genre sidebar — desktop only */}
+          <aside className="hidden lg:block w-40 shrink-0 sticky top-20 self-start pt-8">
+            <div className="mb-4">
+              <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-ns-ink-muted">
+                Genres
+              </span>
+              <div className="mt-2 h-px bg-ns-border" />
+            </div>
+            <nav className="flex flex-col">
+              {CATEGORIES.map((category) => {
+                const isActive = selectedCategory === category.value;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.value)}
+                    className={`
+                      group flex items-center gap-2.5 px-3 py-2 text-left
+                      border-l-2 transition-all duration-200 text-sm font-ui
+                      ${
+                        isActive
+                          ? "border-ns-accent text-ns-accent bg-ns-accent/5 font-medium"
+                          : "border-transparent text-ns-ink-secondary hover:border-ns-border-strong hover:text-ns-ink hover:bg-ns-surface"
+                      }
+                    `}
+                  >
+                    <span
+                      className={`text-[11px] leading-none w-3 text-center shrink-0 transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-40 group-hover:opacity-70"}`}
+                      aria-hidden="true"
+                    >
+                      {category.symbol}
+                    </span>
+                    {category.name}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
       </div>
     </>
   );

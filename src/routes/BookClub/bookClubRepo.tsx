@@ -31,7 +31,7 @@ class BookClubRepo {
   createBookClub = async (club: IClub) => {
     try {
       const clubRef: DocumentReference = doc(
-        collection(firestore, "bookClubs")
+        collection(firestore, "bookClubs"),
       );
       await setDoc(clubRef, { ...club, id: clubRef.id });
     } catch (error) {
@@ -42,10 +42,10 @@ class BookClubRepo {
   getBookClubs = async () => {
     try {
       const bookClubsSnapshot = await getDocs(
-        collection(firestore, "bookClubs")
+        collection(firestore, "bookClubs"),
       );
       const bookClubsData = bookClubsSnapshot.docs.map(
-        (doc) => doc.data() as IClub
+        (doc) => doc.data() as IClub,
       );
       return bookClubsData;
     } catch (error) {
@@ -67,7 +67,7 @@ class BookClubRepo {
 
   subscribeToBookClub = (
     id: string,
-    callback: (club: IClub | null) => void
+    callback: (club: IClub | null) => void,
   ) => {
     const clubRef = doc(firestore, "bookClubs", id);
     return onSnapshot(
@@ -82,7 +82,7 @@ class BookClubRepo {
       (error) => {
         console.error("Error subscribing to book club:", error);
         callback(null);
-      }
+      },
     );
   };
 
@@ -153,7 +153,7 @@ class BookClubRepo {
       // Validate message size
       if (message.content.length > RATE_LIMITS.MAX_MESSAGE_SIZE_CHARS) {
         throw new Error(
-          `Message is too long. Maximum ${RATE_LIMITS.MAX_MESSAGE_SIZE_CHARS} characters allowed.`
+          `Message is too long. Maximum ${RATE_LIMITS.MAX_MESSAGE_SIZE_CHARS} characters allowed.`,
         );
       }
 
@@ -215,7 +215,7 @@ class BookClubRepo {
   // Reading Schedule Methods
   createReadingSchedule = async (
     clubId: string,
-    schedule: IReadingSchedule
+    schedule: IReadingSchedule,
   ) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
@@ -230,7 +230,7 @@ class BookClubRepo {
 
   updateReadingSchedule = async (
     clubId: string,
-    schedule: IReadingSchedule
+    schedule: IReadingSchedule,
   ) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
@@ -246,13 +246,13 @@ class BookClubRepo {
   // Discussion Prompt Methods
   createDiscussionPrompt = async (
     clubId: string,
-    prompt: Omit<IDiscussionPrompt, "id">
+    prompt: Omit<IDiscussionPrompt, "id">,
   ) => {
     try {
       // Validate prompt question length
       if (prompt.question.length > RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH) {
         throw new Error(
-          `Prompt question is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH} characters allowed.`
+          `Prompt question is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_QUESTION_LENGTH} characters allowed.`,
         );
       }
 
@@ -262,7 +262,7 @@ class BookClubRepo {
         prompt.description.length > RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH
       ) {
         throw new Error(
-          `Prompt description is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH} characters allowed.`
+          `Prompt description is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_DESCRIPTION_LENGTH} characters allowed.`,
         );
       }
 
@@ -296,7 +296,7 @@ class BookClubRepo {
   updateDiscussionPrompt = async (
     clubId: string,
     promptId: string,
-    updates: Partial<IDiscussionPrompt>
+    updates: Partial<IDiscussionPrompt>,
   ) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
@@ -309,7 +309,7 @@ class BookClubRepo {
       const clubData = clubDoc.data() as IClub;
       const prompts = clubData.discussionPrompts || [];
       const updatedPrompts = prompts.map((p) =>
-        p.id === promptId ? { ...p, ...updates } : p
+        p.id === promptId ? { ...p, ...updates } : p,
       );
 
       await updateDoc(clubRef, {
@@ -324,7 +324,7 @@ class BookClubRepo {
   unlockPromptForUser = async (
     clubId: string,
     promptId: string,
-    userId: string
+    userId: string,
   ) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
@@ -358,13 +358,13 @@ class BookClubRepo {
   addPromptResponse = async (
     clubId: string,
     promptId: string,
-    response: Omit<IPromptResponse, "id">
+    response: Omit<IPromptResponse, "id">,
   ) => {
     try {
       // Validate response length
       if (response.content.length > RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH) {
         throw new Error(
-          `Response is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH} characters allowed.`
+          `Response is too long. Maximum ${RATE_LIMITS.MAX_PROMPT_RESPONSE_LENGTH} characters allowed.`,
         );
       }
 
@@ -407,14 +407,14 @@ class BookClubRepo {
       // Validate poll question length
       if (poll.question.length > RATE_LIMITS.MAX_POLL_QUESTION_LENGTH) {
         throw new Error(
-          `Poll question is too long. Maximum ${RATE_LIMITS.MAX_POLL_QUESTION_LENGTH} characters allowed.`
+          `Poll question is too long. Maximum ${RATE_LIMITS.MAX_POLL_QUESTION_LENGTH} characters allowed.`,
         );
       }
 
       // Validate number of options
       if (poll.options.length > RATE_LIMITS.MAX_POLL_OPTIONS) {
         throw new Error(
-          `Too many options. Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed.`
+          `Too many options. Maximum ${RATE_LIMITS.MAX_POLL_OPTIONS} options allowed.`,
         );
       }
 
@@ -426,7 +426,7 @@ class BookClubRepo {
       for (const option of poll.options) {
         if (option.text.length > RATE_LIMITS.MAX_POLL_OPTION_LENGTH) {
           throw new Error(
-            `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`
+            `Option text is too long. Maximum ${RATE_LIMITS.MAX_POLL_OPTION_LENGTH} characters allowed.`,
           );
         }
       }
@@ -461,7 +461,7 @@ class BookClubRepo {
     clubId: string,
     pollId: string,
     userId: string,
-    optionIndex: number
+    optionIndex: number,
   ) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
@@ -496,13 +496,13 @@ class BookClubRepo {
     clubId: string,
     userId: string,
     chapter: number,
-    notes?: string
+    notes?: string,
   ) => {
     try {
       const progressRef = doc(
         firestore,
         `bookClubs/${clubId}/memberProgress`,
-        userId
+        userId,
       );
 
       await setDoc(
@@ -513,7 +513,7 @@ class BookClubRepo {
           lastUpdated: new Date().toISOString(),
           notes: notes || null,
         },
-        { merge: true }
+        { merge: true },
       );
     } catch (error) {
       console.error("Error updating reading progress:", error);
@@ -523,13 +523,13 @@ class BookClubRepo {
 
   getMemberProgress = async (
     clubId: string,
-    userId: string
+    userId: string,
   ): Promise<IReadingProgress | null> => {
     try {
       const progressRef = doc(
         firestore,
         `bookClubs/${clubId}/memberProgress`,
-        userId
+        userId,
       );
       const progressDoc = await getDoc(progressRef);
 
@@ -545,17 +545,17 @@ class BookClubRepo {
 
   getAllMemberProgress = (
     clubId: string,
-    callback: (progress: IReadingProgress[]) => void
+    callback: (progress: IReadingProgress[]) => void,
   ) => {
     const progressRef = collection(
       firestore,
-      `bookClubs/${clubId}/memberProgress`
+      `bookClubs/${clubId}/memberProgress`,
     );
     const q = query(progressRef, orderBy("currentChapter", "desc"));
 
     return onSnapshot(q, (snapshot) => {
       const progress = snapshot.docs.map(
-        (doc) => doc.data() as IReadingProgress
+        (doc) => doc.data() as IReadingProgress,
       );
       callback(progress);
     });
@@ -565,13 +565,13 @@ class BookClubRepo {
   addSpoilerToMessage = async (
     clubId: string,
     messageId: string,
-    spoilerData: { chapterRange: { start: number; end?: number } }
+    spoilerData: { chapterRange: { start: number; end?: number } },
   ) => {
     try {
       const messageRef = doc(
         firestore,
         `bookClubs/${clubId}/messages`,
-        messageId
+        messageId,
       );
       await updateDoc(messageRef, {
         hasSpoiler: true,

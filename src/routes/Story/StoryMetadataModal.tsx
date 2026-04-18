@@ -334,7 +334,9 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </div>
         ) : null}
 
-        <div className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "cowrite" ? "hidden" : ""}`}>
+        <div
+          className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "cowrite" ? "hidden" : ""}`}
+        >
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ── Mode toggle ───────────────────────────────────────────────── */}
             <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
@@ -748,38 +750,40 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </form>
         </div>
 
-        {mode !== "cowrite" && <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
-          <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="h-11 px-6"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
-                (mode === "import" && parsedChapters.length === 0)
-              }
-              className="h-11 px-8 bg-gradient-to-r from-dark-green to-light-green dark:from-light-green dark:to-dark-green text-white hover:shadow-lg transition-all shadow-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {mode === "import" ? "Importing..." : "Creating..."}
-                </>
-              ) : mode === "import" ? (
-                "Import Story"
-              ) : (
-                "Create Story"
-              )}
-            </Button>
-          </div>
-        </DialogFooter>}
+        {mode !== "cowrite" && (
+          <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
+            <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-11 px-6"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={
+                  isSubmitting ||
+                  (mode === "import" && parsedChapters.length === 0)
+                }
+                className="h-11 px-8 bg-gradient-to-r from-dark-green to-light-green dark:from-light-green dark:to-dark-green text-white hover:shadow-lg transition-all shadow-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {mode === "import" ? "Importing..." : "Creating..."}
+                  </>
+                ) : mode === "import" ? (
+                  "Import Story"
+                ) : (
+                  "Create Story"
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

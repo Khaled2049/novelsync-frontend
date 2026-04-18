@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { IUser } from "../../../types/IUser";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface UserDropdownProps {
   isOpen: boolean;
@@ -111,7 +112,7 @@ const UserDropdown = ({
     },
     {
       icon: BookOpen,
-      label: "My Stories",
+      label: "My Shelf",
       to: "/user-stories",
       onClick: onClose,
     },
@@ -123,31 +124,36 @@ const UserDropdown = ({
       className="absolute right-0 mt-2 w-56 bg-ns-elevated text-ns-ink rounded-ns-xl shadow-ns-lg z-50 overflow-hidden border border-ns-border animate-ns-slide-down"
     >
       {/* User Info */}
-      <Link
-        to="/profile"
-        onClick={onClose}
-        className="block p-4 hover:bg-ns-surface border-b border-ns-border transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          {user.photoURL && user.photoURL.trim() !== "" ? (
-            <img
-              src={user.photoURL}
-              alt="User Avatar"
-              className="w-10 h-10 rounded-full border-2 border-ns-border"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-ns-accent flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+      <div className="flex items-center border-b border-ns-border">
+        <Link
+          to="/profile"
+          onClick={onClose}
+          className="flex-1 p-4 hover:bg-ns-surface transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            {user.photoURL && user.photoURL.trim() !== "" ? (
+              <img
+                src={user.photoURL}
+                alt="User Avatar"
+                className="w-10 h-10 rounded-full border-2 border-ns-border"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-ns-accent flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate text-ns-ink">
+                {user.displayName || "User"}
+              </p>
+              <p className="text-xs text-ns-ink-muted truncate">{user.email}</p>
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate text-ns-ink">
-              {user.displayName || "User"}
-            </p>
-            <p className="text-xs text-ns-ink-muted truncate">{user.email}</p>
           </div>
+        </Link>
+        <div className="pr-3">
+          <ThemeToggle />
         </div>
-      </Link>
+      </div>
 
       {/* Menu Items */}
       <div className="py-1">

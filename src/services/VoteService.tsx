@@ -18,7 +18,7 @@ class VoteService {
   private getCommentVotesCollection(postId: string, commentId: string) {
     const commentsCollection = collection(
       doc(this.postsCollection, postId),
-      "comments"
+      "comments",
     );
     return collection(doc(commentsCollection, commentId), "votes");
   }
@@ -27,7 +27,7 @@ class VoteService {
     postId: string,
     userId: string,
     type: "post" | "comment",
-    commentId?: string
+    commentId?: string,
   ): Promise<"up" | "down" | null> {
     try {
       const votesCollection =
@@ -51,7 +51,7 @@ class VoteService {
   async votePost(
     postId: string,
     userId: string,
-    voteType: "up" | "down" | null
+    voteType: "up" | "down" | null,
   ): Promise<void> {
     try {
       const votesCollection = this.getPostVotesCollection(postId);
@@ -144,14 +144,14 @@ class VoteService {
     postId: string,
     commentId: string,
     userId: string,
-    voteType: "up" | "down" | null
+    voteType: "up" | "down" | null,
   ): Promise<void> {
     try {
       const votesCollection = this.getCommentVotesCollection(postId, commentId);
       const voteRef = doc(votesCollection, userId);
       const commentsCollection = collection(
         doc(this.postsCollection, postId),
-        "comments"
+        "comments",
       );
       const commentRef = doc(commentsCollection, commentId);
       const batch = writeBatch(firestore);
@@ -239,7 +239,7 @@ class VoteService {
 
   async getUserVotesForPosts(
     postIds: string[],
-    userId: string
+    userId: string,
   ): Promise<Map<string, "up" | "down">> {
     const votesMap = new Map<string, "up" | "down">();
 
@@ -267,7 +267,7 @@ class VoteService {
   async getUserVotesForComments(
     postId: string,
     commentIds: string[],
-    userId: string
+    userId: string,
   ): Promise<Map<string, "up" | "down">> {
     const votesMap = new Map<string, "up" | "down">();
 
@@ -282,7 +282,7 @@ class VoteService {
           postId,
           userId,
           "comment",
-          commentId
+          commentId,
         );
         if (vote) {
           votesMap.set(commentId, vote);

@@ -1,41 +1,41 @@
-import { useState, useCallback, useMemo } from "react"
-import { formatEther, formatUnits } from "viem"
-import { usePublicClient } from "wagmi"
+import { useState, useCallback, useMemo } from "react";
+import { formatEther, formatUnits } from "viem";
+import { usePublicClient } from "wagmi";
 import {
   tippingPlatformConfig,
   ZERO_ADDRESS,
-} from "@/blockchain/tippingPlatform"
-import { USDC_ADDRESS } from "@/blockchain/tokens"
+} from "@/blockchain/tippingPlatform";
+import { USDC_ADDRESS } from "@/blockchain/tokens";
 
 interface EarningsData {
-  eth: string
-  usdc: string
+  eth: string;
+  usdc: string;
 }
 
 const toBigInt = (value: unknown): bigint => {
-  if (typeof value === "bigint") return value
-  return 0n
-}
+  if (typeof value === "bigint") return value;
+  return 0n;
+};
 
 export const useEarnings = () => {
-  const publicClient = usePublicClient()
+  const publicClient = usePublicClient();
   const [lifetimeEarnings, setLifetimeEarnings] = useState<EarningsData>({
     eth: "0",
     usdc: "0",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchLifetimeEarnings = useCallback(
     async (walletAddress: string) => {
       if (!publicClient || !walletAddress) {
-        setLoading(false)
-        return
+        setLoading(false);
+        return;
       }
 
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         const [ethEarnings, usdcEarnings] = await Promise.all([
           publicClient
@@ -49,29 +49,34 @@ export const useEarnings = () => {
             .readContract({
               ...tippingPlatformConfig,
               functionName: "lifetimeEarnings",
-              args: [walletAddress as `0x${string}`, USDC_ADDRESS as `0x${string}`],
+              args: [
+                walletAddress as `0x${string}`,
+                USDC_ADDRESS as `0x${string}`,
+              ],
             })
             .catch(() => 0n),
-        ])
+        ]);
 
         setLifetimeEarnings({
           eth: formatEther(toBigInt(ethEarnings)),
           usdc: formatUnits(toBigInt(usdcEarnings), 6),
-        })
+        });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch earnings")
-        setLifetimeEarnings({ eth: "0", usdc: "0" })
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch earnings",
+        );
+        setLifetimeEarnings({ eth: "0", usdc: "0" });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
-    [publicClient]
-  )
+    [publicClient],
+  );
 
   const fetchStoryEarnings = useCallback(
     async (storyId: string): Promise<EarningsData> => {
       if (!publicClient || !storyId) {
-        return { eth: "0", usdc: "0" }
+        return { eth: "0", usdc: "0" };
       }
 
       try {
@@ -90,18 +95,18 @@ export const useEarnings = () => {
               args: [storyId, USDC_ADDRESS as `0x${string}`],
             })
             .catch(() => 0n),
-        ])
+        ]);
 
         return {
           eth: formatEther(toBigInt(ethEarnings)),
           usdc: formatUnits(toBigInt(usdcEarnings), 6),
-        }
+        };
       } catch {
-        return { eth: "0", usdc: "0" }
+        return { eth: "0", usdc: "0" };
       }
     },
-    [publicClient]
-  )
+    [publicClient],
+  );
 
   return useMemo(
     () => ({
@@ -117,6 +122,6 @@ export const useEarnings = () => {
       fetchStoryEarnings,
       loading,
       error,
-    ]
-  )
-}
+    ],
+  );
+};

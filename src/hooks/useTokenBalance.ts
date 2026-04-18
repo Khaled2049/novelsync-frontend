@@ -1,11 +1,11 @@
-import { useCallback, useMemo } from "react"
-import { erc20Abi, formatUnits } from "viem"
-import { useAccount, useBalance, useReadContract } from "wagmi"
-import { USDC_ADDRESS } from "@/blockchain/tokens"
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
+import { useCallback, useMemo } from "react";
+import { erc20Abi, formatUnits } from "viem";
+import { useAccount, useBalance, useReadContract } from "wagmi";
+import { USDC_ADDRESS } from "@/blockchain/tokens";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 export const useTokenBalance = () => {
-  const { address } = useAccount()
+  const { address } = useAccount();
 
   const {
     data: ethData,
@@ -13,7 +13,7 @@ export const useTokenBalance = () => {
     refetch: refetchETH,
   } = useBalance({
     address,
-  })
+  });
 
   const {
     data: usdcRaw,
@@ -27,11 +27,11 @@ export const useTokenBalance = () => {
     query: {
       enabled: Boolean(address && USDC_ADDRESS),
     },
-  })
+  });
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchETH(), refetchUSDC()])
-  }, [refetchETH, refetchUSDC])
+    await Promise.all([refetchETH(), refetchUSDC()]);
+  }, [refetchETH, refetchUSDC]);
 
   return useMemo(
     () => ({
@@ -42,6 +42,6 @@ export const useTokenBalance = () => {
       isLoading: isLoadingETH || isLoadingUSDC,
       refetch,
     }),
-    [ethData, usdcRaw, isLoadingETH, isLoadingUSDC, refetch]
-  )
-}
+    [ethData, usdcRaw, isLoadingETH, isLoadingUSDC, refetch],
+  );
+};

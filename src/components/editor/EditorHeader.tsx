@@ -14,34 +14,45 @@ interface EditorHeaderProps {
 
 const ZOOM_PRESETS = [50, 75, 90, 100, 125, 150, 200];
 
-const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, onZoomChange, storyId: _storyId }) => {
+const EditorHeader: React.FC<EditorHeaderProps> = ({
+  editor,
+  zoomLevel = 100,
+  onZoomChange,
+  storyId: _storyId,
+}) => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [genImage, setGenImage] = useState("");
   const [_isLoading, setIsLoading] = useState(false);
 
   const handleZoomIn = useCallback(() => {
     if (!onZoomChange) return;
-    const currentIndex = ZOOM_PRESETS.findIndex(z => z >= zoomLevel);
-    const nextIndex = currentIndex < ZOOM_PRESETS.length - 1 ? currentIndex + 1 : currentIndex;
+    const currentIndex = ZOOM_PRESETS.findIndex((z) => z >= zoomLevel);
+    const nextIndex =
+      currentIndex < ZOOM_PRESETS.length - 1 ? currentIndex + 1 : currentIndex;
     onZoomChange(ZOOM_PRESETS[nextIndex]);
   }, [zoomLevel, onZoomChange]);
 
   const handleZoomOut = useCallback(() => {
     if (!onZoomChange) return;
-    const currentIndex = ZOOM_PRESETS.findIndex(z => z >= zoomLevel);
+    const currentIndex = ZOOM_PRESETS.findIndex((z) => z >= zoomLevel);
     const prevIndex = currentIndex > 0 ? currentIndex - 1 : 0;
     onZoomChange(ZOOM_PRESETS[prevIndex]);
   }, [zoomLevel, onZoomChange]);
 
-  const handleZoomSelect = useCallback((value: string) => {
-    if (!onZoomChange) return;
-    onZoomChange(parseInt(value, 10));
-  }, [onZoomChange]);
+  const handleZoomSelect = useCallback(
+    (value: string) => {
+      if (!onZoomChange) return;
+      onZoomChange(parseInt(value, 10));
+    },
+    [onZoomChange],
+  );
 
   const generateImage = async (prompt: string) => {
     setIsLoading(true);
     try {
-      const response = await api.post<{ image: string }>("/generate", { prompt });
+      const response = await api.post<{ image: string }>("/generate", {
+        prompt,
+      });
       const imageData = response.data.image;
       editor
         .chain()
@@ -115,15 +126,27 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, zoomLevel = 100, on
       <div className="w-px h-5 bg-ns-border mx-1 self-center" />
 
       {/* Bold */}
-      <button className={toolbarBtn(editor.isActive("bold"))} onClick={toggleBold} title="Bold">
+      <button
+        className={toolbarBtn(editor.isActive("bold"))}
+        onClick={toggleBold}
+        title="Bold"
+      >
         <Icons.Bold />
       </button>
       {/* Italic */}
-      <button className={toolbarBtn(editor.isActive("italic"))} onClick={toggleItalic} title="Italic">
+      <button
+        className={toolbarBtn(editor.isActive("italic"))}
+        onClick={toggleItalic}
+        title="Italic"
+      >
         <Icons.Italic />
       </button>
       {/* Underline */}
-      <button className={toolbarBtn(editor.isActive("underline"))} onClick={toggleUnderline} title="Underline">
+      <button
+        className={toolbarBtn(editor.isActive("underline"))}
+        onClick={toggleUnderline}
+        title="Underline"
+      >
         <Icons.Underline />
       </button>
 

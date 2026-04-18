@@ -47,12 +47,15 @@ const BookSearch: React.FC<BookSearchProps> = ({ onBookSelect }) => {
     try {
       setIsSearching(true);
       setError(null);
-      const response = await api.get<{ error?: string; items?: Book[] }>("/searchBooks", {
-        params: {
-          q: searchQuery,
-          maxResults: 3,
+      const response = await api.get<{ error?: string; items?: Book[] }>(
+        "/searchBooks",
+        {
+          params: {
+            q: searchQuery,
+            maxResults: 3,
+          },
         },
-      });
+      );
 
       // Check if response contains an error
       if (response.data.error) {
@@ -85,7 +88,7 @@ const BookSearch: React.FC<BookSearchProps> = ({ onBookSelect }) => {
           setError(
             errorMessage.includes("API key")
               ? errorMessage
-              : "Server error: Books API key may not be configured. Please contact support."
+              : "Server error: Books API key may not be configured. Please contact support.",
           );
         } else {
           setError(`Search failed: ${errorMessage} (Status: ${status})`);
@@ -93,7 +96,7 @@ const BookSearch: React.FC<BookSearchProps> = ({ onBookSelect }) => {
       } else if (err.request) {
         // Request was made but no response received
         setError(
-          "Failed to connect to search service. Please check your connection."
+          "Failed to connect to search service. Please check your connection.",
         );
       } else {
         // Something else happened

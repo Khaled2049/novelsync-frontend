@@ -32,10 +32,10 @@ const TARGET_CHAIN_NAME =
   TARGET_CHAIN_ID === 31337
     ? "Anvil"
     : TARGET_CHAIN_ID === 11155111
-    ? "Sepolia"
-    : TARGET_CHAIN_ID === 1
-    ? "Ethereum"
-    : `Chain ${TARGET_CHAIN_ID}`;
+      ? "Sepolia"
+      : TARGET_CHAIN_ID === 1
+        ? "Ethereum"
+        : `Chain ${TARGET_CHAIN_ID}`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,7 +110,9 @@ const Row = ({
     <div>
       <p className="text-sm font-ui font-medium text-ns-ink">{label}</p>
       {description && (
-        <p className="text-xs font-ui text-ns-ink-muted mt-0.5">{description}</p>
+        <p className="text-xs font-ui text-ns-ink-muted mt-0.5">
+          {description}
+        </p>
       )}
     </div>
     <div className="flex-shrink-0">{children}</div>
@@ -180,7 +182,7 @@ const UserProfile: React.FC = () => {
         userStories.map(async (story) => ({
           ...story,
           earnings: await fetchStoryEarnings(story.id),
-        }))
+        })),
       );
       setStories(withEarnings);
     } catch {
@@ -256,11 +258,11 @@ const UserProfile: React.FC = () => {
 
   const totalEthEarnings = stories.reduce(
     (sum, s) => sum + parseFloat(s.earnings.eth || "0"),
-    0
+    0,
   );
   const totalUsdcEarnings = stories.reduce(
     (sum, s) => sum + parseFloat(s.earnings.usdc || "0"),
-    0
+    0,
   );
 
   // ── Loading / error states ──────────────────────────────────────────────────
@@ -307,12 +309,10 @@ const UserProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-ns-bg">
-
       {/* ── Profile header ── */}
       <div className="bg-ns-elevated border-b border-ns-border">
         <div className="max-w-5xl mx-auto px-6 py-10">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
-
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               {user?.photoURL ? (
@@ -371,7 +371,6 @@ const UserProfile: React.FC = () => {
 
       {/* ── Body ── */}
       <div className="max-w-5xl mx-auto px-6 py-8 flex gap-8 items-start">
-
         {/* Sidebar */}
         <aside className="w-48 flex-shrink-0 sticky top-6">
           <nav className="space-y-0.5">
@@ -420,7 +419,6 @@ const UserProfile: React.FC = () => {
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
-
           {/* ── Profile ── */}
           {activeSection === "profile" && (
             <>
@@ -471,7 +469,7 @@ const UserProfile: React.FC = () => {
                       {stories.slice(0, 5).map((story) => {
                         const storyEth = parseFloat(story.earnings.eth || "0");
                         const storyUsdc = parseFloat(
-                          story.earnings.usdc || "0"
+                          story.earnings.usdc || "0",
                         );
                         return (
                           <Link
@@ -504,7 +502,9 @@ const UserProfile: React.FC = () => {
                                 )}
                                 {" · "}
                                 {story.chapterCount}{" "}
-                                {story.chapterCount === 1 ? "chapter" : "chapters"}
+                                {story.chapterCount === 1
+                                  ? "chapter"
+                                  : "chapters"}
                               </p>
                             </div>
                             {(storyEth > 0 || storyUsdc > 0) && (
@@ -686,7 +686,7 @@ const UserProfile: React.FC = () => {
               {stories.some(
                 (s) =>
                   parseFloat(s.earnings.eth) > 0 ||
-                  parseFloat(s.earnings.usdc) > 0
+                  parseFloat(s.earnings.usdc) > 0,
               ) && (
                 <Card title="Per-Story Earnings">
                   <div className="divide-y divide-ns-border">
@@ -694,7 +694,7 @@ const UserProfile: React.FC = () => {
                       .filter(
                         (s) =>
                           parseFloat(s.earnings.eth) > 0 ||
-                          parseFloat(s.earnings.usdc) > 0
+                          parseFloat(s.earnings.usdc) > 0,
                       )
                       .map((story) => (
                         <div
@@ -760,7 +760,9 @@ const UserProfile: React.FC = () => {
                         <span className="text-ns-ink-secondary">
                           Author (You)
                         </span>
-                        <span className="font-semibold text-ns-accent">90%</span>
+                        <span className="font-semibold text-ns-accent">
+                          90%
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-ns-ink-secondary">
@@ -795,9 +797,7 @@ const UserProfile: React.FC = () => {
               >
                 <Toggle
                   checked={notifications.push}
-                  onChange={(v) =>
-                    setNotifications((n) => ({ ...n, push: v }))
-                  }
+                  onChange={(v) => setNotifications((n) => ({ ...n, push: v }))}
                 />
               </Row>
               <Row
@@ -842,9 +842,7 @@ const UserProfile: React.FC = () => {
               >
                 <Toggle
                   checked={privacy.showEmail}
-                  onChange={(v) =>
-                    setPrivacy((p) => ({ ...p, showEmail: v }))
-                  }
+                  onChange={(v) => setPrivacy((p) => ({ ...p, showEmail: v }))}
                 />
               </Row>
             </Card>
@@ -905,7 +903,6 @@ const UserProfile: React.FC = () => {
               </div>
             </Card>
           )}
-
         </main>
       </div>
     </div>

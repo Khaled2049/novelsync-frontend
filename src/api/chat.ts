@@ -14,8 +14,6 @@ export const sendChatMessage = async (
     );
     return response.data;
   } catch (error: unknown) {
-    throw new Error(
-      getApiErrorMessage(error, "Failed to send chat message"),
-    );
+    throw new Error(getApiErrorMessage(error, "Failed to send chat message"));
   }
 };

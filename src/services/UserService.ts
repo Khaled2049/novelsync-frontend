@@ -31,7 +31,7 @@ class UserService {
    */
   async updateUserWalletAddress(
     userId: string,
-    address: string
+    address: string,
   ): Promise<void> {
     try {
       const userDocRef = doc(firestore, "users", userId);

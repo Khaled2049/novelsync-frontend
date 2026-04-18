@@ -1,5 +1,13 @@
 import React from "react";
-import { FaEdit, FaTrash, FaEyeSlash, FaBookOpen, FaEye, FaHeart, FaStar } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTrash,
+  FaEyeSlash,
+  FaBookOpen,
+  FaEye,
+  FaHeart,
+  FaStar,
+} from "react-icons/fa";
 import { StoryMetadata } from "@/types/IStory";
 import { DollarSign } from "lucide-react";
 
@@ -47,9 +55,7 @@ export const StoryListView: React.FC<StoryListViewProps> = ({
   if (stories.length === 0) {
     return (
       <div className="text-center py-10 px-6 bg-white dark:bg-black rounded-lg shadow-sm border border-black/20 dark:border-white/20">
-        <p className="text-black/70 dark:text-white/70">
-          No stories found.
-        </p>
+        <p className="text-black/70 dark:text-white/70">No stories found.</p>
       </div>
     );
   }
@@ -133,23 +139,31 @@ export const StoryListView: React.FC<StoryListViewProps> = ({
                 </div>
               </td>
               <td className="py-4 px-4">
-                {story.earnings && (parseFloat(story.earnings.eth) > 0 || parseFloat(story.earnings.usdc) > 0) ? (
+                {story.earnings &&
+                (parseFloat(story.earnings.eth) > 0 ||
+                  parseFloat(story.earnings.usdc) > 0) ? (
                   <div className="flex flex-col gap-1 text-sm">
                     {parseFloat(story.earnings.eth) > 0 && (
                       <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                         <DollarSign className="w-3.5 h-3.5" />
-                        <span className="font-medium">{parseFloat(story.earnings.eth).toFixed(4)} ETH</span>
+                        <span className="font-medium">
+                          {parseFloat(story.earnings.eth).toFixed(4)} ETH
+                        </span>
                       </div>
                     )}
                     {parseFloat(story.earnings.usdc) > 0 && (
                       <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
                         <DollarSign className="w-3.5 h-3.5" />
-                        <span className="font-medium">{parseFloat(story.earnings.usdc).toFixed(2)} USDC</span>
+                        <span className="font-medium">
+                          {parseFloat(story.earnings.usdc).toFixed(2)} USDC
+                        </span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <span className="text-sm text-black/40 dark:text-white/40">No earnings</span>
+                  <span className="text-sm text-black/40 dark:text-white/40">
+                    No earnings
+                  </span>
                 )}
               </td>
               <td className="py-4 px-4 text-sm text-black/70 dark:text-white/70">
@@ -190,4 +204,3 @@ export const StoryListView: React.FC<StoryListViewProps> = ({
     </div>
   );
 };
-

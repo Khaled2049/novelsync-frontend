@@ -178,15 +178,20 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                       return true;
                     }
 
-                    if (countEditorImages(editorInstance) >= MAX_CHAPTER_IMAGES) {
+                    if (
+                      countEditorImages(editorInstance) >= MAX_CHAPTER_IMAGES
+                    ) {
                       pasteErrorRef.current?.(
                         `Maximum ${MAX_CHAPTER_IMAGES} images per chapter.`,
                       );
                       return true;
                     }
 
-                    const { userId: uid, storyId: sid, chapterId: cid } =
-                      uploadContextRef.current;
+                    const {
+                      userId: uid,
+                      storyId: sid,
+                      chapterId: cid,
+                    } = uploadContextRef.current;
                     void (async () => {
                       try {
                         const url = await storageService.uploadChapterImage(
@@ -225,16 +230,29 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           Suggestion({
             editor: editorInstance,
             ...slashCommandSuggestion(
-              async () => { await fetchNextLineSuggestions(editorInstance); },
-              async () => { await generateChapter(editorInstance); },
-              () => { openImagePrompt(); },
-              () => { onOpenCoWrite?.(); },
+              async () => {
+                await fetchNextLineSuggestions(editorInstance);
+              },
+              async () => {
+                await generateChapter(editorInstance);
+              },
+              () => {
+                openImagePrompt();
+              },
+              () => {
+                onOpenCoWrite?.();
+              },
             ),
           }),
         ];
       },
     });
-  }, [fetchNextLineSuggestions, generateChapter, openImagePrompt, onOpenCoWrite]);
+  }, [
+    fetchNextLineSuggestions,
+    generateChapter,
+    openImagePrompt,
+    onOpenCoWrite,
+  ]);
 
   // ── Editor instance ────────────────────────────────────────────────────────
 
@@ -385,7 +403,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             editor={editor}
           />
         </div>
-        <div className="flex justify-center px-6 pb-6">
+        <div className="flex items-center justify-center gap-4 px-6 pb-6">
           <SaveStatusIndicator
             status={saveState.status}
             lastSaved={saveState.lastSaved}
@@ -437,7 +455,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <div className="bg-ns-elevated border border-ns-border rounded-lg shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-ns-accent" />
-              <h2 className="font-heading text-lg text-ns-ink">Generate Image</h2>
+              <h2 className="font-heading text-lg text-ns-ink">
+                Generate Image
+              </h2>
             </div>
             <p className="font-ui text-sm text-ns-ink-secondary">
               Describe the image you want to create.

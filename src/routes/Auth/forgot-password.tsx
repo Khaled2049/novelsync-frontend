@@ -31,7 +31,7 @@ const ForgotPassword = () => {
     setTimeout(() => {
       setIsLoading(false);
       setMessage(
-        "If this email is registered, you will receive a password reset link."
+        "If this email is registered, you will receive a password reset link.",
       );
     }, 2000);
   };

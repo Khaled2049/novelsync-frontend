@@ -6,7 +6,10 @@ interface UseCoWriteParams {
   editor: Editor | null;
 }
 
-export function useCoWrite({ openInteractivePanelOnMount, editor }: UseCoWriteParams) {
+export function useCoWrite({
+  openInteractivePanelOnMount,
+  editor,
+}: UseCoWriteParams) {
   const [isInteractivePanelOpen, setIsInteractivePanelOpen] = useState(false);
   const [interactivePanelMode, setInteractivePanelMode] = useState<
     "opening" | "continuation"

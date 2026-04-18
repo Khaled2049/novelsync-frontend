@@ -18,7 +18,7 @@ const UpdateplaceModal: React.FC<UpdatePlaceModalProps> = ({
   const [updatedplace, setUpdatedplace] = useState<Place>(place);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setUpdatedplace((prev) => ({

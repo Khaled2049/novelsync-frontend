@@ -116,7 +116,12 @@ const BookClubs = () => {
       <SEOHead
         title={`Book Clubs - ${APP_NAME}`}
         description={`Join reading communities and book clubs on ${APP_NAME}. Read together, discuss stories, and connect with fellow readers.`}
-        keywords={["book clubs", "reading groups", "reading community", "book discussions"]}
+        keywords={[
+          "book clubs",
+          "reading groups",
+          "reading community",
+          "book discussions",
+        ]}
         url="/book-clubs"
         canonical="/book-clubs"
       />

@@ -18,7 +18,8 @@ export function countEditorImages(editor: Editor): number {
 export function validateImageFile(file: File): string | null {
   if (!ALLOWED_IMAGE_TYPES.has(file.type))
     return "Unsupported format. Use JPEG, PNG, or WebP.";
-  if (file.size > MAX_IMAGE_BYTES) return "Image too large. Maximum size is 2 MB.";
+  if (file.size > MAX_IMAGE_BYTES)
+    return "Image too large. Maximum size is 2 MB.";
   return null;
 }
 
@@ -68,8 +69,11 @@ export function useImageGeneration({
     setIsGeneratingImage(true);
     try {
       const { file } = await generateCover(imagePrompt.trim());
-      const { userId: uid, storyId: sid, chapterId: cid } =
-        uploadContextRef.current;
+      const {
+        userId: uid,
+        storyId: sid,
+        chapterId: cid,
+      } = uploadContextRef.current;
       const url = await storageService.uploadChapterImage(
         file,
         uid ?? "",
@@ -86,7 +90,14 @@ export function useImageGeneration({
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [imagePrompt, canUseAI, incrementAiUsage, editorRef, uploadContextRef, onError]);
+  }, [
+    imagePrompt,
+    canUseAI,
+    incrementAiUsage,
+    editorRef,
+    uploadContextRef,
+    onError,
+  ]);
 
   return {
     imagePromptOpen,

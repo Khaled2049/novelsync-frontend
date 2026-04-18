@@ -41,8 +41,8 @@ class RateLimitService {
         0,
         0,
         0,
-        0
-      )
+        0,
+      ),
     );
     return todayStart;
   }
@@ -86,7 +86,7 @@ class RateLimitService {
       const postsQuery = query(
         this.postsCollection,
         where("authorId", "==", userId),
-        where("createdAt", ">=", todayStartTimestamp)
+        where("createdAt", ">=", todayStartTimestamp),
       );
 
       const snapshot = await getDocs(postsQuery);
@@ -133,8 +133,8 @@ class RateLimitService {
         where(
           "createdAt",
           ">=",
-          Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-        )
+          Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
+        ),
       );
 
       const postsSnapshot = await getDocs(recentPostsQuery);
@@ -144,13 +144,13 @@ class RateLimitService {
         const commentsCollection = collection(
           this.postsCollection,
           postDoc.id,
-          "comments"
+          "comments",
         );
 
         const commentsQuery = query(
           commentsCollection,
           where("authorId", "==", userId),
-          where("createdAt", ">=", todayStartTimestamp)
+          where("createdAt", ">=", todayStartTimestamp),
         );
 
         const commentsSnapshot = await getDocs(commentsQuery);
@@ -293,7 +293,7 @@ class RateLimitService {
    */
   private async getTodayCount(
     userId: string,
-    fieldName: string
+    fieldName: string,
   ): Promise<number> {
     try {
       const dateString = this.getTodayDateString();
@@ -316,13 +316,13 @@ class RateLimitService {
    */
   private async getHourlyCount(
     userId: string,
-    fieldName: string
+    fieldName: string,
   ): Promise<number> {
     try {
       const hourString = this.getCurrentHourString();
       const activityDocRef = doc(
         this.userActivityCollection,
-        `${userId}_${hourString}`
+        `${userId}_${hourString}`,
       );
       const activityDoc = await getDoc(activityDocRef);
 
@@ -342,7 +342,7 @@ class RateLimitService {
    */
   private async incrementDailyCount(
     userId: string,
-    fieldName: string
+    fieldName: string,
   ): Promise<void> {
     try {
       const dateString = this.getTodayDateString();
@@ -373,13 +373,13 @@ class RateLimitService {
    */
   private async incrementHourlyCount(
     userId: string,
-    fieldName: string
+    fieldName: string,
   ): Promise<void> {
     try {
       const hourString = this.getCurrentHourString();
       const activityDocRef = doc(
         this.userActivityCollection,
-        `${userId}_${hourString}`
+        `${userId}_${hourString}`,
       );
       const activityDoc = await getDoc(activityDocRef);
 

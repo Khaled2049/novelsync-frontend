@@ -30,7 +30,7 @@ class ReportService {
   async reportPost(
     postId: string,
     userId: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
     try {
       const reportsCollection = this.getPostReportsCollection(postId);
@@ -72,7 +72,7 @@ class ReportService {
           const commentVotesCollection = collection(
             commentsCollection,
             commentDoc.id,
-            "votes"
+            "votes",
           );
           const votesSnapshot = await getDocs(commentVotesCollection);
           votesSnapshot.forEach((voteDoc) => {
@@ -103,7 +103,7 @@ class ReportService {
         if (authorId) {
           const userPostsCollection = collection(
             doc(collection(firestore, "users"), authorId),
-            "posts"
+            "posts",
           );
           const userPostRef = doc(userPostsCollection, postId);
           batch.delete(userPostRef);

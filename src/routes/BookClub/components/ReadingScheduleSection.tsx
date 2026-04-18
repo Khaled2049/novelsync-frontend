@@ -60,12 +60,12 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
         // e.g., 2 chapters per week = every 3.5 days
         const daysPerChapter = 7 / pacingValue;
         currentDate = new Date(
-          currentDate.getTime() + daysPerChapter * 24 * 60 * 60 * 1000
+          currentDate.getTime() + daysPerChapter * 24 * 60 * 60 * 1000,
         );
       } else if (pacingType === "chapters-per-days") {
         // e.g., 3 days per chapter
         currentDate = new Date(
-          currentDate.getTime() + pacingValue * 24 * 60 * 60 * 1000
+          currentDate.getTime() + pacingValue * 24 * 60 * 60 * 1000,
         );
       } else {
         // Custom - default to 1 week per chapter
@@ -255,8 +255,8 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
                 {pacingType === "chapters-per-week"
                   ? "Chapters per Week"
                   : pacingType === "chapters-per-days"
-                  ? "Days per Chapter"
-                  : "Weeks per Chapter"}
+                    ? "Days per Chapter"
+                    : "Weeks per Chapter"}
               </Label>
               <Input
                 id="pacingValue"
@@ -339,8 +339,8 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
             {schedule.pacing.type === "chapters-per-week"
               ? `${schedule.pacing.value} chapters per week`
               : schedule.pacing.type === "chapters-per-days"
-              ? `${schedule.pacing.value} days per chapter`
-              : "Custom schedule"}
+                ? `${schedule.pacing.value} days per chapter`
+                : "Custom schedule"}
           </p>
         </div>
 
@@ -354,8 +354,8 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
                   status === "current"
                     ? "bg-dark-green/10 dark:bg-light-green/20 border-dark-green dark:border-light-green"
                     : status === "past"
-                    ? "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 opacity-60"
-                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700"
+                      ? "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 opacity-60"
+                      : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -365,8 +365,8 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
                         status === "current"
                           ? "bg-dark-green dark:bg-light-green text-white"
                           : status === "past"
-                          ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-700 dark:text-neutral-300"
-                          : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+                            ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-700 dark:text-neutral-300"
+                            : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
                       }`}
                     >
                       {chapter.chapterNumber}

@@ -7,13 +7,17 @@
   padding: 0;
   min-height: calc(100vh - 260px);
   outline: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   font-size: 16px;
   line-height: 1.8;
   color: var(--ns-ink);
   background: transparent;
   caret-color: var(--ns-accent);
-  transition: color 0.3s ease, background-color 0.3s ease;
+  transition:
+    color 0.3s ease,
+    background-color 0.3s ease;
 }
 
 /* Remove border when focused */
@@ -41,7 +45,9 @@
 
 /* Headings */
 .ProseMirror h1 {
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   font-size: 2rem;
   font-weight: 600;
   margin-top: 1.25em;
@@ -51,7 +57,9 @@
 }
 
 .ProseMirror h2 {
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   font-size: 1.4rem;
   font-weight: 600;
   margin-top: 1.25em;
@@ -130,7 +138,7 @@ p.is-editor-empty:first-child::before {
 .modal-title {
   margin: 0 0 24px;
   font-size: 20px;
-  font-family: 'Cormorant', serif;
+  font-family: "Cormorant", serif;
   font-weight: 500;
   line-height: 1;
   color: var(--ns-ink);
@@ -150,7 +158,9 @@ p.is-editor-empty:first-child::before {
   background-color: transparent;
   cursor: pointer;
   color: var(--ns-ink-muted);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .modal-close:hover {
@@ -165,11 +175,13 @@ p.is-editor-empty:first-child::before {
   border: 1px solid var(--ns-border);
   border-radius: 6px;
   font-size: inherit;
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   background: var(--ns-elevated);
   color: var(--ns-ink);
   padding: 0 12px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .modal-input:focus {

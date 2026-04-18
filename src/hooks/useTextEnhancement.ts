@@ -54,7 +54,9 @@ export function useTextEnhancement({
           .insertContentAt(from, response.data.enhancedText)
           .run();
       } catch (error) {
-        onError(error instanceof Error ? error.message : "Failed to enhance text");
+        onError(
+          error instanceof Error ? error.message : "Failed to enhance text",
+        );
       } finally {
         setIsEnhancing(false);
       }

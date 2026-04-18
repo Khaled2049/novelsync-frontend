@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { MessageCircle, BookOpen, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  MessageCircle,
+  BookOpen,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { IPost } from "@/types/IPost";
 import { IUser } from "@/types/IUser";
 import { Link } from "react-router-dom";
@@ -27,7 +33,9 @@ const PostCard: React.FC<PostCardProps> = ({
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount || 0);
   const [downvoteCount, setDownvoteCount] = useState(post.downvoteCount || 0);
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(post.userVote || null);
+  const [userVote, setUserVote] = useState<"up" | "down" | null>(
+    post.userVote || null,
+  );
   const [isVoting, setIsVoting] = useState(false);
   const [hasReported, setHasReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -35,7 +43,10 @@ const PostCard: React.FC<PostCardProps> = ({
   useEffect(() => {
     const checkReported = async () => {
       if (currentUser) {
-        const reported = await reportService.hasUserReported(post.id, currentUser.uid);
+        const reported = await reportService.hasUserReported(
+          post.id,
+          currentUser.uid,
+        );
         setHasReported(reported);
       }
     };
@@ -88,7 +99,12 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleDelete = async () => {
     if (!currentUser || currentUser.uid !== post.authorId) return;
-    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this post? This action cannot be undone.",
+      )
+    )
+      return;
 
     setIsDeleting(true);
     try {
@@ -156,10 +172,11 @@ const PostCard: React.FC<PostCardProps> = ({
               className="text-ns-ink-muted hover:text-ns-destructive transition-colors disabled:opacity-40"
               title="Delete post"
             >
-              {isDeleting
-                ? <span className="font-ui text-xs">Deleting…</span>
-                : <Trash2 size={14} />
-              }
+              {isDeleting ? (
+                <span className="font-ui text-xs">Deleting…</span>
+              ) : (
+                <Trash2 size={14} />
+              )}
             </button>
           )}
         </div>
@@ -188,8 +205,14 @@ const PostCard: React.FC<PostCardProps> = ({
             aria-expanded={commentsExpanded}
           >
             <MessageCircle size={14} />
-            <span>{commentCount} {commentCount === 1 ? "comment" : "comments"}</span>
-            {commentsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <span>
+              {commentCount} {commentCount === 1 ? "comment" : "comments"}
+            </span>
+            {commentsExpanded ? (
+              <ChevronUp size={14} />
+            ) : (
+              <ChevronDown size={14} />
+            )}
           </button>
         </div>
         {currentUser && (

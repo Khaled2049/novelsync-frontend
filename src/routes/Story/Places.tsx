@@ -128,14 +128,14 @@ const Places: React.FC = () => {
         const url = await storageService.uploadPlaceImage(
           imageFile,
           draft.userId,
-          draft.id
+          draft.id,
         );
         updatedDraft = { ...updatedDraft, imageUrl: url };
       }
 
       await placeService.updatePlace(storyId, updatedDraft);
       setPlaces((prev) =>
-        prev.map((p) => (p.id === updatedDraft.id ? updatedDraft : p))
+        prev.map((p) => (p.id === updatedDraft.id ? updatedDraft : p)),
       );
       setSelectedPlace(updatedDraft);
       setEditing(false);
@@ -167,7 +167,9 @@ const Places: React.FC = () => {
       {/* ── Toolbar ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-ns-border bg-ns-surface">
         <div className="flex items-center gap-2.5">
-          <span className="font-heading italic text-lg text-ns-ink">Places</span>
+          <span className="font-heading italic text-lg text-ns-ink">
+            Places
+          </span>
           {places.length > 0 && (
             <span className="font-ui text-[10px] font-semibold text-ns-accent bg-ns-accent-subtle px-2 py-0.5 rounded-full">
               {places.length}
@@ -363,7 +365,7 @@ const Places: React.FC = () => {
                         value={draft?.name ?? ""}
                         onChange={(e) =>
                           setDraft((prev) =>
-                            prev ? { ...prev, name: e.target.value } : prev
+                            prev ? { ...prev, name: e.target.value } : prev,
                           )
                         }
                         placeholder="Place name"
@@ -460,9 +462,7 @@ const Places: React.FC = () => {
                   <Field
                     label="Significance"
                     value={
-                      editing
-                        ? draft?.significance
-                        : selectedPlace.significance
+                      editing ? draft?.significance : selectedPlace.significance
                     }
                     editing={editing}
                     placeholder="Why this place matters to the story or characters…"

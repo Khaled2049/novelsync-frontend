@@ -32,7 +32,9 @@ const CompleteSignup: React.FC = () => {
     setIsValidLink(valid);
 
     if (!valid) {
-      setLinkError("Invalid or expired magic link. Please request a new invite.");
+      setLinkError(
+        "Invalid or expired magic link. Please request a new invite.",
+      );
     }
 
     // Try to get email from localStorage (saved when user requested invite)
@@ -77,7 +79,7 @@ const CompleteSignup: React.FC = () => {
       email,
       username.trim(),
       password,
-      walletAddress || undefined
+      walletAddress || undefined,
     );
 
     setIsLoading(false);
@@ -118,7 +120,9 @@ const CompleteSignup: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full w-full bg-neutral-50 dark:bg-neutral-950">
         <div className="animate-spin h-8 w-8 border-4 border-dark-green dark:border-light-green border-t-transparent rounded-full"></div>
-        <p className="mt-4 text-neutral-600 dark:text-neutral-400">Verifying your invite link...</p>
+        <p className="mt-4 text-neutral-600 dark:text-neutral-400">
+          Verifying your invite link...
+        </p>
       </div>
     );
   }
@@ -138,8 +142,18 @@ const CompleteSignup: React.FC = () => {
           <div className="w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-8 h-8 text-red-600 dark:text-red-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </div>
               <h2 className="text-2xl font-serif font-semibold text-neutral-900 dark:text-white mb-2">
@@ -187,8 +201,18 @@ const CompleteSignup: React.FC = () => {
         {/* Complete Registration Form */}
         <div className="relative z-10 w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 transition-all duration-300 animate-fade-in-up">
           <div className="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center animate-fade-in">
-            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-8 h-8 text-green-600 dark:text-green-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
 
@@ -324,7 +348,10 @@ const CompleteSignup: React.FC = () => {
               />
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: "0.55s" }}>
+            <div
+              className="animate-fade-in"
+              style={{ animationDelay: "0.55s" }}
+            >
               <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -332,7 +359,8 @@ const CompleteSignup: React.FC = () => {
                       Wallet (optional)
                     </p>
                     <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-                      Connect now to receive tips, or set this up later from your profile.
+                      Connect now to receive tips, or set this up later from
+                      your profile.
                     </p>
                   </div>
                   {walletAddress ? (
@@ -372,7 +400,8 @@ const CompleteSignup: React.FC = () => {
 
                 {walletState === WalletState.WRONG_NETWORK && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                    Wallet connected on a different network. You can still finish signup and change network later.
+                    Wallet connected on a different network. You can still
+                    finish signup and change network later.
                   </p>
                 )}
 

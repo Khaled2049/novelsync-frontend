@@ -28,7 +28,7 @@ export const SuggestionMenu: React.FC<SuggestionMenuProps> = ({
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex(
-          (prev) => (prev - 1 + suggestions.length) % suggestions.length
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
         );
       } else if (e.key === "Enter") {
         e.preventDefault();

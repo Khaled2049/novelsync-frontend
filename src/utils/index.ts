@@ -39,7 +39,7 @@ export const analyzeText = async (text: string): Promise<AttributeScores> => {
 
     if (!attributeScores) {
       throw new Error(
-        "Timeout: attribute_scores not available after maximum attempts"
+        "Timeout: attribute_scores not available after maximum attempts",
       );
     }
 

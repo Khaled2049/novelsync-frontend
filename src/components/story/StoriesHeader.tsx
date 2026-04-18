@@ -1,4 +1,3 @@
-import { FaPlus } from "react-icons/fa";
 import { IUser } from "@/types/IUser";
 
 import StoryMetadataModal from "@/routes/Story/StoryMetadataModal";
@@ -12,7 +11,7 @@ interface StoriesHeaderProps {
 
 const StoriesHeader: React.FC<StoriesHeaderProps> = ({
   user,
-  onNewStory,
+  // onNewStory,
   isModalOpen,
   onCloseModal,
 }) => {
@@ -34,13 +33,13 @@ const StoriesHeader: React.FC<StoriesHeaderProps> = ({
           </div>
 
           {/* New Story Button */}
-          <button
+          {/* <button
             onClick={onNewStory}
             className="flex items-center gap-2 px-5 py-2.5 border-2 border-dark-green dark:border-light-green text-dark-green dark:text-light-green font-medium rounded-lg transition-all duration-200 hover:bg-dark-green hover:text-white dark:hover:bg-light-green dark:hover:text-white hover:shadow-md"
           >
             <FaPlus className="text-sm" />
             New Story
-          </button>
+          </button> */}
         </div>
 
         {/* Story Metadata Modal */}

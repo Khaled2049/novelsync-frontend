@@ -11,17 +11,22 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
   content,
   onWordClick,
 }) => {
-  const handleWordDoubleClick = useCallback(
-    (e: React.MouseEvent<HTMLSpanElement>) => {
-      const target = e.currentTarget;
-      const word = target.dataset.word;
-
+  const handleParagraphDoubleClick = useCallback(
+    (_e: React.MouseEvent<HTMLElement>) => {
+      const selection = window.getSelection();
+      const word = selection
+        ?.toString()
+        .trim()
+        .replace(/[^a-zA-Z'-]/g, "");
       if (word) {
-        const rect = target.getBoundingClientRect();
-        onWordClick(word, rect.left + rect.width / 2, rect.top - 10);
+        const range = selection?.getRangeAt(0);
+        const rect = range?.getBoundingClientRect();
+        if (rect) {
+          onWordClick(word, rect.left + rect.width / 2, rect.top - 10);
+        }
       }
     },
-    [onWordClick]
+    [onWordClick],
   );
 
   const renderContent = useCallback(
@@ -35,20 +40,13 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
 
         switch (el.nodeName) {
           case "P": {
-            const words = el.textContent?.split(/\s+/) || [];
             return (
-              <p key={key} className="mb-6">
-                {words.map((word, wordIndex) => (
-                  <span key={wordIndex}>
-                    <span
-                      data-word={word.replace(/[.,!?;:'"""'']/g, "")}
-                      onDoubleClick={handleWordDoubleClick}
-                    >
-                      {word}
-                    </span>
-                    {wordIndex < words.length - 1 ? " " : ""}
-                  </span>
-                ))}
+              <p
+                key={key}
+                className="mb-6"
+                onDoubleClick={handleParagraphDoubleClick}
+              >
+                {el.textContent}
               </p>
             );
           }
@@ -109,7 +107,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
                 key,
                 className: "font-bold mb-4 mt-8 text-current",
               },
-              el.textContent
+              el.textContent,
             );
 
           case "BLOCKQUOTE":
@@ -131,7 +129,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
         }
       });
     },
-    [handleWordDoubleClick]
+    [handleParagraphDoubleClick],
   );
 
   return <div className="select-text">{renderContent(content)}</div>;

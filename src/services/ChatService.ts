@@ -22,18 +22,14 @@ class ChatService {
    */
   async getOrCreateChatSession(
     storyId: string,
-    userId: string
+    userId: string,
   ): Promise<string> {
     try {
-      const chatsRef = collection(
-        this.storiesCollection,
-        storyId,
-        "chats"
-      );
+      const chatsRef = collection(this.storiesCollection, storyId, "chats");
 
       // Check if a chat already exists (get most recent)
       const chatsSnapshot = await getDocs(
-        query(chatsRef, orderBy("updatedAt", "desc"), limit(1))
+        query(chatsRef, orderBy("updatedAt", "desc"), limit(1)),
       );
 
       if (!chatsSnapshot.empty) {
@@ -70,14 +66,14 @@ class ChatService {
   subscribeToMessages(
     storyId: string,
     chatId: string,
-    callback: (messages: ChatMessage[]) => void
+    callback: (messages: ChatMessage[]) => void,
   ): Unsubscribe {
     const messagesRef = collection(
       this.storiesCollection,
       storyId,
       "chats",
       chatId,
-      "messages"
+      "messages",
     );
 
     const q = query(messagesRef, orderBy("timestamp", "asc"));
@@ -103,7 +99,7 @@ class ChatService {
       },
       (error) => {
         console.error("Error listening to messages:", error);
-      }
+      },
     );
   }
 
@@ -113,7 +109,7 @@ class ChatService {
    */
   async getChatHistory(
     storyId: string,
-    chatId: string
+    chatId: string,
   ): Promise<ChatMessage[]> {
     try {
       const messagesRef = collection(
@@ -121,7 +117,7 @@ class ChatService {
         storyId,
         "chats",
         chatId,
-        "messages"
+        "messages",
       );
 
       const q = query(messagesRef, orderBy("timestamp", "asc"));

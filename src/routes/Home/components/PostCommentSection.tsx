@@ -39,7 +39,7 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
         const userVotes = await voteService.getUserVotesForComments(
           postId,
           commentIds,
-          currentUser.uid
+          currentUser.uid,
         );
         fetchedComments.forEach((comment) => {
           comment.userVote = userVotes.get(comment.id) || null;
@@ -66,7 +66,8 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
         postId,
         content: newComment.trim(),
         authorId: currentUser.uid,
-        authorName: currentUser.displayName || currentUser.username || "Anonymous",
+        authorName:
+          currentUser.displayName || currentUser.username || "Anonymous",
         parentId: null,
         upvoteCount: 0,
         downvoteCount: 0,
@@ -75,8 +76,14 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
       await loadComments();
     } catch (error: any) {
       console.error("Error adding comment:", error);
-      if (error?.code === "RATE_LIMIT_EXCEEDED" || error?.message?.includes("daily limit")) {
-        setCommentError(error.message || "You have reached the daily comment limit. Please try again tomorrow.");
+      if (
+        error?.code === "RATE_LIMIT_EXCEEDED" ||
+        error?.message?.includes("daily limit")
+      ) {
+        setCommentError(
+          error.message ||
+            "You have reached the daily comment limit. Please try again tomorrow.",
+        );
       } else {
         setCommentError("Failed to add comment. Please try again.");
       }
@@ -92,15 +99,22 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
         postId,
         content,
         authorId: currentUser.uid,
-        authorName: currentUser.displayName || currentUser.username || "Anonymous",
+        authorName:
+          currentUser.displayName || currentUser.username || "Anonymous",
         parentId,
         upvoteCount: 0,
         downvoteCount: 0,
       });
       await loadComments();
     } catch (error: any) {
-      if (error?.code === "RATE_LIMIT_EXCEEDED" || error?.message?.includes("daily limit")) {
-        const rateLimitError = new Error(error.message || "You have reached the daily comment limit. Please try again tomorrow.");
+      if (
+        error?.code === "RATE_LIMIT_EXCEEDED" ||
+        error?.message?.includes("daily limit")
+      ) {
+        const rateLimitError = new Error(
+          error.message ||
+            "You have reached the daily comment limit. Please try again tomorrow.",
+        );
         (rateLimitError as any).code = "RATE_LIMIT_EXCEEDED";
         throw rateLimitError;
       }
@@ -109,7 +123,8 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!window.confirm("Are you sure you want to delete this comment?")) return;
+    if (!window.confirm("Are you sure you want to delete this comment?"))
+      return;
     try {
       await postCommentService.deleteComment(postId, commentId);
       await loadComments();
@@ -149,12 +164,17 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
       {currentUser && (
         <form onSubmit={handleSubmit} className="mb-4">
           {commentError && (
-            <p className="mb-2 text-xs font-ui text-ns-destructive">{commentError}</p>
+            <p className="mb-2 text-xs font-ui text-ns-destructive">
+              {commentError}
+            </p>
           )}
           <div className="flex gap-2 items-end">
             <textarea
               value={newComment}
-              onChange={(e) => { setNewComment(e.target.value); setCommentError(null); }}
+              onChange={(e) => {
+                setNewComment(e.target.value);
+                setCommentError(null);
+              }}
               placeholder="Write a comment…"
               rows={2}
               disabled={isLoading}

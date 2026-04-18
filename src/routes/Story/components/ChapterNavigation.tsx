@@ -51,4 +51,3 @@ export const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
     </div>
   );
 };
-

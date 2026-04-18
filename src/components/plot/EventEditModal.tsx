@@ -1,4 +1,9 @@
-import { PlotEvent, StoryBeatType, PacingType, DEFAULT_PLOT_EVENT_VALUES } from "@/types/IPlot";
+import {
+  PlotEvent,
+  StoryBeatType,
+  PacingType,
+  DEFAULT_PLOT_EVENT_VALUES,
+} from "@/types/IPlot";
 import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Character } from "@/types/ICharacter";
@@ -12,43 +17,57 @@ interface EventEditModalProps {
   onSave: () => void;
   editingEvent: { plotLineId: string; event: PlotEvent } | null;
   setEditingEvent: (
-    event: { plotLineId: string; event: PlotEvent } | null
+    event: { plotLineId: string; event: PlotEvent } | null,
   ) => void;
   characters?: Character[];
   places?: Place[];
 }
 
 const STORY_BEAT_OPTIONS: { value: StoryBeatType; label: string }[] = [
-  { value: 'exposition', label: 'Exposition' },
-  { value: 'inciting_incident', label: 'Inciting Incident' },
-  { value: 'rising_action', label: 'Rising Action' },
-  { value: 'midpoint', label: 'Midpoint' },
-  { value: 'climax', label: 'Climax' },
-  { value: 'falling_action', label: 'Falling Action' },
-  { value: 'resolution', label: 'Resolution' },
+  { value: "exposition", label: "Exposition" },
+  { value: "inciting_incident", label: "Inciting Incident" },
+  { value: "rising_action", label: "Rising Action" },
+  { value: "midpoint", label: "Midpoint" },
+  { value: "climax", label: "Climax" },
+  { value: "falling_action", label: "Falling Action" },
+  { value: "resolution", label: "Resolution" },
 ];
 
-const PACING_OPTIONS: { value: PacingType; label: string; description: string }[] = [
-  { value: 'slow', label: 'Slow', description: 'Descriptive, atmospheric scenes' },
-  { value: 'moderate', label: 'Moderate', description: 'Balanced narrative flow' },
-  { value: 'fast', label: 'Fast', description: 'Action-packed, quick cuts' },
+const PACING_OPTIONS: {
+  value: PacingType;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "slow",
+    label: "Slow",
+    description: "Descriptive, atmospheric scenes",
+  },
+  {
+    value: "moderate",
+    label: "Moderate",
+    description: "Balanced narrative flow",
+  },
+  { value: "fast", label: "Fast", description: "Action-packed, quick cuts" },
 ];
 
 const TENSION_LABELS: Record<number, string> = {
-  1: 'Peaceful',
-  2: 'Calm',
-  3: 'Low',
-  4: 'Mild',
-  5: 'Moderate',
-  6: 'Rising',
-  7: 'High',
-  8: 'Intense',
-  9: 'Critical',
-  10: 'Maximum',
+  1: "Peaceful",
+  2: "Calm",
+  3: "Low",
+  4: "Mild",
+  5: "Moderate",
+  6: "Rising",
+  7: "High",
+  8: "Intense",
+  9: "Critical",
+  10: "Maximum",
 };
 
 // Helper to ensure event has all required fields with defaults
-function ensureEventDefaults(event: Partial<PlotEvent> & { id: string; name: string; content: string }): PlotEvent {
+function ensureEventDefaults(
+  event: Partial<PlotEvent> & { id: string; name: string; content: string },
+): PlotEvent {
   return {
     ...DEFAULT_PLOT_EVENT_VALUES,
     ...event,
@@ -57,8 +76,8 @@ function ensureEventDefaults(event: Partial<PlotEvent> & { id: string; name: str
     dependencies: event.dependencies ?? [],
     dependents: event.dependents ?? [],
     tensionLevel: event.tensionLevel ?? 5,
-    pacing: event.pacing ?? 'moderate',
-    storyBeat: event.storyBeat ?? 'rising_action',
+    pacing: event.pacing ?? "moderate",
+    storyBeat: event.storyBeat ?? "rising_action",
     orderIndex: event.orderIndex ?? 0,
   };
 }
@@ -124,10 +143,10 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
   };
 
   const getTensionColor = (level: number): string => {
-    if (level <= 3) return 'bg-green-500';
-    if (level <= 5) return 'bg-yellow-500';
-    if (level <= 7) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (level <= 3) return "bg-green-500";
+    if (level <= 5) return "bg-yellow-500";
+    if (level <= 7) return "bg-orange-500";
+    return "bg-red-500";
   };
 
   return (
@@ -141,7 +160,11 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
         </h2>
 
         <form onSubmit={handleSubmit}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="basic">Basic</TabsTrigger>
               <TabsTrigger value="characters">Characters</TabsTrigger>
@@ -190,7 +213,7 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                 </label>
                 <textarea
                   id="notes"
-                  value={event.notes || ''}
+                  value={event.notes || ""}
                   onChange={(e) => updateEvent({ notes: e.target.value })}
                   rows={3}
                   placeholder="Personal notes, reminders, ideas..."
@@ -228,7 +251,8 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
               {/* Tension Slider */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tension Level: {event.tensionLevel} - {TENSION_LABELS[event.tensionLevel]}
+                  Tension Level: {event.tensionLevel} -{" "}
+                  {TENSION_LABELS[event.tensionLevel]}
                 </label>
                 <div className="flex items-center gap-4">
                   <input
@@ -236,10 +260,14 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                     min="1"
                     max="10"
                     value={event.tensionLevel}
-                    onChange={(e) => updateEvent({ tensionLevel: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      updateEvent({ tensionLevel: parseInt(e.target.value) })
+                    }
                     className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
                   />
-                  <div className={`w-8 h-8 rounded-full ${getTensionColor(event.tensionLevel)} flex items-center justify-center text-white font-bold text-sm`}>
+                  <div
+                    className={`w-8 h-8 rounded-full ${getTensionColor(event.tensionLevel)} flex items-center justify-center text-white font-bold text-sm`}
+                  >
                     {event.tensionLevel}
                   </div>
                 </div>
@@ -260,8 +288,8 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                       key={option.value}
                       className={`flex flex-col items-center p-3 border rounded-lg cursor-pointer transition-all ${
                         event.pacing === option.value
-                          ? 'border-dark-green dark:border-light-green bg-dark-green/10 dark:bg-light-green/10'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? "border-dark-green dark:border-light-green bg-dark-green/10 dark:bg-light-green/10"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                       }`}
                     >
                       <input
@@ -269,11 +297,17 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                         name="pacing"
                         value={option.value}
                         checked={event.pacing === option.value}
-                        onChange={(e) => updateEvent({ pacing: e.target.value as PacingType })}
+                        onChange={(e) =>
+                          updateEvent({ pacing: e.target.value as PacingType })
+                        }
                         className="sr-only"
                       />
-                      <span className="font-medium text-gray-900 dark:text-white">{option.label}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">{option.description}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {option.label}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
+                        {option.description}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -286,7 +320,9 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                 </label>
                 <select
                   value={event.storyBeat}
-                  onChange={(e) => updateEvent({ storyBeat: e.target.value as StoryBeatType })}
+                  onChange={(e) =>
+                    updateEvent({ storyBeat: e.target.value as StoryBeatType })
+                  }
                   className="w-full p-2 border border-black/20 dark:border-white/20 rounded bg-neutral-50 dark:bg-gray-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green transition-colors duration-200"
                 >
                   {STORY_BEAT_OPTIONS.map((option) => (
@@ -304,14 +340,15 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={event.emotionalTone || ''}
-                  onChange={(e) => updateEvent({ emotionalTone: e.target.value })}
+                  value={event.emotionalTone || ""}
+                  onChange={(e) =>
+                    updateEvent({ emotionalTone: e.target.value })
+                  }
                   placeholder="e.g., melancholic, hopeful, tense, romantic..."
                   className="w-full p-2 border border-black/20 dark:border-white/20 rounded bg-neutral-50 dark:bg-gray-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green transition-colors duration-200"
                 />
               </div>
             </TabsContent>
-
           </Tabs>
 
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-6 border-t border-gray-200 dark:border-gray-700 mt-4">

@@ -24,7 +24,7 @@ class BookListService {
     userId: string,
     username: string,
     title: string,
-    isPublic: boolean = true
+    isPublic: boolean = true,
   ): Promise<string> {
     try {
       const newListRef = doc(this.bookListsCollection);
@@ -54,7 +54,7 @@ class BookListService {
       const userListsQuery = query(
         this.bookListsCollection,
         where("userId", "==", userId),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
       );
 
       const snapshot = await getDocs(userListsQuery);
@@ -85,7 +85,11 @@ class BookListService {
       // Authenticated users fetch all lists and filter in memory to include their own private lists.
       const allListsQuery = currentUserId
         ? query(this.bookListsCollection, orderBy("createdAt", "desc"))
-        : query(this.bookListsCollection, where("isPublic", "==", true), orderBy("createdAt", "desc"));
+        : query(
+            this.bookListsCollection,
+            where("isPublic", "==", true),
+            orderBy("createdAt", "desc"),
+          );
 
       const snapshot = await getDocs(allListsQuery);
       const allLists = snapshot.docs.map((doc) => {
@@ -103,7 +107,7 @@ class BookListService {
       // Filter to only public lists (or user's own lists if currentUserId provided)
       const publicLists = allLists.filter(
         (list) =>
-          list.isPublic || (currentUserId && list.userId === currentUserId) // Include user's own private lists
+          list.isPublic || (currentUserId && list.userId === currentUserId), // Include user's own private lists
       );
 
       return publicLists;
@@ -146,7 +150,7 @@ class BookListService {
   async updateBookList(
     listId: string,
     userId: string,
-    updates: Partial<Pick<IBookList, "title" | "isPublic">>
+    updates: Partial<Pick<IBookList, "title" | "isPublic">>,
   ): Promise<void> {
     try {
       // Verify ownership
@@ -175,7 +179,7 @@ class BookListService {
   async updateListPrivacy(
     listId: string,
     userId: string,
-    isPublic: boolean
+    isPublic: boolean,
   ): Promise<void> {
     try {
       await this.updateBookList(listId, userId, { isPublic });
@@ -213,7 +217,7 @@ class BookListService {
   async addBookToList(
     listId: string,
     userId: string,
-    book: IBookListItem
+    book: IBookListItem,
   ): Promise<void> {
     try {
       // Verify ownership
@@ -251,7 +255,7 @@ class BookListService {
   async removeBookFromList(
     listId: string,
     userId: string,
-    bookId: string
+    bookId: string,
   ): Promise<void> {
     try {
       // Verify ownership
@@ -285,7 +289,7 @@ class BookListService {
   async updateBookOrder(
     listId: string,
     userId: string,
-    books: IBookListItem[]
+    books: IBookListItem[],
   ): Promise<void> {
     try {
       // Verify ownership

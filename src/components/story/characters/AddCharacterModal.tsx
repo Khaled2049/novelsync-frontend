@@ -61,7 +61,7 @@ const AddCharacterModal = ({
           artUrl = await storageService.uploadCharacterArt(
             artFile,
             created.userId,
-            newId
+            newId,
           );
           await characterService.updateCharacter(storyId, {
             ...created,

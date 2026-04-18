@@ -60,7 +60,7 @@ class PostCommentService {
       const q = query(
         commentsCollection,
         where("parentId", "==", parentId),
-        orderBy("createdAt", "asc")
+        orderBy("createdAt", "asc"),
       );
 
       const querySnapshot = await getDocs(q);
@@ -91,16 +91,16 @@ class PostCommentService {
 
   async addComment(
     postId: string,
-    comment: Omit<IPostComment, "id" | "createdAt" | "updatedAt">
+    comment: Omit<IPostComment, "id" | "createdAt" | "updatedAt">,
   ): Promise<string> {
     try {
       // Check rate limit before creating comment
       const rateLimitCheck = await rateLimitService.canCreateComment(
-        comment.authorId
+        comment.authorId,
       );
       if (!rateLimitCheck.allowed) {
         const error = new Error(
-          rateLimitCheck.message || "Rate limit exceeded"
+          rateLimitCheck.message || "Rate limit exceeded",
         );
         (error as any).code = "RATE_LIMIT_EXCEEDED";
         (error as any).count = rateLimitCheck.count;
@@ -145,7 +145,7 @@ class PostCommentService {
   async updateComment(
     postId: string,
     commentId: string,
-    content: string
+    content: string,
   ): Promise<void> {
     try {
       const commentRef = doc(this.getCommentsCollection(postId), commentId);
@@ -167,7 +167,7 @@ class PostCommentService {
       // First delete all nested replies
       const repliesQuery = query(
         commentsCollection,
-        where("parentId", "==", commentId)
+        where("parentId", "==", commentId),
       );
       const repliesSnapshot = await getDocs(repliesQuery);
 
@@ -202,7 +202,7 @@ class PostCommentService {
   async getCommentsWithUserVotes(
     postId: string,
     commentIds: string[],
-    userId: string
+    userId: string,
   ): Promise<IPostComment[]> {
     try {
       // Fetch comments
@@ -232,7 +232,7 @@ class PostCommentService {
       const userVotes = await voteService.getUserVotesForComments(
         postId,
         commentIds,
-        userId
+        userId,
       );
       return comments.map((comment) => ({
         ...comment,

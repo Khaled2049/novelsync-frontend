@@ -31,14 +31,14 @@ export class CommentService {
   public getCommentsCollection(storyId: string, chapterId: string) {
     return collection(
       doc(this.storiesCollection, storyId, "chapters", chapterId),
-      "comments"
+      "comments",
     );
   }
 
   private getLikesCollection(
     storyId: string,
     chapterId: string,
-    commentId: string
+    commentId: string,
   ) {
     return collection(
       doc(
@@ -47,21 +47,21 @@ export class CommentService {
         "chapters",
         chapterId,
         "comments",
-        commentId
+        commentId,
       ),
-      "likes"
+      "likes",
     );
   }
 
   async getComment(
     storyId: string,
     chapterId: string,
-    commentId: string
+    commentId: string,
   ): Promise<Comment | null> {
     try {
       const commentRef = doc(
         this.getCommentsCollection(storyId, chapterId),
-        commentId
+        commentId,
       );
       const commentSnap = await getDoc(commentRef);
 
@@ -122,14 +122,14 @@ export class CommentService {
   async getReplies(
     storyId: string,
     chapterId: string,
-    parentId: string
+    parentId: string,
   ): Promise<Comment[]> {
     try {
       const commentsCollection = this.getCommentsCollection(storyId, chapterId);
       const q = query(
         commentsCollection,
         where("parentId", "==", parentId),
-        orderBy("createdAt", "asc")
+        orderBy("createdAt", "asc"),
       );
 
       const querySnapshot = await getDocs(q);
@@ -164,7 +164,7 @@ export class CommentService {
     userId: string,
     username: string,
     message: string,
-    parentId: string | null = null
+    parentId: string | null = null,
   ): Promise<string> {
     try {
       const commentsCollection = this.getCommentsCollection(storyId, chapterId);
@@ -193,12 +193,12 @@ export class CommentService {
     storyId: string,
     chapterId: string,
     commentId: string,
-    message: string
+    message: string,
   ): Promise<void> {
     try {
       const commentRef = doc(
         this.getCommentsCollection(storyId, chapterId),
-        commentId
+        commentId,
       );
 
       await updateDoc(commentRef, {
@@ -214,7 +214,7 @@ export class CommentService {
   async deleteComment(
     storyId: string,
     chapterId: string,
-    commentId: string
+    commentId: string,
   ): Promise<void> {
     try {
       const commentsCollection = this.getCommentsCollection(storyId, chapterId);
@@ -223,7 +223,7 @@ export class CommentService {
       // First delete all nested replies in a single query
       const repliesQuery = query(
         commentsCollection,
-        where("parentId", "==", commentId)
+        where("parentId", "==", commentId),
       );
       const repliesSnapshot = await getDocs(repliesQuery);
 
@@ -250,12 +250,12 @@ export class CommentService {
   private async _deleteLikesCollection(
     storyId: string,
     chapterId: string,
-    commentId: string
+    commentId: string,
   ): Promise<void> {
     const likesCollection = this.getLikesCollection(
       storyId,
       chapterId,
-      commentId
+      commentId,
     );
     const likesSnapshot = await getDocs(likesCollection);
     const batch = writeBatch(firestore);
@@ -270,13 +270,13 @@ export class CommentService {
     storyId: string,
     chapterId: string,
     commentId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     try {
       const likesCollection = this.getLikesCollection(
         storyId,
         chapterId,
-        commentId
+        commentId,
       );
       const likeRef = doc(likesCollection);
 
@@ -299,7 +299,7 @@ export class CommentService {
       // Increment the comment's like count
       const commentRef = doc(
         this.getCommentsCollection(storyId, chapterId),
-        commentId
+        commentId,
       );
       await updateDoc(commentRef, {
         likeCount: increment(1),
@@ -313,11 +313,11 @@ export class CommentService {
     storyId: string,
     chapterId: string,
     commentId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const commentRef = doc(
       this.getCommentsCollection(storyId, chapterId),
-      commentId
+      commentId,
     );
 
     try {
@@ -347,13 +347,13 @@ export class CommentService {
     storyId: string,
     chapterId: string,
     commentId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     try {
       const likesCollection = this.getLikesCollection(
         storyId,
         chapterId,
-        commentId
+        commentId,
       );
       const q = query(likesCollection, where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
@@ -368,7 +368,7 @@ export class CommentService {
       // Decrement the comment's like count
       const commentRef = doc(
         this.getCommentsCollection(storyId, chapterId),
-        commentId
+        commentId,
       );
       await updateDoc(commentRef, {
         likeCount: increment(-1),
@@ -383,13 +383,13 @@ export class CommentService {
     storyId: string,
     chapterId: string,
     commentId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     try {
       const likesCollection = this.getLikesCollection(
         storyId,
         chapterId,
-        commentId
+        commentId,
       );
       const q = query(likesCollection, where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
@@ -404,12 +404,12 @@ export class CommentService {
   async getLikeCount(
     storyId: string,
     chapterId: string,
-    commentId: string
+    commentId: string,
   ): Promise<number> {
     try {
       const commentRef = doc(
         this.getCommentsCollection(storyId, chapterId),
-        commentId
+        commentId,
       );
       const commentSnap = await getDoc(commentRef);
 

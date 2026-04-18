@@ -1,10 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  FaImage,
-  FaUpload,
-  FaMagic,
-  FaTimes,
-} from "react-icons/fa";
+import { FaImage, FaUpload, FaMagic, FaTimes } from "react-icons/fa";
 import {
   Eye,
   Heart,
@@ -32,7 +27,7 @@ interface StoryRowProps {
   onImageUpdate?: (
     id: string,
     imageFile: File | null,
-    previewUrl: string | null
+    previewUrl: string | null,
   ) => void;
   isLoading?: boolean;
 }
@@ -137,7 +132,7 @@ export const StoryRow = ({
       setAiPrompt("");
     } catch (error) {
       setGenerationError(
-        error instanceof Error ? error.message : "Failed to generate image"
+        error instanceof Error ? error.message : "Failed to generate image",
       );
     } finally {
       setIsGenerating(false);
@@ -146,8 +141,7 @@ export const StoryRow = ({
 
   const hasEarnings =
     story.earnings &&
-    (parseFloat(story.earnings.eth) > 0 ||
-      parseFloat(story.earnings.usdc) > 0);
+    (parseFloat(story.earnings.eth) > 0 || parseFloat(story.earnings.usdc) > 0);
 
   return (
     <>
@@ -315,9 +309,7 @@ export const StoryRow = ({
               {/* Status indicator */}
               <div
                 className={`flex items-center gap-1.5 text-xs font-ui font-medium mr-2 ${
-                  story.isPublished
-                    ? "text-ns-accent"
-                    : "text-ns-ink-muted"
+                  story.isPublished ? "text-ns-accent" : "text-ns-ink-muted"
                 }`}
               >
                 <div
@@ -349,7 +341,10 @@ export const StoryRow = ({
                   <div className="absolute right-0 top-8 z-20 bg-ns-elevated border border-ns-border rounded-ns-lg shadow-ns-lg py-1.5 min-w-[160px]">
                     {onEditDetails && (
                       <button
-                        onClick={() => { onEditDetails(story.id); setShowMenu(false); }}
+                        onClick={() => {
+                          onEditDetails(story.id);
+                          setShowMenu(false);
+                        }}
                         className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5"
                       >
                         <Settings className="w-3.5 h-3.5 text-ns-ink-muted" />

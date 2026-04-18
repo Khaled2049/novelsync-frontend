@@ -41,7 +41,7 @@ function base64ToFile(base64: string, filename: string): File {
  * @throws Error if generation fails
  */
 export async function generateCover(
-  prompt: string
+  prompt: string,
 ): Promise<GenerateCoverResult> {
   if (!prompt || prompt.trim().length === 0) {
     throw new Error("Prompt is required");
@@ -70,7 +70,7 @@ export async function generateCover(
         throw new Error(
           errorData.error ||
             errorData.detail ||
-            `HTTP error! status: ${fetchResponse.status}`
+            `HTTP error! status: ${fetchResponse.status}`,
         );
       }
 
@@ -79,11 +79,14 @@ export async function generateCover(
       try {
         const apiResponse = await api.post<GenerateCoverResponse>(
           "/generateCoverImage",
-          { prompt: prompt.trim() }
+          { prompt: prompt.trim() },
         );
         response = apiResponse.data;
       } catch (err: unknown) {
-        const apiError = err as { message?: string; response?: { data?: { error?: string } } };
+        const apiError = err as {
+          message?: string;
+          response?: { data?: { error?: string } };
+        };
         console.error("API error details:", {
           message: apiError.message,
           response: apiError.response?.data,
@@ -108,14 +111,19 @@ export async function generateCover(
         responseKeys: Object.keys(response),
       });
       throw new Error(
-        "Invalid response: missing or invalid image data. The server may have generated an image but failed to return it properly."
+        "Invalid response: missing or invalid image data. The server may have generated an image but failed to return it properly.",
       );
     }
 
     // Validate base64 string
     if (response.image.length < 100) {
-      console.error("Suspiciously short base64 string:", response.image.substring(0, 50));
-      throw new Error("Invalid response: image data appears to be corrupted or incomplete");
+      console.error(
+        "Suspiciously short base64 string:",
+        response.image.substring(0, 50),
+      );
+      throw new Error(
+        "Invalid response: image data appears to be corrupted or incomplete",
+      );
     }
 
     // Convert base64 to File object

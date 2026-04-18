@@ -29,7 +29,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
         chapterId,
         currentUser.uid,
         currentUser.username,
-        message.trim()
+        message.trim(),
       );
       setMessage("");
     } catch (error) {

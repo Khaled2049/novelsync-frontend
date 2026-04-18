@@ -22,7 +22,7 @@ export const useSearch = (content: string) => {
       const contextStart = Math.max(0, index - 50);
       const contextEnd = Math.min(
         content.length,
-        index + searchTerm.length + 50
+        index + searchTerm.length + 50,
       );
       const context = content.substring(contextStart, contextEnd);
 
@@ -59,7 +59,7 @@ export const useSearch = (content: string) => {
   const goToPreviousResult = useCallback(() => {
     if (results.length > 0) {
       setCurrentResultIndex(
-        (prev) => (prev - 1 + results.length) % results.length
+        (prev) => (prev - 1 + results.length) % results.length,
       );
     }
   }, [results.length]);
@@ -70,7 +70,7 @@ export const useSearch = (content: string) => {
         setCurrentResultIndex(index);
       }
     },
-    [results.length]
+    [results.length],
   );
 
   return {

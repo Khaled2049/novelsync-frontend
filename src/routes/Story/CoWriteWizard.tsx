@@ -183,10 +183,16 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           genre: category,
           characters: characters
             .filter((c) => c.name.trim())
-            .map(({ name, description: desc }) => ({ name, description: desc })),
+            .map(({ name, description: desc }) => ({
+              name,
+              description: desc,
+            })),
           places: places
             .filter((p) => p.name.trim())
-            .map(({ name, description: desc }) => ({ name, description: desc })),
+            .map(({ name, description: desc }) => ({
+              name,
+              description: desc,
+            })),
           conflict,
           events: events
             .filter((e) => e.name.trim())
@@ -365,11 +371,14 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               name: c.name,
               age: undefined,
               soul: "",
-              personality: "personality" in c ? (c as { personality?: string }).personality ?? "" : "",
+              personality:
+                "personality" in c
+                  ? ((c as { personality?: string }).personality ?? "")
+                  : "",
               voice: "",
               backstory:
                 "backstory" in c
-                  ? (c as { backstory?: string }).backstory ?? c.description
+                  ? ((c as { backstory?: string }).backstory ?? c.description)
                   : c.description,
               affiliations: "",
               notes: "",
@@ -396,12 +405,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               description: p.description,
               atmosphere:
                 "atmosphere" in p
-                  ? (p as { atmosphere?: string }).atmosphere ?? ""
+                  ? ((p as { atmosphere?: string }).atmosphere ?? "")
                   : "",
               geography: "",
               history:
                 "history" in p
-                  ? (p as { history?: string }).history ?? ""
+                  ? ((p as { history?: string }).history ?? "")
                   : "",
               significance: "",
               notes: "",
@@ -441,9 +450,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   }) => {
     const isActive = enhancing === enhanceKey;
     const isDisabled =
-      extraDisabled ||
-      (enhancing !== null && !isActive) ||
-      !canUseAI();
+      extraDisabled || (enhancing !== null && !isActive) || !canUseAI();
     const remaining = getRemainingAiUsage();
 
     return (
@@ -599,9 +606,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               />
               <button
                 type="button"
-                onClick={() =>
-                  updateCharacter(i, "expanded", !char.expanded)
-                }
+                onClick={() => updateCharacter(i, "expanded", !char.expanded)}
                 className="text-ns-ink-muted hover:text-ns-ink transition-colors p-1"
                 aria-label={char.expanded ? "Collapse" : "Expand"}
               >
@@ -999,16 +1004,18 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                         {c.description}
                       </p>
                     )}
-                    {"personality" in c && (c as { personality?: string }).personality && (
-                      <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
-                        {(c as { personality?: string }).personality}
-                      </p>
-                    )}
-                    {"backstory" in c && (c as { backstory?: string }).backstory && (
-                      <p className="text-xs font-body text-ns-ink-secondary mt-1">
-                        {(c as { backstory?: string }).backstory}
-                      </p>
-                    )}
+                    {"personality" in c &&
+                      (c as { personality?: string }).personality && (
+                        <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
+                          {(c as { personality?: string }).personality}
+                        </p>
+                      )}
+                    {"backstory" in c &&
+                      (c as { backstory?: string }).backstory && (
+                        <p className="text-xs font-body text-ns-ink-secondary mt-1">
+                          {(c as { backstory?: string }).backstory}
+                        </p>
+                      )}
                   </div>
                 </div>
               ))}
@@ -1038,11 +1045,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                         {p.description}
                       </p>
                     )}
-                    {"atmosphere" in p && (p as { atmosphere?: string }).atmosphere && (
-                      <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
-                        {(p as { atmosphere?: string }).atmosphere}
-                      </p>
-                    )}
+                    {"atmosphere" in p &&
+                      (p as { atmosphere?: string }).atmosphere && (
+                        <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
+                          {(p as { atmosphere?: string }).atmosphere}
+                        </p>
+                      )}
                     {"history" in p && (p as { history?: string }).history && (
                       <p className="text-xs font-body text-ns-ink-secondary mt-1">
                         {(p as { history?: string }).history}
@@ -1127,10 +1135,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-md bg-ns-surface-hover p-3">
             <p className="font-heading text-xl text-ns-ink">
-              {(
-                blueprintData?.characters ??
-                characters.filter((c) => c.name.trim())
-              ).length}
+              {
+                (
+                  blueprintData?.characters ??
+                  characters.filter((c) => c.name.trim())
+                ).length
+              }
             </p>
             <p className="font-ui text-xs text-ns-ink-secondary mt-0.5">
               Characters
@@ -1138,9 +1148,10 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           </div>
           <div className="rounded-md bg-ns-surface-hover p-3">
             <p className="font-heading text-xl text-ns-ink">
-              {(
-                blueprintData?.places ?? places.filter((p) => p.name.trim())
-              ).length}
+              {
+                (blueprintData?.places ?? places.filter((p) => p.name.trim()))
+                  .length
+              }
             </p>
             <p className="font-ui text-xs text-ns-ink-secondary mt-0.5">
               Places
@@ -1188,7 +1199,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Step indicator */}
       <div className="px-6 pt-2 pb-4">
         <div className="flex items-center justify-between mb-2">
@@ -1238,9 +1249,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
       </div>
 
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto px-6 py-2">
-        {steps[step]()}
-      </div>
+      <div className="flex-1 overflow-y-auto px-6 py-2">{steps[step]()}</div>
 
       {/* Footer navigation */}
       <div className="px-6 py-4 border-t border-ns-border flex items-center justify-between gap-3">

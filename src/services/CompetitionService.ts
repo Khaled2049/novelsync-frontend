@@ -55,8 +55,8 @@ const normalizeTags = (tags: string[]): string[] => {
       tags
         .map((tag) => tag.trim())
         .filter(Boolean)
-        .map((tag) => tag.slice(0, 32))
-    )
+        .map((tag) => tag.slice(0, 32)),
+    ),
   );
 };
 
@@ -74,11 +74,17 @@ const sanitizeCompetitionInput = (input: ICompetitionInput) => {
     throw new Error("Prize amount must be zero or greater");
   }
 
-  if (!(input.startDate instanceof Date) || Number.isNaN(input.startDate.getTime())) {
+  if (
+    !(input.startDate instanceof Date) ||
+    Number.isNaN(input.startDate.getTime())
+  ) {
     throw new Error("Start date is invalid");
   }
 
-  if (!(input.deadline instanceof Date) || Number.isNaN(input.deadline.getTime())) {
+  if (
+    !(input.deadline instanceof Date) ||
+    Number.isNaN(input.deadline.getTime())
+  ) {
     throw new Error("Deadline is invalid");
   }
 
@@ -134,7 +140,9 @@ class CompetitionService {
       difficulty: data.difficulty ?? "beginner",
       participants: participantsCount,
       maxParticipants:
-        typeof data.maxParticipants === "number" ? data.maxParticipants : undefined,
+        typeof data.maxParticipants === "number"
+          ? data.maxParticipants
+          : undefined,
       tags: Array.isArray(data.tags) ? data.tags : [],
       category: data.category ?? "General",
       organizer: data.organizer ?? data.creatorName ?? "Community",
@@ -149,12 +157,15 @@ class CompetitionService {
   async getCompetitions(): Promise<ICompetition[]> {
     const competitionsQuery = query(
       this.competitionsCollection,
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
     );
 
     const snapshot = await getDocs(competitionsQuery);
     return snapshot.docs.map((competitionDoc) =>
-      this.mapCompetition(competitionDoc.id, competitionDoc.data() as CompetitionDoc)
+      this.mapCompetition(
+        competitionDoc.id,
+        competitionDoc.data() as CompetitionDoc,
+      ),
     );
   }
 
@@ -163,7 +174,7 @@ class CompetitionService {
       firestore,
       "users",
       userId,
-      "competitionJoins"
+      "competitionJoins",
     );
 
     const snapshot = await getDocs(joinsCollection);
@@ -173,7 +184,7 @@ class CompetitionService {
   async createCompetition(
     userId: string,
     creatorName: string,
-    input: ICompetitionInput
+    input: ICompetitionInput,
   ): Promise<string> {
     const sanitized = sanitizeCompetitionInput(input);
     const competitionRef = doc(this.competitionsCollection);
@@ -194,7 +205,7 @@ class CompetitionService {
   async updateCompetition(
     competitionId: string,
     userId: string,
-    updates: ICompetitionUpdate
+    updates: ICompetitionUpdate,
   ): Promise<void> {
     const competitionRef = doc(this.competitionsCollection, competitionId);
     const competitionDoc = await getDoc(competitionRef);
@@ -214,10 +225,12 @@ class CompetitionService {
       category: updates.category ?? existingData.category ?? "",
       difficulty: updates.difficulty ?? existingData.difficulty ?? "beginner",
       prizeAmount: updates.prizeAmount ?? existingData.prizeAmount ?? 0,
-      prizeCurrency: updates.prizeCurrency ?? existingData.prizeCurrency ?? "USD",
+      prizeCurrency:
+        updates.prizeCurrency ?? existingData.prizeCurrency ?? "USD",
       startDate:
         updates.startDate ?? existingData.startDate?.toDate?.() ?? new Date(),
-      deadline: updates.deadline ?? existingData.deadline?.toDate?.() ?? new Date(),
+      deadline:
+        updates.deadline ?? existingData.deadline?.toDate?.() ?? new Date(),
       maxParticipants:
         updates.maxParticipants !== undefined
           ? updates.maxParticipants
@@ -233,7 +246,10 @@ class CompetitionService {
     });
   }
 
-  async deleteCompetition(competitionId: string, userId: string): Promise<void> {
+  async deleteCompetition(
+    competitionId: string,
+    userId: string,
+  ): Promise<void> {
     const competitionRef = doc(this.competitionsCollection, competitionId);
     const competitionDoc = await getDoc(competitionRef);
 

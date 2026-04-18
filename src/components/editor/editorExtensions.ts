@@ -54,7 +54,10 @@ export const FontFamilyExtension = Extension.create({
       unsetFontFamily:
         () =>
         ({ chain }) =>
-          chain().setMark("textStyle", { fontFamily: null }).removeEmptyTextStyle().run(),
+          chain()
+            .setMark("textStyle", { fontFamily: null })
+            .removeEmptyTextStyle()
+            .run(),
     };
   },
 });
@@ -91,7 +94,10 @@ export const FontSizeExtension = Extension.create({
       unsetFontSize:
         () =>
         ({ chain }) =>
-          chain().setMark("textStyle", { fontSize: null }).removeEmptyTextStyle().run(),
+          chain()
+            .setMark("textStyle", { fontSize: null })
+            .removeEmptyTextStyle()
+            .run(),
     };
   },
 });
@@ -111,7 +117,9 @@ export const HighlightColorExtension = Extension.create({
               if (!attributes.backgroundColor) {
                 return {};
               }
-              return { style: `background-color: ${attributes.backgroundColor}` };
+              return {
+                style: `background-color: ${attributes.backgroundColor}`,
+              };
             },
           },
         },
@@ -128,7 +136,10 @@ export const HighlightColorExtension = Extension.create({
       unsetHighlightColor:
         () =>
         ({ chain }) =>
-          chain().setMark("textStyle", { backgroundColor: null }).removeEmptyTextStyle().run(),
+          chain()
+            .setMark("textStyle", { backgroundColor: null })
+            .removeEmptyTextStyle()
+            .run(),
     };
   },
 });
@@ -232,13 +243,18 @@ export const ParagraphStyleExtension = Extension.create({
       setParagraphSpacing:
         (spacing) =>
         ({ commands }) =>
-          commands.updateAttributes("paragraph", { paragraphSpacing: spacing }) ||
+          commands.updateAttributes("paragraph", {
+            paragraphSpacing: spacing,
+          }) ||
           commands.updateAttributes("heading", { paragraphSpacing: spacing }),
       increaseIndent:
         () =>
         ({ state, commands }) => {
           const parent = state.selection.$from.parent;
-          if (parent.type.name !== "paragraph" && parent.type.name !== "heading") {
+          if (
+            parent.type.name !== "paragraph" &&
+            parent.type.name !== "heading"
+          ) {
             return false;
           }
           const currentIndent = Number(parent.attrs.indent || 0);
@@ -250,7 +266,10 @@ export const ParagraphStyleExtension = Extension.create({
         () =>
         ({ state, commands }) => {
           const parent = state.selection.$from.parent;
-          if (parent.type.name !== "paragraph" && parent.type.name !== "heading") {
+          if (
+            parent.type.name !== "paragraph" &&
+            parent.type.name !== "heading"
+          ) {
             return false;
           }
           const currentIndent = Number(parent.attrs.indent || 0);

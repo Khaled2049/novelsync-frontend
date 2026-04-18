@@ -65,27 +65,22 @@ const BookClubDetails: React.FC = () => {
 
   // Fetch usernames for member IDs
   useEffect(() => {
+    let isMounted = true;
+
     const fetchMemberUsernames = async () => {
       if (!club?.members || club.members.length === 0) {
         if (previousMemberIdsRef.current !== "") {
-          setMembers([]);
+          if (isMounted) setMembers([]);
           previousMemberIdsRef.current = "";
         }
         return;
       }
 
-      // Create a stable string representation of member IDs for comparison
       const memberIdsString = [...club.members].sort().join(",");
-
-      // Check if member IDs have actually changed
-      if (memberIdsString === previousMemberIdsRef.current) {
-        return; // Members haven't changed, skip fetching
-      }
-
-      // Update ref before fetching to prevent duplicate calls
+      if (memberIdsString === previousMemberIdsRef.current) return;
       previousMemberIdsRef.current = memberIdsString;
 
-      setLoadingMembers(true);
+      if (isMounted) setLoadingMembers(true);
       try {
         const memberPromises = club.members.map(async (memberId) => {
           try {
@@ -95,35 +90,29 @@ const BookClubDetails: React.FC = () => {
               const userData = userSnap.data();
               return {
                 id: memberId,
-                username:
-                  userData.username || userData.displayName || "Unknown User",
+                username: userData.username || userData.displayName || "Unknown User",
               };
             }
-            return {
-              id: memberId,
-              username: "Unknown User",
-            };
-          } catch (error) {
-            console.error(`Error fetching user ${memberId}:`, error);
-            return {
-              id: memberId,
-              username: "Unknown User",
-            };
+            return { id: memberId, username: "Unknown User" };
+          } catch {
+            console.error("Error fetching member data");
+            return { id: memberId, username: "Unknown User" };
           }
         });
 
         const memberInfos = await Promise.all(memberPromises);
-        setMembers(memberInfos);
-      } catch (error) {
-        console.error("Error fetching member usernames:", error);
+        if (isMounted) setMembers(memberInfos);
+      } catch {
+        console.error("Error fetching member usernames");
       } finally {
-        setLoadingMembers(false);
+        if (isMounted) setLoadingMembers(false);
       }
     };
 
     fetchMemberUsernames();
+    return () => { isMounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [club?.members?.length, club?.members]); // Only re-fetch if member IDs actually change
+  }, [club?.members?.length, club?.members]);
 
   // Fetch user's reading progress
   useEffect(() => {

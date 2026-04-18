@@ -58,24 +58,52 @@ const Signup: React.FC = () => {
           <div className="relative z-10 w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 transition-all duration-300 animate-fade-in-up">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center animate-fade-in">
-                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-8 h-8 text-green-600 dark:text-green-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
 
-              <h2 className="text-2xl font-serif font-semibold text-neutral-900 dark:text-white mb-2 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <h2
+                className="text-2xl font-serif font-semibold text-neutral-900 dark:text-white mb-2 animate-fade-in"
+                style={{ animationDelay: "0.1s" }}
+              >
                 Request Submitted
               </h2>
 
-              <p className="text-neutral-600 dark:text-neutral-400 mb-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-                We've received your invite request for <span className="font-semibold text-dark-green dark:text-light-green">{email}</span>.
+              <p
+                className="text-neutral-600 dark:text-neutral-400 mb-6 animate-fade-in"
+                style={{ animationDelay: "0.2s" }}
+              >
+                We've received your invite request for{" "}
+                <span className="font-semibold text-dark-green dark:text-light-green">
+                  {email}
+                </span>
+                .
               </p>
 
-              <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-6 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-                When your invite is approved, you'll receive an email with a magic link to complete your registration. Keep an eye on your inbox!
+              <p
+                className="text-sm text-neutral-500 dark:text-neutral-500 mb-6 animate-fade-in"
+                style={{ animationDelay: "0.3s" }}
+              >
+                When your invite is approved, you'll receive an email with a
+                magic link to complete your registration. Keep an eye on your
+                inbox!
               </p>
 
-              <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+              <div
+                className="space-y-3 animate-fade-in"
+                style={{ animationDelay: "0.4s" }}
+              >
                 <button
                   onClick={() => {
                     setIsSuccess(false);
@@ -176,7 +204,8 @@ const Signup: React.FC = () => {
                 placeholder="your@email.com"
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                You'll receive a magic link to this email when your invite is approved.
+                You'll receive a magic link to this email when your invite is
+                approved.
               </p>
             </div>
 

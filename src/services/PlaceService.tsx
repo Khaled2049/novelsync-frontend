@@ -12,7 +12,7 @@ import { Place } from "@/types/IPlace";
 
 function omitUndefined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
+    Object.entries(obj).filter(([, v]) => v !== undefined),
   ) as Partial<T>;
 }
 
@@ -24,7 +24,7 @@ class PlaceService {
       const plotsCollection = collection(
         this.storiesCollection,
         storyId,
-        "places"
+        "places",
       );
       const placesSnapshot = await getDocs(plotsCollection);
       return placesSnapshot.docs.map((doc) => doc.data() as Place);

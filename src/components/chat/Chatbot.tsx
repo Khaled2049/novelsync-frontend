@@ -15,8 +15,14 @@ export const Chatbot: React.FC<ChatbotProps> = ({
   onClose,
   mode = "sidebar",
 }) => {
-  const { messages, isLoading, error, sendMessage, initializeChat, clearError } =
-    useChat();
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    initializeChat,
+    clearError,
+  } = useChat();
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

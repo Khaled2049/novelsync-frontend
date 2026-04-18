@@ -14,7 +14,7 @@ interface UseUserWalletAddressResult {
  * @returns Object with walletAddress, loading, and error states
  */
 export const useUserWalletAddress = (
-  userId: string | undefined | null
+  userId: string | undefined | null,
 ): UseUserWalletAddressResult => {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

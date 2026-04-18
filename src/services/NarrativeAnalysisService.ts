@@ -1,4 +1,10 @@
-import { PlotEvent, PlotLine, StoryBeatType, PacingType, DEFAULT_PLOT_EVENT_VALUES } from "@/types/IPlot";
+import {
+  PlotEvent,
+  PlotLine,
+  StoryBeatType,
+  PacingType,
+  DEFAULT_PLOT_EVENT_VALUES,
+} from "@/types/IPlot";
 
 export interface TensionDataPoint {
   index: number;
@@ -23,7 +29,10 @@ export interface NarrativeStats {
 
 class NarrativeAnalysisService {
   // Ensure event has all required fields with defaults
-  private migrateEvent(event: Partial<PlotEvent> & { id: string; name: string; content: string }, orderIndex: number): PlotEvent {
+  private migrateEvent(
+    event: Partial<PlotEvent> & { id: string; name: string; content: string },
+    orderIndex: number,
+  ): PlotEvent {
     return {
       ...DEFAULT_PLOT_EVENT_VALUES,
       ...event,
@@ -33,8 +42,8 @@ class NarrativeAnalysisService {
       dependencies: event.dependencies ?? [],
       dependents: event.dependents ?? [],
       tensionLevel: event.tensionLevel ?? 5,
-      pacing: event.pacing ?? 'moderate',
-      storyBeat: event.storyBeat ?? 'rising_action',
+      pacing: event.pacing ?? "moderate",
+      storyBeat: event.storyBeat ?? "rising_action",
     };
   }
 
@@ -63,7 +72,9 @@ class NarrativeAnalysisService {
   }
 
   // Generate tension data per plot line (for multi-line chart)
-  getTensionCurveDataByPlotLine(plotLines: PlotLine[]): Record<string, TensionDataPoint[]> {
+  getTensionCurveDataByPlotLine(
+    plotLines: PlotLine[],
+  ): Record<string, TensionDataPoint[]> {
     const dataByPlotLine: Record<string, TensionDataPoint[]> = {};
 
     for (const plotLine of plotLines) {
@@ -115,12 +126,18 @@ class NarrativeAnalysisService {
       };
     }
 
-    const tensions = allEvents.map(e => e.tensionLevel);
+    const tensions = allEvents.map((e) => e.tensionLevel);
     const sum = tensions.reduce((a, b) => a + b, 0);
     const avg = sum / tensions.length;
-    const variance = tensions.reduce((acc, t) => acc + Math.pow(t - avg, 2), 0) / tensions.length;
+    const variance =
+      tensions.reduce((acc, t) => acc + Math.pow(t - avg, 2), 0) /
+      tensions.length;
 
-    const pacingDist: Record<PacingType, number> = { slow: 0, moderate: 0, fast: 0 };
+    const pacingDist: Record<PacingType, number> = {
+      slow: 0,
+      moderate: 0,
+      fast: 0,
+    };
     const beatDist: Record<StoryBeatType, number> = {
       exposition: 0,
       inciting_incident: 0,
@@ -158,17 +175,21 @@ class NarrativeAnalysisService {
       for (let i = 0; i < plotLine.events.length; i++) {
         const event = this.migrateEvent(plotLine.events[i], i);
 
-        if (event.pacing === 'slow') {
+        if (event.pacing === "slow") {
           consecutiveSlow++;
           consecutiveFast = 0;
           if (consecutiveSlow >= 3) {
-            issues.push(`"${plotLine.name}": ${consecutiveSlow} consecutive slow-paced scenes may drag the narrative.`);
+            issues.push(
+              `"${plotLine.name}": ${consecutiveSlow} consecutive slow-paced scenes may drag the narrative.`,
+            );
           }
-        } else if (event.pacing === 'fast') {
+        } else if (event.pacing === "fast") {
           consecutiveFast++;
           consecutiveSlow = 0;
           if (consecutiveFast >= 4) {
-            issues.push(`"${plotLine.name}": ${consecutiveFast} consecutive fast-paced scenes may exhaust readers.`);
+            issues.push(
+              `"${plotLine.name}": ${consecutiveFast} consecutive fast-paced scenes may exhaust readers.`,
+            );
           }
         } else {
           consecutiveSlow = 0;
@@ -188,14 +209,20 @@ class NarrativeAnalysisService {
       const events = plotLine.events.map((e, i) => this.migrateEvent(e, i));
 
       for (const event of events) {
-        if (event.storyBeat === 'climax' && event.tensionLevel < 7) {
-          issues.push(`"${plotLine.name}" - "${event.name}": Climax has low tension (${event.tensionLevel}/10). Consider increasing.`);
+        if (event.storyBeat === "climax" && event.tensionLevel < 7) {
+          issues.push(
+            `"${plotLine.name}" - "${event.name}": Climax has low tension (${event.tensionLevel}/10). Consider increasing.`,
+          );
         }
-        if (event.storyBeat === 'exposition' && event.tensionLevel > 5) {
-          issues.push(`"${plotLine.name}" - "${event.name}": Exposition has high tension (${event.tensionLevel}/10). May overwhelm readers early.`);
+        if (event.storyBeat === "exposition" && event.tensionLevel > 5) {
+          issues.push(
+            `"${plotLine.name}" - "${event.name}": Exposition has high tension (${event.tensionLevel}/10). May overwhelm readers early.`,
+          );
         }
-        if (event.storyBeat === 'resolution' && event.tensionLevel > 6) {
-          issues.push(`"${plotLine.name}" - "${event.name}": Resolution has high tension (${event.tensionLevel}/10). Consider winding down.`);
+        if (event.storyBeat === "resolution" && event.tensionLevel > 6) {
+          issues.push(
+            `"${plotLine.name}" - "${event.name}": Resolution has high tension (${event.tensionLevel}/10). Consider winding down.`,
+          );
         }
       }
     }
@@ -205,21 +232,21 @@ class NarrativeAnalysisService {
 
   // Get color for tension level
   getTensionColor(level: number): string {
-    if (level <= 3) return '#22c55e'; // green
-    if (level <= 5) return '#eab308'; // yellow
-    if (level <= 7) return '#f97316'; // orange
-    return '#ef4444'; // red
+    if (level <= 3) return "#22c55e"; // green
+    if (level <= 5) return "#eab308"; // yellow
+    if (level <= 7) return "#f97316"; // orange
+    return "#ef4444"; // red
   }
 
   // Get color for plot line (for multi-line charts)
   getPlotLineColor(index: number): string {
     const colors = [
-      '#3b82f6', // blue
-      '#8b5cf6', // violet
-      '#ec4899', // pink
-      '#14b8a6', // teal
-      '#f59e0b', // amber
-      '#6366f1', // indigo
+      "#3b82f6", // blue
+      "#8b5cf6", // violet
+      "#ec4899", // pink
+      "#14b8a6", // teal
+      "#f59e0b", // amber
+      "#6366f1", // indigo
     ];
     return colors[index % colors.length];
   }

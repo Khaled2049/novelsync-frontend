@@ -11,7 +11,10 @@ import {
   Legend,
 } from "recharts";
 import { PlotLine } from "@/types/IPlot";
-import { narrativeAnalysisService, NarrativeStats } from "@/services/NarrativeAnalysisService";
+import {
+  narrativeAnalysisService,
+  NarrativeStats,
+} from "@/services/NarrativeAnalysisService";
 import { TrendingUp, AlertTriangle } from "lucide-react";
 
 interface TensionCurveChartProps {
@@ -21,32 +24,32 @@ interface TensionCurveChartProps {
 export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
   plotLines,
 }) => {
-  const [viewMode, setViewMode] = useState<'combined' | 'separate'>('combined');
+  const [viewMode, setViewMode] = useState<"combined" | "separate">("combined");
   const [showIssues, setShowIssues] = useState(false);
 
   const combinedData = useMemo(
     () => narrativeAnalysisService.getTensionCurveData(plotLines),
-    [plotLines]
+    [plotLines],
   );
 
   const dataByPlotLine = useMemo(
     () => narrativeAnalysisService.getTensionCurveDataByPlotLine(plotLines),
-    [plotLines]
+    [plotLines],
   );
 
   const stats: NarrativeStats = useMemo(
     () => narrativeAnalysisService.getNarrativeStats(plotLines),
-    [plotLines]
+    [plotLines],
   );
 
   const pacingIssues = useMemo(
     () => narrativeAnalysisService.analyzePacingIssues(plotLines),
-    [plotLines]
+    [plotLines],
   );
 
   const tensionIssues = useMemo(
     () => narrativeAnalysisService.analyzeTensionFlow(plotLines),
-    [plotLines]
+    [plotLines],
   );
 
   const allIssues = [...pacingIssues, ...tensionIssues];
@@ -61,7 +64,7 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
   }
 
   // Prepare data for separate lines view
-  const maxEventCount = Math.max(...plotLines.map(pl => pl.events.length));
+  const maxEventCount = Math.max(...plotLines.map((pl) => pl.events.length));
   const separateLineData = Array.from({ length: maxEventCount }, (_, i) => {
     const point: Record<string, number | string> = { index: i };
     plotLines.forEach((pl) => {
@@ -80,21 +83,21 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setViewMode('combined')}
+            onClick={() => setViewMode("combined")}
             className={`px-3 py-1 text-sm rounded ${
-              viewMode === 'combined'
-                ? 'bg-dark-green dark:bg-light-green text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              viewMode === "combined"
+                ? "bg-dark-green dark:bg-light-green text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             }`}
           >
             Combined
           </button>
           <button
-            onClick={() => setViewMode('separate')}
+            onClick={() => setViewMode("separate")}
             className={`px-3 py-1 text-sm rounded ${
-              viewMode === 'separate'
-                ? 'bg-dark-green dark:bg-light-green text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              viewMode === "separate"
+                ? "bg-dark-green dark:bg-light-green text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             }`}
           >
             By Plot Line
@@ -106,7 +109,7 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
             className="flex items-center gap-1 px-3 py-1 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded"
           >
             <AlertTriangle className="w-4 h-4" />
-            {allIssues.length} issue{allIssues.length !== 1 ? 's' : ''}
+            {allIssues.length} issue{allIssues.length !== 1 ? "s" : ""}
           </button>
         )}
       </div>
@@ -114,7 +117,9 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
       {/* Issues Panel */}
       {showIssues && allIssues.length > 0 && (
         <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Narrative Suggestions</h4>
+          <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">
+            Narrative Suggestions
+          </h4>
           <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
             {allIssues.map((issue, i) => (
               <li key={i}>• {issue}</li>
@@ -126,19 +131,23 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
       {/* Chart */}
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          {viewMode === 'combined' ? (
+          {viewMode === "combined" ? (
             <LineChart data={combinedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#374151"
+                opacity={0.2}
+              />
               <XAxis
                 dataKey="eventName"
-                tick={{ fontSize: 10, fill: '#6b7280' }}
+                tick={{ fontSize: 10, fill: "#6b7280" }}
                 angle={-45}
                 textAnchor="end"
                 height={60}
               />
               <YAxis
                 domain={[0, 10]}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tick={{ fontSize: 12, fill: "#6b7280" }}
                 ticks={[0, 2, 4, 6, 8, 10]}
               />
               <Tooltip
@@ -147,19 +156,29 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
                     const data = payload[0].payload;
                     return (
                       <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-lg border border-gray-200 dark:border-gray-700">
-                        <p className="font-medium text-gray-900 dark:text-white">{data.eventName}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{data.plotLineName}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {data.eventName}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {data.plotLineName}
+                        </p>
                         <p className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-300">Tension: </span>
+                          <span className="text-gray-600 dark:text-gray-300">
+                            Tension:{" "}
+                          </span>
                           <span
                             className="font-bold"
-                            style={{ color: narrativeAnalysisService.getTensionColor(data.tension) }}
+                            style={{
+                              color: narrativeAnalysisService.getTensionColor(
+                                data.tension,
+                              ),
+                            }}
                           >
                             {data.tension}/10
                           </span>
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {data.storyBeat.replace('_', ' ')} • {data.pacing}
+                          {data.storyBeat.replace("_", " ")} • {data.pacing}
                         </p>
                       </div>
                     );
@@ -175,7 +194,9 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
                 strokeWidth={2}
                 dot={(props) => {
                   const { cx, cy, payload } = props;
-                  const color = narrativeAnalysisService.getTensionColor(payload.tension);
+                  const color = narrativeAnalysisService.getTensionColor(
+                    payload.tension,
+                  );
                   return (
                     <circle
                       key={payload.eventId}
@@ -193,15 +214,19 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
             </LineChart>
           ) : (
             <LineChart data={separateLineData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#374151"
+                opacity={0.2}
+              />
               <XAxis
                 dataKey="index"
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tick={{ fontSize: 12, fill: "#6b7280" }}
                 tickFormatter={(v) => `Event ${v + 1}`}
               />
               <YAxis
                 domain={[0, 10]}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tick={{ fontSize: 12, fill: "#6b7280" }}
                 ticks={[0, 2, 4, 6, 8, 10]}
               />
               <Tooltip
@@ -209,10 +234,17 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
                   if (active && payload && payload.length) {
                     return (
                       <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-lg border border-gray-200 dark:border-gray-700">
-                        <p className="font-medium text-gray-900 dark:text-white mb-2">Event {Number(label) + 1}</p>
+                        <p className="font-medium text-gray-900 dark:text-white mb-2">
+                          Event {Number(label) + 1}
+                        </p>
                         {payload.map((p: any, i: number) => (
-                          <div key={i} className="text-sm" style={{ color: p.color }}>
-                            {plotLines.find(pl => pl.id === p.dataKey)?.name}: {p.value}/10
+                          <div
+                            key={i}
+                            className="text-sm"
+                            style={{ color: p.color }}
+                          >
+                            {plotLines.find((pl) => pl.id === p.dataKey)?.name}:{" "}
+                            {p.value}/10
                           </div>
                         ))}
                       </div>
@@ -243,19 +275,29 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.averageTension}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Avg Tension</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            {stats.averageTension}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Avg Tension
+          </div>
         </div>
         <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-          <div className="text-2xl font-bold text-red-500">{stats.maxTension}</div>
+          <div className="text-2xl font-bold text-red-500">
+            {stats.maxTension}
+          </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Peak</div>
         </div>
         <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-          <div className="text-2xl font-bold text-green-500">{stats.minTension}</div>
+          <div className="text-2xl font-bold text-green-500">
+            {stats.minTension}
+          </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Low</div>
         </div>
         <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalEvents}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            {stats.totalEvents}
+          </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Events</div>
         </div>
       </div>
@@ -264,15 +306,21 @@ export const TensionCurveChart: React.FC<TensionCurveChartProps> = ({
       <div className="flex items-center justify-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-          <span className="text-gray-600 dark:text-gray-400">Slow: {stats.pacingDistribution.slow}</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            Slow: {stats.pacingDistribution.slow}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <span className="text-gray-600 dark:text-gray-400">Moderate: {stats.pacingDistribution.moderate}</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            Moderate: {stats.pacingDistribution.moderate}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-red-400"></div>
-          <span className="text-gray-600 dark:text-gray-400">Fast: {stats.pacingDistribution.fast}</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            Fast: {stats.pacingDistribution.fast}
+          </span>
         </div>
       </div>
     </div>

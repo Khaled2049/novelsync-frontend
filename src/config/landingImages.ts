@@ -9,16 +9,16 @@
  */
 
 export const LANDING_IMAGES = {
-  heroEditorial:     "/images/landing/hero-editorial.png",
-  aiCopilot:         "/images/landing/ai-copilot.png",
+  heroEditorial: "/images/landing/hero-editorial.png",
+  aiCopilot: "/images/landing/ai-copilot.png",
   communityWorkshop: "/images/landing/community-workshop.png",
-  challengeArena:    "/images/landing/challenge-arena.png",
-  contextEditor:     "/images/landing/context-editor.png",
-  bookClubs:         "/images/landing/book-clubs.png",
-  minaBrainstorm:    "/images/landing/mina-brainstorm.png",
-  cryptoTipping:     "/images/landing/crypto-tipping.png",
-  bestWorkEmber:     "/images/landing/best-work-ember.png",
-  bestWorkOrbit:     "/images/landing/best-work-orbit.png",
-  bestWorkNeon:      "/images/landing/best-work-neon.png",
-  bestWorkShowcase:  "/images/landing/best-work-showcase.png",
+  challengeArena: "/images/landing/challenge-arena.png",
+  contextEditor: "/images/landing/context-editor.png",
+  bookClubs: "/images/landing/book-clubs.png",
+  minaBrainstorm: "/images/landing/mina-brainstorm.png",
+  cryptoTipping: "/images/landing/crypto-tipping.png",
+  bestWorkEmber: "/images/landing/best-work-ember.png",
+  bestWorkOrbit: "/images/landing/best-work-orbit.png",
+  bestWorkNeon: "/images/landing/best-work-neon.png",
+  bestWorkShowcase: "/images/landing/best-work-showcase.png",
 } as const;

@@ -1,5 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import { FaEdit, FaTrash, FaEyeSlash, FaBookOpen, FaEye, FaHeart, FaStar, FaImage, FaUpload, FaMagic, FaTimes } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTrash,
+  FaEyeSlash,
+  FaBookOpen,
+  FaEye,
+  FaHeart,
+  FaStar,
+  FaImage,
+  FaUpload,
+  FaMagic,
+  FaTimes,
+} from "react-icons/fa";
 import { StoryMetadata } from "@/types/IStory";
 import { DollarSign } from "lucide-react";
 import { generateCover } from "@/services/imageGenerationService";
@@ -14,7 +26,11 @@ interface StoryCardProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onUnpublish: (id: string) => void;
-  onImageUpdate?: (id: string, imageFile: File | null, previewUrl: string | null) => void;
+  onImageUpdate?: (
+    id: string,
+    imageFile: File | null,
+    previewUrl: string | null,
+  ) => void;
   isLoading?: boolean;
 }
 
@@ -105,7 +121,9 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       setShowImageMenu(false);
       setAiPrompt("");
     } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "Failed to generate image");
+      setGenerationError(
+        error instanceof Error ? error.message : "Failed to generate image",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -145,8 +163,12 @@ export const StoryCard: React.FC<StoryCardProps> = ({
             />
           ) : (
             <div
-              className={`w-full h-full min-h-[160px] bg-gray-200 dark:bg-gray-800 rounded-l-xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 ${onImageUpdate ? 'cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors' : ''}`}
-              onClick={onImageUpdate ? () => setShowImageMenu(!showImageMenu) : undefined}
+              className={`w-full h-full min-h-[160px] bg-gray-200 dark:bg-gray-800 rounded-l-xl flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 ${onImageUpdate ? "cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors" : ""}`}
+              onClick={
+                onImageUpdate
+                  ? () => setShowImageMenu(!showImageMenu)
+                  : undefined
+              }
             >
               <FaImage className="w-8 h-8 mb-2" />
               <span className="text-xs text-center px-2">Add cover image</span>
@@ -291,28 +313,30 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           </div>
 
           {/* Earnings Section */}
-          {story.earnings && (parseFloat(story.earnings.eth) > 0 || parseFloat(story.earnings.usdc) > 0) && (
-            <div className="mb-4 p-3 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              <div className="flex items-center gap-4 text-sm">
-                {parseFloat(story.earnings.eth) > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                      {parseFloat(story.earnings.eth).toFixed(4)} ETH
-                    </span>
-                  </div>
-                )}
-                {parseFloat(story.earnings.usdc) > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {parseFloat(story.earnings.usdc).toFixed(2)} USDC
-                    </span>
-                  </div>
-                )}
+          {story.earnings &&
+            (parseFloat(story.earnings.eth) > 0 ||
+              parseFloat(story.earnings.usdc) > 0) && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-4 text-sm">
+                  {parseFloat(story.earnings.eth) > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        {parseFloat(story.earnings.eth).toFixed(4)} ETH
+                      </span>
+                    </div>
+                  )}
+                  {parseFloat(story.earnings.usdc) > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {parseFloat(story.earnings.usdc).toFixed(2)} USDC
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-3">

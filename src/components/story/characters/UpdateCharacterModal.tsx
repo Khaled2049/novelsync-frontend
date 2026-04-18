@@ -19,7 +19,7 @@ const UpdateCharacterModal: React.FC<UpdateCharacterModalProps> = ({
     useState<Character>(character);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setUpdatedCharacter((prev) => ({

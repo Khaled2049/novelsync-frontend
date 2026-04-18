@@ -42,9 +42,8 @@ const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
     }
 
     // Check rate limits
-    const rateLimitCheck = await rateLimitService.canUpdateReadingProgress(
-      userId
-    );
+    const rateLimitCheck =
+      await rateLimitService.canUpdateReadingProgress(userId);
     if (!rateLimitCheck.allowed) {
       setError(rateLimitCheck.message || "Rate limit exceeded");
       return;
@@ -58,7 +57,7 @@ const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
         clubId,
         userId,
         chapter,
-        notes.trim() || undefined
+        notes.trim() || undefined,
       );
 
       // Increment progress update count

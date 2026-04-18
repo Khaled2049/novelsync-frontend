@@ -34,7 +34,7 @@ export const useHighlights = (chapterId: string) => {
       text: string,
       color: Highlight["color"],
       position: { start: number; end: number },
-      note?: string
+      note?: string,
     ) => {
       const newHighlight: Highlight = {
         id: Date.now().toString(),
@@ -55,7 +55,7 @@ export const useHighlights = (chapterId: string) => {
         throw err;
       }
     },
-    [chapterId]
+    [chapterId],
   );
 
   const deleteHighlight = useCallback(async (id: string) => {
@@ -73,21 +73,21 @@ export const useHighlights = (chapterId: string) => {
       try {
         await highlightService.update(id, updates);
         setHighlights((prev) =>
-          prev.map((h) => (h.id === id ? { ...h, ...updates } : h))
+          prev.map((h) => (h.id === id ? { ...h, ...updates } : h)),
         );
       } catch (err) {
         console.error("Error updating highlight:", err);
         throw err;
       }
     },
-    []
+    [],
   );
 
   const getHighlightsByColor = useCallback(
     (color: Highlight["color"]) => {
       return highlights.filter((h) => h.color === color);
     },
-    [highlights]
+    [highlights],
   );
 
   return {

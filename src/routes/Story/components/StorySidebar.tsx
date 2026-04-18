@@ -21,7 +21,6 @@ export const StorySidebar: React.FC<StorySidebarProps> = ({
   return (
     <aside className="md:w-44 flex-shrink-0">
       <div className="md:sticky md:top-24 flex flex-col gap-3">
-
         {/* Primary CTA */}
         <button
           onClick={onReadNow}
@@ -43,15 +42,18 @@ export const StorySidebar: React.FC<StorySidebarProps> = ({
           <Heart
             className={`w-4 h-4 transition-all duration-150 ${isLiked ? "fill-current" : ""}`}
           />
-          <span>{likes} {likes === 1 ? "Like" : "Likes"}</span>
+          <span>
+            {likes} {likes === 1 ? "Like" : "Likes"}
+          </span>
         </button>
 
         {/* Chapters count */}
         <div className="flex items-center justify-center gap-2 py-1.5 font-ui text-xs text-ns-ink-muted">
           <Layers className="w-3.5 h-3.5" />
-          <span>{chaptersCount} {chaptersCount === 1 ? "Chapter" : "Chapters"}</span>
+          <span>
+            {chaptersCount} {chaptersCount === 1 ? "Chapter" : "Chapters"}
+          </span>
         </div>
-
       </div>
     </aside>
   );

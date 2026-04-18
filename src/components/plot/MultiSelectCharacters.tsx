@@ -12,8 +12,12 @@ export const MultiSelectCharacters: React.FC<MultiSelectCharactersProps> = ({
   selectedIds,
   onChange,
 }) => {
-  const selectedCharacters = characters.filter((c) => selectedIds.includes(c.id));
-  const availableCharacters = characters.filter((c) => !selectedIds.includes(c.id));
+  const selectedCharacters = characters.filter((c) =>
+    selectedIds.includes(c.id),
+  );
+  const availableCharacters = characters.filter(
+    (c) => !selectedIds.includes(c.id),
+  );
 
   const addCharacter = (id: string) => {
     onChange([...selectedIds, id]);
@@ -28,7 +32,9 @@ export const MultiSelectCharacters: React.FC<MultiSelectCharactersProps> = ({
       <div className="text-gray-500 dark:text-gray-400 text-sm p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center">
         <UserPlus className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>No characters available.</p>
-        <p className="text-xs mt-1">Create characters in the Characters section first.</p>
+        <p className="text-xs mt-1">
+          Create characters in the Characters section first.
+        </p>
       </div>
     );
   }

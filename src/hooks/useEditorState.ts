@@ -22,7 +22,11 @@ type EditorAction =
   | { type: "SET_LOADING"; payload: boolean }
   | {
       type: "LOAD_STORY";
-      payload: { story: Story; chapters: Chapter[]; currentChapter: Chapter | null };
+      payload: {
+        story: Story;
+        chapters: Chapter[];
+        currentChapter: Chapter | null;
+      };
     }
   | { type: "SELECT_CHAPTER"; payload: Chapter }
   | { type: "UPDATE_STORY_TITLE"; payload: string }
@@ -31,7 +35,10 @@ type EditorAction =
   | { type: "UPDATE_CHAPTER_CONTENT"; payload: string }
   | { type: "ADD_CHAPTER"; payload: Chapter }
   | { type: "DELETE_CHAPTER"; payload: string }
-  | { type: "UPDATE_CHAPTER_IN_LIST"; payload: { id: string; updates: Partial<Chapter> } }
+  | {
+      type: "UPDATE_CHAPTER_IN_LIST";
+      payload: { id: string; updates: Partial<Chapter> };
+    }
   | { type: "CLEAR_METADATA_CHANGED" }
   | { type: "SET_ACTIVE_TAB"; payload: "chapters" | "ai" }
   | { type: "TOGGLE_LEFT_SIDEBAR" }
@@ -122,7 +129,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
     case "DELETE_CHAPTER": {
       const remainingChapters = state.chapters.filter(
-        (ch) => ch.id !== action.payload
+        (ch) => ch.id !== action.payload,
       );
       const wasCurrentChapter = state.currentChapter?.id === action.payload;
 
@@ -144,7 +151,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         chapters: state.chapters.map((ch) =>
           ch.id === action.payload.id
             ? { ...ch, ...action.payload.updates }
-            : ch
+            : ch,
         ),
         currentChapter:
           state.currentChapter?.id === action.payload.id
@@ -185,7 +192,11 @@ export function useEditorState() {
       setLoading: (loading: boolean) =>
         dispatch({ type: "SET_LOADING", payload: loading }),
 
-      loadStory: (story: Story, chapters: Chapter[], currentChapter: Chapter | null) =>
+      loadStory: (
+        story: Story,
+        chapters: Chapter[],
+        currentChapter: Chapter | null,
+      ) =>
         dispatch({
           type: "LOAD_STORY",
           payload: { story, chapters, currentChapter },
@@ -229,13 +240,13 @@ export function useEditorState() {
 
       reset: () => dispatch({ type: "RESET" }),
     }),
-    []
+    [],
   );
 
   // Computed values
   const currentContent = useMemo(
     () => state.currentChapter?.content || "",
-    [state.currentChapter]
+    [state.currentChapter],
   );
 
   return {

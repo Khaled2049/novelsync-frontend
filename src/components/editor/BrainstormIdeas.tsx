@@ -25,7 +25,7 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
     // Check if user can use AI
     if (!canUseAI()) {
       setBrainstormError(
-        "Daily AI usage limit reached. Please try again tomorrow."
+        "Daily AI usage limit reached. Please try again tomorrow.",
       );
       return;
     }
@@ -57,7 +57,7 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
       // Check if error is about usage limit
       if (errorMessage.includes("limit") || errorMessage.includes("usage")) {
         setBrainstormError(
-          "Daily AI usage limit reached. Please try again tomorrow."
+          "Daily AI usage limit reached. Please try again tomorrow.",
         );
       } else {
         setBrainstormError(errorMessage);
@@ -85,7 +85,7 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
             value={brainstormType}
             onChange={(e) =>
               setBrainstormType(
-                e.target.value as "characters" | "plots" | "places" | "themes"
+                e.target.value as "characters" | "plots" | "places" | "themes",
               )
             }
             className="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 rounded-md text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green"

@@ -54,7 +54,9 @@ const UpdateBookClub = ({ club, onUpdate, onCancel }: UpdateBookClubProps) => {
           Edit Club
         </p>
         <h1 className="font-heading text-5xl md:text-[3.75rem] font-light italic leading-[1.1] text-neutral-900 dark:text-white mb-16">
-          Refine Your<br />Reading Circle.
+          Refine Your
+          <br />
+          Reading Circle.
         </h1>
 
         <div className="space-y-14">

@@ -7,7 +7,9 @@ interface FloatingChatButtonProps {
   storyId?: string;
 }
 
-export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ storyId: propStoryId }) => {
+export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
+  storyId: propStoryId,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const { storyId, id } = useParams<{ storyId?: string; id?: string }>();
 
@@ -23,7 +25,9 @@ export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ storyId:
       <button
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-20 right-4 md:bottom-24 md:right-6 z-30 w-11 h-11 rounded-full bg-ns-accent text-white shadow-ns-lg hover:bg-ns-accent-hover active:scale-95 transition-all duration-200 flex items-center justify-center ${
-          isOpen ? "opacity-0 pointer-events-none scale-90" : "opacity-100 scale-100"
+          isOpen
+            ? "opacity-0 pointer-events-none scale-90"
+            : "opacity-100 scale-100"
         }`}
         aria-label="Open AI Assistant"
         title="AI Assistant"

@@ -504,6 +504,28 @@ class StoriesRepo {
     return [];
   }
 
+  async getChapterMetaList(
+    storyId: string,
+  ): Promise<Omit<Chapter, "content">[]> {
+    try {
+      const chaptersCollection = collection(
+        doc(this.storiesCollection, storyId),
+        "chapters",
+      );
+      const q = query(chaptersCollection, orderBy("order"));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map((d) => {
+        const data = d.data() as Chapter;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { content: _content, ...rest } = data;
+        return { ...rest, id: d.id };
+      });
+    } catch (error) {
+      console.error("Error getting chapter metadata:", error);
+    }
+    return [];
+  }
+
   async getChapter(
     storyId: string,
     chapterId: string,

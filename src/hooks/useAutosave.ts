@@ -87,7 +87,7 @@ export function useAutosave({
         }
       }
     },
-    [enabled, onSave]
+    [enabled, onSave],
   );
 
   const forceSave = useCallback(
@@ -106,7 +106,7 @@ export function useAutosave({
 
       await runSave(content);
     },
-    [runSave, enabled, cancelPendingSave]
+    [runSave, enabled, cancelPendingSave],
   );
 
   const triggerSave = useCallback(
@@ -126,7 +126,7 @@ export function useAutosave({
         forceSave(latestContentRef.current);
       }, debounceMs);
     },
-    [enabled, debounceMs, forceSave, cancelPendingSave]
+    [enabled, debounceMs, forceSave, cancelPendingSave],
   );
 
   // Cleanup on unmount

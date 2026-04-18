@@ -275,8 +275,12 @@ service cloud.firestore {
       // Allow update and delete only to the creator
       allow delete: if request.auth != null && request.auth.uid == resource.data.creatorId;
       
-      // Allow adding feedback to any authenticated user
-      allow update: if request.auth != null;
+      // Creator can update anything; members can only update the members array (join/leave)
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.creatorId ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+         request.resource.data.members.hasAll([request.auth.uid]))
+      );
       
       // Rules for the messages subcollection
       match /messages/{messageId} {
@@ -286,8 +290,8 @@ service cloud.firestore {
         allow create: if request.auth != null;
         
         // Only allow users to delete their own messages
-        allow delete: if request.auth != null && 
-          resource.data.sender == request.auth.uid;
+        allow delete: if request.auth != null &&
+          resource.data.senderId == request.auth.uid;
           
       }
       
@@ -403,6 +407,11 @@ service cloud.firestore {
       match /competitionJoins/{competitionId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create, update, delete: if false;
+      }
+
+      // Reading progress subcollection — private to the owning user
+      match /readingProgress/{storyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
       
       // Nested rules for posts

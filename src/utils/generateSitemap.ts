@@ -33,16 +33,16 @@ export const generateSitemapXML = (entries: SitemapEntry[]): string => {
         : getAbsoluteUrl(entry.url);
       return `  <url>
     <loc>${escapeXML(url)}</loc>${
-        entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : ""
-      }${
-        entry.changefreq
-          ? `\n    <changefreq>${entry.changefreq}</changefreq>`
-          : ""
-      }${
-        entry.priority !== undefined
-          ? `\n    <priority>${entry.priority}</priority>`
-          : ""
-      }
+      entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : ""
+    }${
+      entry.changefreq
+        ? `\n    <changefreq>${entry.changefreq}</changefreq>`
+        : ""
+    }${
+      entry.priority !== undefined
+        ? `\n    <priority>${entry.priority}</priority>`
+        : ""
+    }
   </url>`;
     })
     .join("\n");
@@ -145,7 +145,7 @@ export const getStaticSitemapEntries = (): SitemapEntry[] => {
  * This would typically fetch from Firestore
  */
 export const generateStorySitemapEntries = (
-  stories: Array<{ id: string; updatedAt: Date }>
+  stories: Array<{ id: string; updatedAt: Date }>,
 ): SitemapEntry[] => {
   return stories.map((story) => ({
     url: `/story/${story.id}`,
@@ -159,7 +159,7 @@ export const generateStorySitemapEntries = (
  * Generate dynamic sitemap entries for book clubs
  */
 export const generateBookClubSitemapEntries = (
-  clubs: Array<{ id: string; updatedAt?: Date }>
+  clubs: Array<{ id: string; updatedAt?: Date }>,
 ): SitemapEntry[] => {
   const now = new Date().toISOString().split("T")[0];
   return clubs.map((club) => ({

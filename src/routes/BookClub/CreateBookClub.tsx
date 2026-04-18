@@ -64,7 +64,7 @@ const CreateBookClub = ({
   });
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setNewClub({
       ...newClub,
@@ -131,7 +131,9 @@ const CreateBookClub = ({
           Found a New Club
         </p>
         <h1 className="font-heading text-5xl md:text-[3.75rem] font-light italic leading-[1.1] text-neutral-900 dark:text-white mb-16">
-          Start Something<br />Worth Reading For.
+          Start Something
+          <br />
+          Worth Reading For.
         </h1>
 
         <div className="space-y-14">

@@ -248,7 +248,7 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
           authorWalletAddress,
           storyId,
           USDC_ADDRESS,
-          amount.toString()
+          amount.toString(),
         );
       } else {
         // USDC is disabled
@@ -326,8 +326,8 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                 <p className="text-black/70 dark:text-white/70 mb-4">
-                  Please switch to {getTargetChainName(TARGET_CHAIN_ID)} to
-                  send tips
+                  Please switch to {getTargetChainName(TARGET_CHAIN_ID)} to send
+                  tips
                 </p>
               </div>
             ) : (
@@ -359,8 +359,8 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                         paymentMethod === "USDC" && USDC_PAYMENTS_ENABLED
                           ? "bg-emerald-600 text-white"
                           : USDC_PAYMENTS_ENABLED
-                          ? "bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                          : "bg-neutral-100 dark:bg-neutral-800 text-black/40 dark:text-white/40 cursor-not-allowed opacity-60"
+                            ? "bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-black/40 dark:text-white/40 cursor-not-allowed opacity-60"
                       }`}
                       title={
                         !USDC_PAYMENTS_ENABLED
@@ -379,8 +379,8 @@ export const StoryTipModal: React.FC<StoryTipModalProps> = ({
                       <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-700 dark:text-blue-300">
-                          USDC payments are not enabled yet. Please use ETH
-                          ({getTargetChainName(TARGET_CHAIN_ID)}) to send tips.
+                          USDC payments are not enabled yet. Please use ETH (
+                          {getTargetChainName(TARGET_CHAIN_ID)}) to send tips.
                         </p>
                       </div>
                     </div>
