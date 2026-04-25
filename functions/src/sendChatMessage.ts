@@ -94,6 +94,7 @@ export const sendChatMessage = onRequest(
       // Call Python agent with retry
       const agentResponse = await callAgentWithRetry("chatWithContext", {
         storyId,
+        userId,
         message: message.trim(),
         context,
         chatHistory: chatHistory.map((msg) => ({

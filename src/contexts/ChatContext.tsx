@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { ChatMessage } from "@/types/IChat";
 import { chatService } from "@/services/ChatService";
-import { sendChatMessage } from "@/api/chat";
+import { sendChatMessage, clearChatSession } from "@/api/chat";
 import { useAuthContext } from "./AuthContext";
 import { useAiUsage } from "./AiUsageContext";
 
@@ -19,6 +19,7 @@ interface ChatContextType {
   chatId: string | null;
   sendMessage: (storyId: string, message: string) => Promise<void>;
   initializeChat: (storyId: string) => Promise<void>;
+  clearChat: (storyId: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -153,9 +154,30 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     [user, chatId, canUseAI, incrementAiUsage],
   );
 
-  /**
-   * Clear error state.
-   */
+  const clearChat = useCallback(
+    async (storyId: string) => {
+      if (!chatId) return;
+
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+
+      setMessages([]);
+      setError(null);
+
+      try {
+        await clearChatSession({ storyId, chatId });
+      } catch (err) {
+        console.error("Error clearing chat session:", err);
+      }
+
+      setChatId(null);
+      await initializeChat(storyId);
+    },
+    [chatId, initializeChat],
+  );
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -178,6 +200,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         chatId,
         sendMessage,
         initializeChat,
+        clearChat,
         clearError,
       }}
     >

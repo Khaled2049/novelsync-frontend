@@ -95,20 +95,18 @@ export async function saveChatMessages(
 
     const messagesRef = chatRef.collection("messages");
 
-    const batch = db.batch();
-
-    // Create user message document
+    // Sequential writes so each gets a distinct server timestamp — batch would assign
+    // the same timestamp to both, making orderBy("timestamp", "asc") non-deterministic.
     const userMsgRef = messagesRef.doc();
-    batch.set(userMsgRef, {
+    await userMsgRef.set({
       id: userMsgRef.id,
       role: "user",
       content: userMessage,
       timestamp: FieldValue.serverTimestamp(),
     });
 
-    // Create assistant message document
     const assistantMsgRef = messagesRef.doc();
-    batch.set(assistantMsgRef, {
+    await assistantMsgRef.set({
       id: assistantMsgRef.id,
       role: "assistant",
       content: assistantResponse,
@@ -116,9 +114,7 @@ export async function saveChatMessages(
       ...(contextSnapshot && { contextSnapshot }),
     });
 
-    // Update chat session metadata
-    batch.set(
-      chatRef,
+    await chatRef.set(
       {
         id: chatId,
         userId,
@@ -129,7 +125,6 @@ export async function saveChatMessages(
       { merge: true }
     );
 
-    await batch.commit();
     logger.info("Chat messages saved successfully", { storyId, chatId });
   } catch (error) {
     logger.error("Error saving chat messages", {
@@ -141,6 +136,35 @@ export async function saveChatMessages(
     });
     throw error;
   }
+}
+
+/**
+ * Delete all messages in a chat session and the session doc itself.
+ */
+export async function deleteChatSession(
+  db: admin.firestore.Firestore,
+  storyId: string,
+  chatId: string,
+): Promise<void> {
+  const chatRef = db
+    .collection("stories")
+    .doc(storyId)
+    .collection("chats")
+    .doc(chatId);
+
+  const messagesRef = chatRef.collection("messages");
+
+  // Delete messages in batches of 500
+  let snapshot = await messagesRef.limit(500).get();
+  while (!snapshot.empty) {
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    snapshot = await messagesRef.limit(500).get();
+  }
+
+  await chatRef.delete();
+  logger.info("Chat session deleted", { storyId, chatId });
 }
 
 /**

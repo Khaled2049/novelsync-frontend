@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
-import { BookOpen, Loader, Sparkles, X } from "lucide-react";
+import { BookOpen, Loader, RefreshCw, Sparkles, X } from "lucide-react";
 import { generateStoryChoices, StoryChoice } from "@/api/ai";
 import { useAiUsage } from "@/contexts/AiUsageContext";
 
@@ -37,13 +37,15 @@ export function InteractiveStoryPanel({
   const [customDirection, setCustomDirection] = useState("");
   const [isLoadingCustom, setIsLoadingCustom] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [regenKey, setRegenKey] = useState(0);
 
-  // Track which turn we've already fetched for so re-renders don't re-fetch
-  const fetchedForTurn = useRef(-1);
+  // Track which (turn, regenKey) we've already fetched for so re-renders don't re-fetch
+  const fetchedForTurn = useRef("");
 
   useEffect(() => {
-    if (fetchedForTurn.current === turnCount) return;
-    fetchedForTurn.current = turnCount;
+    const fetchKey = `${turnCount}-${regenKey}`;
+    if (fetchedForTurn.current === fetchKey) return;
+    fetchedForTurn.current = fetchKey;
 
     if (!canUseAI()) {
       setErrorMessage(
@@ -81,7 +83,7 @@ export function InteractiveStoryPanel({
         );
         setPhase("error");
       });
-  }, [turnCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [turnCount, regenKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function insertText(text: string) {
     editor.chain().focus().insertContent(text).run();
@@ -185,6 +187,16 @@ export function InteractiveStoryPanel({
             <span className="font-ui text-xs text-ns-ink-muted tracking-wide">
               Turn {turnCount}
             </span>
+          )}
+          {phase === "choosing" && (
+            <button
+              onClick={() => setRegenKey((k) => k + 1)}
+              className="p-1 rounded text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors"
+              aria-label="Regenerate choices"
+              title="Regenerate choices"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
           )}
           <button
             onClick={onClose}
