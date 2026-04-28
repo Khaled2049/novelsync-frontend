@@ -35,6 +35,7 @@ import {
   WizardEnhanceType,
   BlueprintResult,
 } from "@/api/ai";
+import { ApiError } from "@/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { canUseAI, getRemainingAiUsage, incrementAiUsage } = useAiUsage();
+  const { canUseAI, getRemainingAiUsage } = useAiUsage();
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,6 +111,9 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   const [blueprintData, setBlueprintData] = useState<BlueprintResult | null>(
     null,
   );
+  const [previousBlueprintData, setPreviousBlueprintData] =
+    useState<BlueprintResult | null>(null);
+  const [blueprintError, setBlueprintError] = useState<string | null>(null);
 
   // Step 0 — Concept
   const [title, setTitle] = useState("");
@@ -147,7 +151,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
       const res = await enhanceWizardInput({ type, data });
       if (res.success && res.data?.enhanced) {
         onResult(res.data.enhanced);
-        await incrementAiUsage();
         toast.success("Enhanced!");
       } else {
         toast.error(res.error ?? "Enhancement failed. Please try again.");
@@ -163,16 +166,19 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
 
   const generateBlueprint = useCallback(async () => {
     if (!canUseAI()) {
-      // Quota exhausted — fall back to Phase 1 (raw user inputs display)
       setIsBlueprintLoading(false);
-      toast.warning(
-        "No AI uses remaining today. Showing your inputs as the blueprint.",
+      setBlueprintError(
+        "No AI uses remaining today. Resets at midnight UTC.",
       );
       return;
     }
 
-    setIsBlueprintLoading(true);
+    if (blueprintData) {
+      setPreviousBlueprintData(blueprintData);
+    }
     setBlueprintData(null);
+    setBlueprintError(null);
+    setIsBlueprintLoading(true);
 
     try {
       const res = await enhanceWizardInput({
@@ -202,15 +208,18 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
 
       if (res.success && res.data?.blueprint) {
         setBlueprintData(res.data.blueprint);
-        await incrementAiUsage();
       } else {
-        // Agent returned an error — fall back silently
-        toast.error(
-          "Blueprint generation failed — showing your inputs instead.",
+        setBlueprintError(
+          res.error ?? "Blueprint generation failed. Try regenerating.",
         );
       }
-    } catch {
-      toast.error("Could not reach AI. Showing your inputs as the blueprint.");
+    } catch (err) {
+      let msg = "Could not reach AI. Check your connection.";
+      if (err instanceof ApiError) {
+        const serverMsg = (err.response.data as { error?: string }).error;
+        if (serverMsg) msg = serverMsg;
+      }
+      setBlueprintError(msg);
     } finally {
       setIsBlueprintLoading(false);
     }
@@ -222,8 +231,8 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     places,
     conflict,
     events,
+    blueprintData,
     canUseAI,
-    incrementAiUsage,
   ]);
 
   useEffect(() => {
@@ -240,6 +249,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
 
   const goNext = () => setStep((s) => Math.min(s + 1, 5));
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
+
+  const handleUndo = () => {
+    setBlueprintData(previousBlueprintData);
+    setPreviousBlueprintData(null);
+    setBlueprintError(null);
+  };
 
   // ── Character helpers ─────────────────────────────────────────────────────
 
@@ -937,15 +952,64 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
             <p className="font-body text-ns-ink-secondary text-sm">
               {blueprintData
                 ? "AI has enriched your inputs. Review and adjust before launching."
-                : "Review your foundation before launching into the editor."}
+                : blueprintError
+                  ? "Generation failed. Try again or use your raw inputs."
+                  : "Review your foundation before launching into the editor."}
             </p>
           </div>
-          {blueprintData && (
-            <span className="text-xs font-ui px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex-shrink-0 mt-1">
-              AI enriched
-            </span>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+            {previousBlueprintData && !isBlueprintLoading && (
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="inline-flex items-center gap-1 text-xs font-ui text-ns-ink-muted hover:text-ns-ink transition-colors"
+              >
+                ← Undo
+              </button>
+            )}
+            {blueprintData && (
+              <span className="text-xs font-ui px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                AI enriched
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Error state */}
+        {blueprintError && !blueprintData && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20 p-4 space-y-3">
+            <p className="text-sm font-ui text-amber-800 dark:text-amber-300">
+              {blueprintError}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={generateBlueprint}
+                disabled={isBlueprintLoading || !canUseAI()}
+                className="inline-flex items-center gap-1.5 text-xs font-ui text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Try again
+              </button>
+              {previousBlueprintData && (
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  className="text-xs font-ui text-ns-ink-secondary hover:text-ns-ink transition-colors"
+                >
+                  ← Restore previous
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setBlueprintError(null)}
+                className="text-xs font-ui text-ns-ink-muted hover:text-ns-ink transition-colors"
+              >
+                Use my inputs →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Concept card */}
         <div className="rounded-lg border border-ns-border bg-ns-surface p-4 space-y-3">

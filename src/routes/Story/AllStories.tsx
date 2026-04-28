@@ -214,7 +214,7 @@ const AllStories: React.FC = () => {
                       onClick={() => handleStoryClick(story)}
                       className="group cursor-pointer"
                     >
-                      <div className="max-w-[100px] mx-auto">
+                      <div className="max-w-[130px] mx-auto">
                         <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
                           <StoryCover
                             src={story.coverImageUrl}
@@ -238,11 +238,17 @@ const AllStories: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-0.5">
-                        <h3 className="font-ui font-medium text-sm line-clamp-2 text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
+                      <div className="space-y-0.5 min-w-0">
+                        <h3
+                          title={story.title}
+                          className="font-ui font-medium text-sm truncate text-ns-ink group-hover:text-ns-accent transition-colors duration-200"
+                        >
                           {story.title}
                         </h3>
-                        <p className="text-xs text-ns-ink-muted font-ui">
+                        <p
+                          title={story.author}
+                          className="text-xs text-ns-ink-muted font-ui truncate"
+                        >
                           {story.author}
                         </p>
                       </div>
