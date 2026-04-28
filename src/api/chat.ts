@@ -1,9 +1,6 @@
 import api, { getApiErrorMessage } from "./index";
 import { SendChatMessageRequest, SendChatMessageResponse } from "@/types/IChat";
 
-/**
- * Send a chat message with story context for RAG-powered response.
- */
 export const sendChatMessage = async (
   request: SendChatMessageRequest,
 ): Promise<SendChatMessageResponse> => {
@@ -15,5 +12,16 @@ export const sendChatMessage = async (
     return response.data;
   } catch (error: unknown) {
     throw new Error(getApiErrorMessage(error, "Failed to send chat message"));
+  }
+};
+
+export const clearChatSession = async (request: {
+  storyId: string;
+  chatId: string;
+}): Promise<void> => {
+  try {
+    await api.post("/clearChatSession", request);
+  } catch (error: unknown) {
+    throw new Error(getApiErrorMessage(error, "Failed to clear chat session"));
   }
 };

@@ -57,6 +57,7 @@ export const generateStoryChoices = onRequest(
       // ── Call agent ──────────────────────────────────────────────────────────
       const agentResponse = await callAgentWithRetry("generateStoryChoices", {
         storyId,
+        userId,
         mode,
         currentContent: currentContent ?? "",
         chapterId,

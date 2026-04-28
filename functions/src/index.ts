@@ -32,6 +32,7 @@ export { generateStoryChoices } from "./generateStoryChoices";
 export { searchBooks, getBookDetails } from "./booksApi";
 export { generateCoverImage } from "./generateCoverImage";
 export { sendChatMessage } from "./sendChatMessage";
+export { clearChatSession } from "./clearChatSession";
 export { enhanceText } from "./enhanceText";
 export { enhanceWizardInput } from "./enhanceWizardInput";
 export { onInviteApproved } from "./inviteService";
