@@ -88,12 +88,20 @@ const Navbar = () => {
                   />
                 </div>
               ) : (
-                <Link
-                  to="/sign-in"
-                  className="px-5 py-2 bg-ns-accent hover:bg-ns-accent-hover text-white font-ui font-semibold rounded-full transition-all duration-300 hover:scale-105 shadow-ns-sm hover:shadow-ns text-sm"
-                >
-                  Sign In
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/try"
+                    className="px-4 py-2 border border-ns-border hover:border-ns-border-strong text-ns-ink-secondary hover:text-ns-ink font-ui text-sm rounded-full transition-all duration-200"
+                  >
+                    Try Editor
+                  </Link>
+                  <Link
+                    to="/sign-in"
+                    className="px-5 py-2 bg-ns-accent hover:bg-ns-accent-hover text-white font-ui font-semibold rounded-full transition-all duration-300 hover:scale-105 shadow-ns-sm hover:shadow-ns text-sm"
+                  >
+                    Sign In
+                  </Link>
+                </div>
               )}
             </div>
 

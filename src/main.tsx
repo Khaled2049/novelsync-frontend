@@ -38,6 +38,8 @@ const Competitions = lazy(() => import("./components/explore/Competitions"));
 
 const Announcements = lazy(() => import("./components/explore/Announcements"));
 const HelpSupport = lazy(() => import("./routes/Help/HelpSupport"));
+const DemoEditorPage = lazy(() => import("./routes/Demo/DemoEditorPage"));
+const DemoEditorIndex = lazy(() => import("./routes/Demo/DemoEditorIndex"));
 const UserProfile = lazy(() => import("./routes/Profile/UserProfile"));
 
 const LoadingFallback = () => (
@@ -286,6 +288,48 @@ const router = createBrowserRouter([
             <StoryDetail />
           </Suspense>
         ),
+      },
+      {
+        path: "/try",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <DemoEditorPage />
+          </Suspense>
+        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <DemoEditorIndex />
+              </Suspense>
+            ),
+          },
+          {
+            path: "characters",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <Characters />
+              </Suspense>
+            ),
+          },
+          {
+            path: "plot",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <Plot />
+              </Suspense>
+            ),
+          },
+          {
+            path: "places",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <Places />
+              </Suspense>
+            ),
+          },
+        ],
       },
     ],
   },

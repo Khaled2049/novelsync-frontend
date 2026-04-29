@@ -4,6 +4,7 @@ import AddCharacterModal from "@/components/story/characters/AddCharacterModal";
 import { characterService } from "@/services/CharacterService";
 import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import {
   Users,
   UserPlus,
@@ -69,6 +70,7 @@ const Field: React.FC<{
 
 const Characters: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
+  const { isDemo, requireAuth } = useDemoMode();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     null,
@@ -224,7 +226,7 @@ const Characters: React.FC = () => {
       !(draft?.relationships ?? []).some((r) => r.characterId === c.id),
   );
 
-  if (!storyId) {
+  if (!storyId && !isDemo) {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="font-ui text-sm text-ns-ink-muted">
@@ -249,7 +251,7 @@ const Characters: React.FC = () => {
           )}
         </div>
         <button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => { if (requireAuth()) setIsAddModalOpen(true); }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
           <UserPlus className="w-3.5 h-3.5" />
@@ -329,8 +331,8 @@ const Characters: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (!requireAuth()) return;
                             handleCharacterClick(c);
-                            // open in edit mode
                             setTimeout(() => {
                               setDraft({ ...c });
                               setEditing(true);
@@ -344,7 +346,7 @@ const Characters: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteCharacter(c.id);
+                            if (requireAuth()) handleDeleteCharacter(c.id);
                           }}
                           className="p-1.5 rounded text-ns-ink-muted hover:text-ns-destructive hover:bg-ns-elevated transition-all duration-150"
                           aria-label="Delete character"
@@ -507,7 +509,7 @@ const Characters: React.FC = () => {
                       </>
                     ) : (
                       <button
-                        onClick={startEditing}
+                        onClick={() => { if (requireAuth()) startEditing(); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink active:scale-[0.97] transition-all duration-150"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -717,9 +719,7 @@ const Characters: React.FC = () => {
                 {!editing && (
                   <div className="pt-2 border-t border-ns-border">
                     <button
-                      onClick={() =>
-                        handleDeleteCharacter(selectedCharacter.id)
-                      }
+                      onClick={() => { if (requireAuth()) handleDeleteCharacter(selectedCharacter.id); }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs text-ns-destructive border border-ns-destructive/20 hover:bg-ns-destructive/5 hover:border-ns-destructive/40 active:scale-[0.97] transition-all duration-150"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -736,7 +736,7 @@ const Characters: React.FC = () => {
       {/* ── Modals ── */}
       {isAddModalOpen && (
         <AddCharacterModal
-          storyId={storyId}
+          storyId={storyId ?? ""}
           onClose={() => setIsAddModalOpen(false)}
           onAddCharacter={handleAddCharacter}
         />
