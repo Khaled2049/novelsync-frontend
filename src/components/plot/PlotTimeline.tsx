@@ -45,6 +45,7 @@ import { plotService } from "@/services/PlotService";
 import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 // Helper to ensure event has all required fields with defaults
 function ensureEventDefaults(
@@ -77,6 +78,7 @@ const PlotTimeline: React.FC = () => {
   const [plotLines, setPlotLines] = useState<PlotLine[]>([]);
   const { storyId } = useParams<{ storyId: string }>();
   const { user } = useAuthContext();
+  const { requireAuth } = useDemoMode();
 
   const [templates, setTemplates] = useState<TemplateData[]>([]);
   const [isPlotLineModalOpen, setisPlotLineModalOpen] = useState(false);
@@ -339,7 +341,7 @@ const PlotTimeline: React.FC = () => {
         <div className="w-px h-5 bg-ns-border hidden sm:block" />
 
         <button
-          onClick={addPlotLine}
+          onClick={() => { if (requireAuth()) addPlotLine(); }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
           <PlusCircle className="w-3.5 h-3.5" />
@@ -436,7 +438,7 @@ const PlotTimeline: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
-                        onClick={() => addEvent(plotLine.id)}
+                        onClick={() => { if (requireAuth()) addEvent(plotLine.id); }}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ns bg-white/20 hover:bg-white/30 font-ui text-xs transition-colors"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
@@ -609,7 +611,7 @@ const PlotTimeline: React.FC = () => {
                     </p>
                   </div>
                   <button
-                    onClick={addPlotLine}
+                    onClick={() => { if (requireAuth()) addPlotLine(); }}
                     className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 shadow-ns-sm"
                   >
                     <PlusCircle className="w-4 h-4" />

@@ -171,12 +171,21 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               </button>
             </>
           ) : (
-            <button
-              onClick={handleSignIn}
-              className="w-full px-4 py-3 bg-ns-accent hover:bg-ns-accent-hover text-white font-semibold font-ui rounded-ns transition-colors"
-            >
-              Sign In
-            </button>
+            <div className="space-y-2">
+              <Link
+                to="/try"
+                onClick={onClose}
+                className="block w-full px-4 py-3 border border-ns-border hover:border-ns-border-strong text-ns-ink text-center font-ui rounded-ns transition-colors"
+              >
+                Try Editor
+              </Link>
+              <button
+                onClick={handleSignIn}
+                className="w-full px-4 py-3 bg-ns-accent hover:bg-ns-accent-hover text-white font-semibold font-ui rounded-ns transition-colors"
+              >
+                Sign In
+              </button>
+            </div>
           )}
         </div>
       </div>

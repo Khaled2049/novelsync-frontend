@@ -30,8 +30,9 @@ import {
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { storiesRepo } from "../../services/StoriesRepo";
-import { Chapter } from "@/types/IStory";
+import { Chapter, Story } from "@/types/IStory";
 
 // Import components
 import { SidebarPanel } from "@/components/layout/SidebarPanel";
@@ -50,8 +51,32 @@ import { FloatingChatButton } from "../chat/FloatingChatButton";
 import { useCoWrite } from "@/hooks/useCoWrite";
 import { InteractiveStoryPanel } from "@/components/editor/InteractiveStoryPanel";
 
+const DEMO_STORY: Story = {
+  id: "demo",
+  title: "My Story",
+  description: "",
+  userId: "",
+  isPublished: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  chapterCount: 1,
+  author: "You",
+  views: 0,
+  likes: 0,
+};
+
+const DEMO_CHAPTER: Chapter = {
+  id: "demo-chapter",
+  title: "Chapter 1",
+  content: "<p>Start writing your story here…</p>",
+  order: 0,
+  wordCount: 0,
+  userId: "",
+};
+
 export function SimpleEditor() {
   const navigate = useNavigate();
+  const { isDemo, requireAuth } = useDemoMode();
   const { storyId } = useParams<{ storyId: string }>();
   const [searchParams] = useSearchParams();
   const openInteractivePanelOnMount = searchParams.get("wizard") === "true";
@@ -100,6 +125,7 @@ export function SimpleEditor() {
   // Save function that will be passed to useAutosave
   const performSave = useCallback(
     async (content: string) => {
+      if (isDemo) return;
       if (!state.story) {
         throw new Error("No story selected");
       }
@@ -168,13 +194,18 @@ export function SimpleEditor() {
 
   // Load story on component mount
   useEffect(() => {
+    if (isDemo) {
+      actions.loadStory(DEMO_STORY, [DEMO_CHAPTER], DEMO_CHAPTER);
+      return;
+    }
     if (storyId) {
       loadStory(storyId);
     }
-  }, [storyId, user, loadStory]);
+  }, [storyId, user, loadStory, isDemo, actions]);
 
   // Handle new chapter creation
   const handleNewChapter = async () => {
+    if (!requireAuth()) return;
     if (!state.story) return;
 
     // Save current content first if dirty
@@ -198,6 +229,7 @@ export function SimpleEditor() {
 
   // Handle publishing
   const handlePublish = async () => {
+    if (!requireAuth()) return;
     if (!state.story) return;
 
     // Save before publishing if dirty
@@ -266,7 +298,7 @@ export function SimpleEditor() {
 
   // Confirm chapter deletion
   const confirmChapterDelete = async () => {
-    if (!state.story || !chapterToDelete) return;
+    if (isDemo || !state.story || !chapterToDelete) return;
 
     try {
       await storiesRepo.deleteChapter(state.story.id, chapterToDelete);
@@ -430,7 +462,9 @@ export function SimpleEditor() {
                   {/* Left: Co-Write + New Chapter + Save */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={openCoWrite}
+                      onClick={() => {
+                        if (requireAuth()) openCoWrite();
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
@@ -954,8 +988,7 @@ export function SimpleEditor() {
             </div>
           </div>
 
-          {/* ── AI Chat FAB (fixed, floating) ── */}
-          <FloatingChatButton storyId={state.story?.id} />
+          {!isDemo && <FloatingChatButton storyId={state.story?.id} />}
 
           {/* ── Delete Chapter Dialog ── */}
           <ConfirmDialog
