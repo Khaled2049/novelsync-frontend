@@ -26,6 +26,7 @@ import {
   Dropcursor,
   TrailingNode,
 } from "@tiptap/extensions";
+import { Markdown } from "@tiptap/markdown";
 import Placeholder from "@tiptap/extension-placeholder";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
@@ -64,8 +65,20 @@ import {
   countEditorImages,
   validateImageFile,
 } from "@/hooks/useImageGeneration";
+import { MarkdownHeadingInputRule } from "@/components/editor/markdownHeadingInputRule";
+import Code from "@tiptap/extension-code";
+import { CodeBlockExtension } from "@/components/editor/CodeBlockExtension";
+import {
+  TaskListExtension,
+  TaskItemExtension,
+} from "@/components/editor/TaskListExtensions";
 
 const limit = 50000;
+const HeadingWithoutInputRules = Heading.extend({
+  addInputRules() {
+    return [];
+  },
+});
 
 interface TipTapEditorProps {
   initialContent: string;
@@ -289,13 +302,15 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       ParagraphStyleExtension,
       SlashCommandsExtension,
       CharacterCount.configure({ limit }),
-      Heading.configure({
-        levels: [1, 2],
+      HeadingWithoutInputRules.configure({
+        levels: [1, 2, 3],
         HTMLAttributes: {
           "1": { class: "text-3xl font-bold mb-4" },
           "2": { class: "text-2xl font-semibold mb-3" },
+          "3": { class: "text-xl font-semibold mb-2" },
         },
       }),
+      MarkdownHeadingInputRule,
       Placeholder.configure({
         placeholder:
           "Write something already ya silly goose… or type / for commands",
@@ -306,6 +321,11 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       HorizontalRule,
       Link.configure({ openOnClick: false }),
       ListItem,
+      Code,
+      CodeBlockExtension,
+      TaskListExtension,
+      TaskItemExtension,
+      Markdown,
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {

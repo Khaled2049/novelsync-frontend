@@ -128,6 +128,22 @@ export const slashCommandSuggestion = (
           editor.chain().focus().deleteRange(range).toggleBulletList().run();
         },
       },
+      {
+        title: "Code Block",
+        description: "Insert a code block with syntax highlighting",
+        icon: "</>",
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+        },
+      },
+      {
+        title: "Task List",
+        description: "Create a checklist with checkboxes",
+        icon: "☑",
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).toggleTaskList().run();
+        },
+      },
     ];
 
     return commands.filter((command) =>
