@@ -10,7 +10,11 @@
  */
 
 // Production origins
-const productionOrigins = ["https://story-6f89f.web.app"];
+const productionOrigins = [
+  "https://story-6f89f.web.app",
+  "https://thetaletribe.com",
+  "https://www.thetaletribe.com",
+];
 
 // Development origins (localhost for local development)
 const developmentOrigins = ["http://localhost:5173", "http://localhost:3000"];
