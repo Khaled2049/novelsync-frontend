@@ -29,7 +29,6 @@ import { characterService } from "@/services/CharacterService";
 import { placeService } from "@/services/PlaceService";
 import { plotService } from "@/services/PlotService";
 import { DEFAULT_PLOT_EVENT_VALUES, StoryBeatType } from "@/types/IPlot";
-import { useAiUsage } from "@/contexts/AiUsageContext";
 import {
   enhanceWizardInput,
   WizardEnhanceType,
@@ -102,8 +101,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { canUseAI, getRemainingAiUsage } = useAiUsage();
-
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBlueprintLoading, setIsBlueprintLoading] = useState(false);
@@ -140,12 +137,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     data: Record<string, unknown>,
     onResult: (result: string) => void,
   ) => {
-    if (!canUseAI()) {
-      toast.error(
-        `Daily AI limit reached (${getRemainingAiUsage()} remaining). Resets at midnight UTC.`,
-      );
-      return;
-    }
     setEnhancing(key);
     try {
       const res = await enhanceWizardInput({ type, data });
@@ -165,14 +156,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   // ── Blueprint generation ──────────────────────────────────────────────────
 
   const generateBlueprint = useCallback(async () => {
-    if (!canUseAI()) {
-      setIsBlueprintLoading(false);
-      setBlueprintError(
-        "No AI uses remaining today. Resets at midnight UTC.",
-      );
-      return;
-    }
-
     if (blueprintData) {
       setPreviousBlueprintData(blueprintData);
     }
@@ -232,7 +215,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     conflict,
     events,
     blueprintData,
-    canUseAI,
   ]);
 
   useEffect(() => {
@@ -464,20 +446,14 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     disabled?: boolean;
   }) => {
     const isActive = enhancing === enhanceKey;
-    const isDisabled =
-      extraDisabled || (enhancing !== null && !isActive) || !canUseAI();
-    const remaining = getRemainingAiUsage();
+    const isDisabled = extraDisabled || (enhancing !== null && !isActive);
 
     return (
       <button
         type="button"
         onClick={() => handleEnhance(enhanceKey, type, data, onResult)}
         disabled={isActive || isDisabled}
-        className={`inline-flex items-center gap-1.5 text-xs font-ui transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-          remaining <= 2 && remaining > 0
-            ? "text-orange-500 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
-            : "text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
-        }`}
+        className="inline-flex items-center gap-1.5 text-xs font-ui transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
       >
         {isActive ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -486,25 +462,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         )}
         {isActive ? "Enhancing…" : label}
       </button>
-    );
-  };
-
-  // ── Quota badge ───────────────────────────────────────────────────────────
-
-  const QuotaBadge = () => {
-    const remaining = getRemainingAiUsage();
-    return (
-      <span
-        className={`text-xs font-ui ${
-          remaining === 0
-            ? "text-ns-destructive"
-            : remaining <= 2
-              ? "text-orange-500 dark:text-orange-400"
-              : "text-ns-ink-muted"
-        }`}
-      >
-        {remaining}/{10} AI uses today
-      </span>
     );
   };
 
@@ -930,7 +887,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
       <button
         type="button"
         onClick={generateBlueprint}
-        disabled={isBlueprintLoading || enhancing !== null || !canUseAI()}
+        disabled={isBlueprintLoading || enhancing !== null}
         className="inline-flex items-center gap-1 text-xs font-ui text-purple-500 hover:text-purple-700 dark:hover:text-purple-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {isBlueprintLoading ? (
@@ -985,7 +942,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               <button
                 type="button"
                 onClick={generateBlueprint}
-                disabled={isBlueprintLoading || !canUseAI()}
+                disabled={isBlueprintLoading}
                 className="inline-flex items-center gap-1.5 text-xs font-ui text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1326,8 +1283,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           >
             Cancel
           </Button>
-          {/* Quota badge — visible on steps with AI buttons */}
-          {step < 4 && <QuotaBadge />}
         </div>
 
         <div className="flex gap-3">

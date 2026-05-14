@@ -12,7 +12,6 @@ export interface IUser extends FirebaseUser {
   occupation: string;
   bio: string;
   location: string;
-  aiUsage: number;
-  lastAiUsageDate: string;
   walletAddress?: string;
+  hasCustomAiProvider?: boolean;
 }

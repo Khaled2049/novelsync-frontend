@@ -6,6 +6,7 @@ import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { createJob, updateJobStatus } from "./jobService";
 import { callAgentWithRetry } from "./agentService";
+import { checkAiAccess, ProviderConfig } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 const db = admin.firestore();
@@ -17,6 +18,8 @@ export const generateStory = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
+      const access = await checkAiAccess(userId);
+
       const { genre, tone, length } = request.body;
 
       // Create job
@@ -26,8 +29,9 @@ export const generateStory = onRequest(
         length,
       });
 
+      const providerConfig = access.providerConfig ?? undefined;
       // Start processing asynchronously (don't await)
-      processStoryGeneration(jobId, storyId, { genre, tone, length }).catch(
+      processStoryGeneration(jobId, storyId, { genre, tone, length }, userId, providerConfig).catch(
         (error) => {
           logger.error(
             `Error in background story generation for job ${jobId}`,
@@ -57,7 +61,9 @@ export const generateStory = onRequest(
 async function processStoryGeneration(
   jobId: string,
   storyId: string,
-  options: { genre?: string; tone?: string; length?: string }
+  options: { genre?: string; tone?: string; length?: string },
+  userId?: string,
+  providerConfig?: ProviderConfig,
 ): Promise<void> {
   try {
     await updateJobStatus(db, jobId, "processing", 0);
@@ -68,7 +74,7 @@ async function processStoryGeneration(
       genre: options.genre,
       tone: options.tone,
       length: options.length,
-    });
+    }, 3, 1000, userId, providerConfig);
 
     if (!agentResponse.success || !agentResponse.data) {
       throw new Error(agentResponse.error || "Agent generation failed");

@@ -2,22 +2,14 @@ import { onRequest } from "firebase-functions/v2/https";
 import { callAgentWithRetry } from "./agentService";
 import { requireStoryOwnership } from "./authService";
 import * as logger from "firebase-functions/logger";
-import { checkAndIncrementAiUsage } from "./aiUsageService";
+import { checkAiAccess } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 export const generateNextLines = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
-      // Check and increment AI usage
-      const usageCheck = await checkAndIncrementAiUsage(userId);
-      if (!usageCheck.allowed) {
-        response.status(429).json({
-          error: "Daily AI usage limit reached. Please try again tomorrow.",
-          details: `You have used ${usageCheck.currentUsage} out of 10 daily AI uses.`,
-        });
-        return;
-      }
+      const access = await checkAiAccess(userId);
 
       const { content, cursorPosition, chapterId } = request.body;
 
@@ -41,12 +33,12 @@ export const generateNextLines = onRequest(
         storyId,
         content,
         cursorPosition,
-        chapterId, // Optional: helps identify which chapter for better context
-      });
+        chapterId,
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to generate next lines",
+          error: agentResponse.error || "Failed to generate next lines",
           details: agentResponse.error,
         });
         return;

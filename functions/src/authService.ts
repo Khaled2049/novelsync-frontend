@@ -58,6 +58,11 @@ export function requireAuth(
   ) => Promise<void>
 ) {
   return async (request: Request, response: Response): Promise<void> => {
+    if (request.method === "OPTIONS") {
+      response.status(204).send("");
+      return;
+    }
+
     const userId = await verifyAuth(request);
 
     if (!userId) {
@@ -81,6 +86,11 @@ export function requireStoryOwnership(
   ) => Promise<void>
 ) {
   return async (request: Request, response: Response): Promise<void> => {
+    if (request.method === "OPTIONS") {
+      response.status(204).send("");
+      return;
+    }
+
     const userId = await verifyAuth(request);
 
     if (!userId) {

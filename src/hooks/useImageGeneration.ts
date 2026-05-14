@@ -32,16 +32,12 @@ interface UploadContext {
 interface UseImageGenerationParams {
   editorRef: React.RefObject<Editor | null>;
   uploadContextRef: React.RefObject<UploadContext>;
-  canUseAI: () => boolean;
-  incrementAiUsage: () => Promise<void>;
   onError: (msg: string) => void;
 }
 
 export function useImageGeneration({
   editorRef,
   uploadContextRef,
-  canUseAI,
-  incrementAiUsage,
   onError,
 }: UseImageGenerationParams) {
   const [imagePromptOpen, setImagePromptOpen] = useState(false);
@@ -61,11 +57,6 @@ export function useImageGeneration({
       onError(`Maximum ${MAX_CHAPTER_IMAGES} images per chapter.`);
       return;
     }
-    if (!canUseAI()) {
-      onError("Daily AI usage limit reached. Please try again tomorrow.");
-      return;
-    }
-
     setIsGeneratingImage(true);
     try {
       const { file } = await generateCover(imagePrompt.trim());
@@ -80,7 +71,6 @@ export function useImageGeneration({
         sid,
         cid ?? "",
       );
-      await incrementAiUsage();
       editorInstance.chain().focus().setImage({ src: url }).run();
       setImagePromptOpen(false);
       setImagePrompt("");
@@ -90,14 +80,7 @@ export function useImageGeneration({
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [
-    imagePrompt,
-    canUseAI,
-    incrementAiUsage,
-    editorRef,
-    uploadContextRef,
-    onError,
-  ]);
+  }, [imagePrompt, editorRef, uploadContextRef, onError]);
 
   return {
     imagePromptOpen,

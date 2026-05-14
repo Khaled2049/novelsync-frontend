@@ -3,7 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { callAgentWithRetry } from "./agentService";
 import { requireStoryOwnership } from "./authService";
 import * as logger from "firebase-functions/logger";
-import { checkAndIncrementAiUsage } from "./aiUsageService";
+import { checkAiAccess } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 const VALID_MODES = ["opening", "continuation", "ending"] as const;
@@ -29,16 +29,8 @@ export const generateStoryChoices = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
-      // ── Quota check ─────────────────────────────────────────────────────────
-      const usageCheck = await checkAndIncrementAiUsage(userId);
-      if (!usageCheck.allowed) {
-        response.status(429).json({
-          error: "Daily AI usage limit reached. Please try again tomorrow.",
-          details: `You have used ${usageCheck.currentUsage} out of 10 daily AI uses.`,
-        });
-        return;
-      }
-
+      // ── Quota check (bypassed for BYOK users) ─────────────────────────────
+      const access = await checkAiAccess(userId);
       // ── Validate request ────────────────────────────────────────────────────
       const { mode, currentContent, chapterId, turnCount } = request.body as {
         mode?: string;
@@ -62,11 +54,11 @@ export const generateStoryChoices = onRequest(
         currentContent: currentContent ?? "",
         chapterId,
         turnCount: turnCount ?? 0,
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to generate story choices",
+          error: agentResponse.error || "Failed to generate story choices",
           details: agentResponse.error,
         });
         return;

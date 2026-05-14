@@ -40,7 +40,6 @@ import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
-import { useAiUsage } from "@/contexts/AiUsageContext";
 import {
   ImageIcon,
   Loader,
@@ -118,8 +117,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   uploadContextRef.current = { userId, storyId, chapterId };
   onContentChangeRef.current = onContentChange;
 
-  const { incrementAiUsage, canUseAI } = useAiUsage();
-
   // Timed error banner shared by all AI features and the paste plugin
   const [editorError, setEditorError] = useState("");
   const showError = useCallback((msg: string) => {
@@ -139,14 +136,12 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     isGenerating,
     fetchNextLineSuggestions,
     generateChapter,
-  } = useAiSuggestions({ storyId, chapterId, canUseAI, incrementAiUsage });
+  } = useAiSuggestions({ storyId, chapterId });
 
   const { isEnhancing, handleTextEnhancement } = useTextEnhancement({
     editor: editorRef.current,
     storyId,
     chapterId,
-    canUseAI,
-    incrementAiUsage,
     onError: showError,
   });
 
@@ -161,8 +156,6 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   } = useImageGeneration({
     editorRef,
     uploadContextRef,
-    canUseAI,
-    incrementAiUsage,
     onError: showError,
   });
 

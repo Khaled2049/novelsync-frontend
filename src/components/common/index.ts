@@ -6,4 +6,3 @@ export { ThemeToaster } from "./ThemeToaster";
 export * as Icons from "./Icons";
 export { default as SignInPrompt } from "./SignInPrompt";
 export { default as BookSearch } from "./BookSearch";
-export { AIUsageProgressBar } from "./AIUsageProgressBar";

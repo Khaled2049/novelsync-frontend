@@ -36,18 +36,18 @@ if (
       console.log("🔧 Connecting to Firebase Emulators...");
 
       // Connect Firestore emulator (configured in firebase.json)
-      connectFirestoreEmulator(firestore, "localhost", 8080);
+      connectFirestoreEmulator(firestore, "127.0.0.1", 8080);
 
       // Connect Functions emulator (configured in firebase.json)
-      connectFunctionsEmulator(functions, "localhost", 5001);
+      connectFunctionsEmulator(functions, "127.0.0.1", 5001);
 
       // Connect Auth emulator (configured in firebase.json)
-      connectAuthEmulator(auth, "http://localhost:9099", {
+      connectAuthEmulator(auth, "http://127.0.0.1:9099", {
         disableWarnings: true,
       });
 
       // Connect Storage emulator (configured in firebase.json)
-      connectStorageEmulator(storage, "localhost", 9199);
+      connectStorageEmulator(storage, "127.0.0.1", 9199);
 
       (window as any).__FIREBASE_EMULATORS_CONNECTED__ = true;
       console.log("✅ Firebase Emulators connected successfully");

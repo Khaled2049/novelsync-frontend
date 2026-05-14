@@ -2,6 +2,7 @@
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 import { GoogleAuth } from "google-auth-library";
+import { ProviderConfig } from "./aiSettings";
 
 const agentServiceUrlParam = defineString("AGENT_SERVICE_URL", {
   default: "http://localhost:8000",
@@ -11,6 +12,8 @@ const agentServiceUrlParam = defineString("AGENT_SERVICE_URL", {
 export interface AgentRequest {
   action: string;
   parameters: Record<string, unknown>;
+  user_id?: string;
+  provider_config?: ProviderConfig;
 }
 
 export interface AgentResponse {
@@ -73,14 +76,23 @@ async function getIdentityToken(): Promise<string | null> {
 export async function callAgent(
   action: string,
   parameters: Record<string, unknown>,
+  userId?: string,
+  providerConfig?: ProviderConfig,
 ): Promise<AgentResponse> {
   const agentUrl = getAgentServiceUrl();
-  const request: AgentRequest = { action, parameters };
+  const request: AgentRequest = {
+    action,
+    parameters,
+    ...(userId && { user_id: userId }),
+    ...(providerConfig && { provider_config: providerConfig }),
+  };
 
   try {
     logger.info(`Calling agent service: ${action}`, {
       url: `${agentUrl}/agent/execute`,
       parameters: Object.keys(parameters),
+      ai_mode: providerConfig ? `BYOK/${providerConfig.provider}` : "platform",
+      model: providerConfig?.model ?? "platform-default",
     });
 
     const identityToken = await getIdentityToken();
@@ -145,9 +157,11 @@ export async function callAgent(
     };
   } catch (error) {
     if (error instanceof FetchError) {
-      const errorMessage = error.response?.data
-        ? JSON.stringify(error.response.data)
-        : error.message;
+      const agentError = (error.response?.data as any)?.error;
+      const friendlyMessage = (typeof agentError === "object" && agentError?.message)
+        ? agentError.message
+        : (typeof agentError === "string" ? agentError : null);
+      const errorMessage = friendlyMessage ?? error.message;
 
       const errorDetails = {
         code: error.code,
@@ -190,7 +204,7 @@ export async function callAgent(
 
       return {
         success: false,
-        error: `${errorMessage}${
+        error: friendlyMessage ?? `${errorMessage}${
           error.code ? ` (${error.code})` : ""
         }${
           error.response?.status
@@ -244,9 +258,11 @@ export async function callAgentWithRetry(
   parameters: Record<string, unknown>,
   maxRetries = 3,
   retryDelay = 1000,
+  userId?: string,
+  providerConfig?: ProviderConfig,
 ): Promise<AgentResponse> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const result = await callAgent(action, parameters);
+    const result = await callAgent(action, parameters, userId, providerConfig);
 
     // If successful, return immediately
     if (result.success) {
@@ -255,6 +271,12 @@ export async function callAgentWithRetry(
 
     // If we are on the last attempt, return the error
     if (attempt === maxRetries) {
+      return result;
+    }
+
+    // Don't retry non-transient errors (credits, auth)
+    const errMsg = result.error || "";
+    if (errMsg.includes("Insufficient AI credits") || errMsg.includes("[HTTP 402]") || errMsg.includes("[HTTP 401]")) {
       return result;
     }
 

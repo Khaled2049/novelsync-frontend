@@ -62,11 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             bio: userData.bio,
             occupation: userData.occupation,
             location: userData.location,
-            aiUsage: userData.aiUsage || 0,
-            lastAiUsageDate:
-              userData.lastAiUsageDate ||
-              new Date().toISOString().split("T")[0],
             walletAddress: userData.walletAddress,
+            hasCustomAiProvider: userData.hasCustomAiProvider === true,
           };
           setUser(newUser);
         } else {
@@ -83,8 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             bio: "Write an about me section here...",
             occupation: "Occupation",
             location: "Location",
-            aiUsage: 0,
-            lastAiUsageDate: new Date().toISOString().split("T")[0],
             walletAddress: undefined,
           };
           setUser(newUser);

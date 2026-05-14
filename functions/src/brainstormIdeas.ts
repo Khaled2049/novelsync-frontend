@@ -3,7 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAndIncrementAiUsage } from "./aiUsageService";
+import { checkAiAccess } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 /**
@@ -13,15 +13,7 @@ export const brainstormIdeas = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
-      // Check and increment AI usage
-      const usageCheck = await checkAndIncrementAiUsage(userId);
-      if (!usageCheck.allowed) {
-        response.status(429).json({
-          error: "Daily AI usage limit reached. Please try again tomorrow.",
-          details: `You have used ${usageCheck.currentUsage} out of 10 daily AI uses.`,
-        });
-        return;
-      }
+      const access = await checkAiAccess(userId);
 
       const { type, prompt, count } = request.body;
 
@@ -49,11 +41,11 @@ export const brainstormIdeas = onRequest(
         type,
         prompt,
         count: ideaCount,
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to generate ideas",
+          error: agentResponse.error || "Failed to generate ideas",
           details: agentResponse.error,
         });
         return;
@@ -77,6 +69,7 @@ export const brainstormCharacter = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
+      const access = await checkAiAccess(userId);
       const { role, archetype } = request.body;
 
       // Call agent synchronously
@@ -84,11 +77,11 @@ export const brainstormCharacter = onRequest(
         storyId,
         role,
         archetype,
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to generate character ideas",
+          error: agentResponse.error || "Failed to generate character ideas",
           details: agentResponse.error,
         });
         return;
@@ -114,6 +107,7 @@ export const brainstormPlot = onRequest(
     try {
       const { plotType } = request.body;
 
+      const access = await checkAiAccess(userId);
       const validPlotTypes = ["conflict", "twist", "subplot", "development"];
       const finalPlotType =
         plotType && validPlotTypes.includes(plotType) ? plotType : "conflict";
@@ -122,11 +116,11 @@ export const brainstormPlot = onRequest(
       const agentResponse = await callAgentWithRetry("brainstormPlot", {
         storyId,
         plotType: finalPlotType,
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to generate plot ideas",
+          error: agentResponse.error || "Failed to generate plot ideas",
           details: agentResponse.error,
         });
         return;

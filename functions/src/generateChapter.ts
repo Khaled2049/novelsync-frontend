@@ -7,6 +7,7 @@ import { requireStoryOwnership } from "./authService";
 import { createJob, updateJobStatus } from "./jobService";
 import { callAgentWithRetry } from "./agentService";
 import { getStoryContext } from "./contextService";
+import { checkAiAccess, ProviderConfig } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 const db = admin.firestore();
@@ -18,6 +19,8 @@ export const generateChapter = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
+      const access = await checkAiAccess(userId);
+
       const { chapterNumber } = request.body;
 
       if (!chapterNumber || typeof chapterNumber !== "number") {
@@ -32,8 +35,9 @@ export const generateChapter = onRequest(
         chapterNumber,
       });
 
+      const providerConfig = access.providerConfig ?? undefined;
       // Start processing asynchronously
-      processChapterGeneration(jobId, storyId, chapterNumber).catch((error) => {
+      processChapterGeneration(jobId, storyId, chapterNumber, userId, providerConfig).catch((error) => {
         logger.error(
           `Error in background chapter generation for job ${jobId}`,
           error,
@@ -62,6 +66,8 @@ async function processChapterGeneration(
   jobId: string,
   storyId: string,
   chapterNumber: number,
+  userId?: string,
+  providerConfig?: ProviderConfig,
 ): Promise<void> {
   try {
     await updateJobStatus(db, jobId, "processing", 0);
@@ -83,7 +89,7 @@ async function processChapterGeneration(
       storyId,
       chapterNumber,
       previousChapters,
-    });
+    }, 3, 1000, userId, providerConfig);
 
     if (!agentResponse.success || !agentResponse.data) {
       throw new Error(agentResponse.error || "Agent generation failed");

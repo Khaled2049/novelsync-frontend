@@ -41,8 +41,6 @@ export const useFirebaseAuth = () => {
       savedPosts: [],
       lastLogin: new Date().toISOString(),
       isAnonymous: userData.isAnonymous || false,
-      aiUsage: 0,
-      lastAiUsageDate: new Date().toISOString().split("T")[0],
       bio: "Write an about me section here...",
       occupation: "Occupation",
       location: "Location",

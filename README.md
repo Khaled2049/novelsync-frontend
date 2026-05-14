@@ -11,6 +11,7 @@ This repo contains the main user-facing NovelSync product. It covers the writing
 - Rich text story editor for long-form writing
 - Story, chapter, character, place, and plot management
 - AI-powered brainstorming, enhancement, and chat workflows
+- **BYOK (Bring Your Own Key)** — users supply their own Gemini, Claude, or OpenAI key via Profile → AI Provider; platform quota is bypassed and keys are encrypted at rest with AES-256-GCM
 - Community features such as discovery, profiles, and engagement surfaces
 - Wallet connection and on-chain author tipping
 - Firebase Auth, Firestore, Storage, and Cloud Functions integration

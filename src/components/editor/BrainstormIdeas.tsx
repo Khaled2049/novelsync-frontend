@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { Loader, Lightbulb } from "lucide-react";
 import { brainstormIdeas, BrainstormIdeasRequest } from "@/api/ai";
-import { useAiUsage } from "@/contexts/AiUsageContext";
 
 interface BrainstormIdeasProps {
   storyId: string | null;
 }
 
 export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
-  const { canUseAI, incrementAiUsage } = useAiUsage();
   const [brainstormType, setBrainstormType] = useState<
     "characters" | "plots" | "places" | "themes"
   >("characters");
@@ -19,14 +17,6 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
   const handleBrainstormIdeas = async () => {
     if (!storyId) {
       setBrainstormError("No story selected");
-      return;
-    }
-
-    // Check if user can use AI
-    if (!canUseAI()) {
-      setBrainstormError(
-        "Daily AI usage limit reached. Please try again tomorrow.",
-      );
       return;
     }
 
@@ -44,24 +34,12 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
       const response = await brainstormIdeas(request);
 
       setBrainstormResults(response.data.ideas.map((idea) => idea.text));
-
-      // Increment usage after successful API call
-      incrementAiUsage().catch((error) => {
-        console.error("Error incrementing AI usage:", error);
-      });
     } catch (error) {
       console.error("Error generating brainstorm ideas:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to generate ideas";
 
-      // Check if error is about usage limit
-      if (errorMessage.includes("limit") || errorMessage.includes("usage")) {
-        setBrainstormError(
-          "Daily AI usage limit reached. Please try again tomorrow.",
-        );
-      } else {
-        setBrainstormError(errorMessage);
-      }
+      setBrainstormError(errorMessage);
     } finally {
       setBrainstormLoading(false);
     }
@@ -100,7 +78,7 @@ export function BrainstormIdeas({ storyId }: BrainstormIdeasProps) {
 
         <button
           onClick={handleBrainstormIdeas}
-          disabled={brainstormLoading || !storyId || !canUseAI()}
+          disabled={brainstormLoading || !storyId}
           className="w-full px-4 py-2 bg-dark-green dark:bg-light-green text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 text-sm font-medium"
         >
           {brainstormLoading ? (

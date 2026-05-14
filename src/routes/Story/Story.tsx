@@ -1,4 +1,3 @@
-import { AIUsageProgressBar } from "@/components/common/AIUsageProgressBar";
 import { Outlet, NavLink } from "react-router-dom";
 import { BookOpen, Layers, Users, MapPin } from "lucide-react";
 
@@ -33,12 +32,10 @@ const Story = () => {
         ))}
       </nav>
 
-      {/* ── Main Content + AI Usage Bar ── */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <main className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0">
+        <main className="h-full overflow-hidden">
           <Outlet />
         </main>
-        <AIUsageProgressBar />
       </div>
     </div>
   );

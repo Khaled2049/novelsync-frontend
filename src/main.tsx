@@ -6,7 +6,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { AiUsageProvider } from "./contexts/AiUsageContext";
 import { Web3Provider } from "./contexts/Web3Provider";
 import { ThemeToaster } from "./components/common/ThemeToaster";
 import { SEOProvider } from "./contexts/HelmetProvider";
@@ -340,12 +339,10 @@ createRoot(document.getElementById("root")!).render(
     <Web3Provider>
       <ThemeProvider>
         <AuthProvider>
-          <AiUsageProvider>
-            <ChatProvider>
-              <RouterProvider router={router} />
-              <ThemeToaster />
-            </ChatProvider>
-          </AiUsageProvider>
+          <ChatProvider>
+            <RouterProvider router={router} />
+            <ThemeToaster />
+          </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </Web3Provider>

@@ -3,7 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { requireAuth } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAndIncrementAiUsage } from "./aiUsageService";
+import { checkAiAccess } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
 const VALID_TYPES = ["premise", "character", "place", "conflict", "blueprint"] as const;
@@ -20,16 +20,8 @@ export const enhanceWizardInput = onRequest(
   corsOptions,
   requireAuth(async (request, response, userId) => {
     try {
-      // ── Quota check ────────────────────────────────────────────────────────
-      const usageCheck = await checkAndIncrementAiUsage(userId);
-      if (!usageCheck.allowed) {
-        response.status(429).json({
-          error: "Daily AI usage limit reached. Please try again tomorrow.",
-          details: `You have used ${usageCheck.currentUsage} out of 10 daily AI uses.`,
-        });
-        return;
-      }
-
+      // ── Quota check (bypassed for BYOK users) ─────────────────────────────
+      const access = await checkAiAccess(userId);
       // ── Validate request ───────────────────────────────────────────────────
       const { type, data } = request.body as {
         type?: string;
@@ -53,11 +45,11 @@ export const enhanceWizardInput = onRequest(
         type,
         data,
         userId,
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
-          error: "Failed to enhance input",
+          error: agentResponse.error || "Failed to enhance input",
           details: agentResponse.error,
         });
         return;

@@ -21,7 +21,22 @@ All agent calls go to a single endpoint:
 | `POST` | `/agent/execute` | Run an agent action |
 | `GET` | `/health` | Health check |
 
-Request shape: `{ "action": "<ActionName>", "parameters": { … } }`.
+Request shape:
+```json
+{
+  "action": "<ActionName>",
+  "parameters": { … },
+  "user_id": "firebase-uid",
+  "provider_config": {
+    "provider": "claude",
+    "api_key": "sk-ant-...",
+    "model": "claude-sonnet-4-6"
+  }
+}
+```
+
+`user_id` and `provider_config` are optional. When `provider_config` is present, the agent uses the user's own API key via creditProxy instead of the platform key.
+
 Response shape: `{ "success": true/false, "data": …, "error": { "code", "message" } }`.
 
 `callAgent` enforces a **300-second (5 min) abort timeout**. `callAgentWithRetry` wraps it with **3 attempts and exponential backoff** (1 s → 2 s → 4 s).
@@ -47,16 +62,20 @@ Response shape: `{ "success": true/false, "data": …, "error": { "code", "messa
 
 1. `USE_MOCK=true` → **MockProvider** (hardcoded responses, no API calls)
 2. `USE_OLLAMA=true` → **OllamaProvider** (local LLM)
-3. `GOOGLE_AI_STUDIO_API_KEY` set → **GoogleAIStudioProvider** (Gemini via REST)
-4. *(fallback)* → **OllamaProvider** with defaults
+3. `CREDIT_PROXY_URL` set → **CreditProxyProvider** (routes all LLM calls through creditProxy gateway; supports per-request BYOK)
+4. `GOOGLE_AI_STUDIO_API_KEY` set → **GoogleAIStudioProvider** (Gemini via REST, direct)
+5. *(fallback)* → **OllamaProvider** with defaults
+
+`CreditProxyProvider` is the production default. It reads per-request BYOK config from an async-safe Python `ContextVar` (`_byok_config`) that `server.py` sets before each agent call. This means no tool files need changing — the provider swap is transparent.
 
 | Variable | Role |
 |----------|------|
+| `CREDIT_PROXY_URL` | creditProxy gateway URL (e.g. `http://localhost:8080`). When set, all LLM calls route through creditProxy. |
 | `USE_MOCK` | If `true`, use mock provider (no real AI calls — for testing). |
-| `USE_OLLAMA` | If `true`, use Ollama instead of Google AI Studio. |
+| `USE_OLLAMA` | If `true`, use Ollama instead of creditProxy / Google AI Studio. |
 | `OLLAMA_BASE_URL` | Ollama API base URL (default `http://localhost:11434`). |
 | `OLLAMA_MODEL` | Model name for Ollama (default `phi4-mini`). |
-| `GOOGLE_AI_STUDIO_API_KEY` | If set (and Ollama/Mock not selected), uses **Google AI Studio** REST API (Gemini). |
+| `GOOGLE_AI_STUDIO_API_KEY` | If set (and creditProxy/Ollama/Mock not selected), uses **Google AI Studio** REST API directly. |
 | `GOOGLE_AI_STUDIO_MODEL` | Model id for Gemini (default `gemini-2.5-flash`). |
 
 `server.py` loads `.env` from the agents repo root. Outside production (`ENVIRONMENT != "production"`), it defaults **`FIRESTORE_EMULATOR_HOST=localhost:8080`** when unset so local Firestore matches the Firebase emulator.
@@ -113,10 +132,37 @@ Root **`novelsync-frontend/.env`** is mainly **Vite** (`VITE_*`). The example fi
 | **Books search** | `functions/src/booksApi.ts` | **`BOOKS_API_KEY`** in Functions environment. |
 | **Local image generation** | `novelsync-agents/image-generation/` | Disabled in production via `ENABLE_LOCAL_IMAGE_GENERATION=false`; requires ML deps (`requirements.txt`, omitted in `requirements-prod.txt`). |
 
+## BYOK (Bring Your Own Key)
+
+Users can supply their own Gemini, Claude, or OpenAI API key via the **AI Provider** section of their profile (`/profile` → AI Provider tab). The full flow:
+
+1. User enters provider + key + model in `AiSettings.tsx` (Profile → AI Provider).
+2. "Test connection" calls the `validateAiKey` Firebase Function, which makes a lightweight API probe to verify the key.
+3. On success, "Save" calls `saveAiSettings` — the Function encrypts the key with AES-256-GCM (using `ENCRYPTION_KEY` Firebase secret) and writes `users/{uid}.aiSettings` to Firestore. `hasCustomAiProvider: true` is also set on the user doc.
+4. On any AI feature trigger, Firebase Functions call `checkAiAccess(userId)` (from `functions/src/aiSettings.ts`):
+   - **BYOK user**: returns the decrypted `providerConfig`, skips quota increment, passes `providerConfig` to `callAgentWithRetry`.
+   - **Platform user**: calls `checkAndIncrementAiUsage`, enforces 10/day limit.
+5. `callAgentWithRetry` includes `user_id` and `provider_config` in the agent request body.
+6. `server.py` sets `_byok_config` ContextVar, which `CreditProxyProvider` reads to forward BYOK credentials to creditProxy.
+7. creditProxy routes the call to the user's provider without touching platform credits.
+
+### New Firebase Functions
+
+| Function | Purpose |
+|----------|---------|
+| `saveAiSettings` | Encrypt + store user API key in Firestore |
+| `deleteAiSettings` | Remove key, reset `hasCustomAiProvider: false` |
+| `validateAiKey` | Probe the provider to verify key validity before save |
+
+### Quota bypass
+
+`AiUsageContext` (`canUseAI()`, `getRemainingAiUsage()`) returns unlimited when `user.hasCustomAiProvider === true`. This means the client-side quota badge correctly shows "Unlimited" for BYOK users without a Firestore read.
+
 ## Frontend usage and quotas
 
-- **`VITE_MAX_AI_USAGE`** — client-side daily quota display / checks (`AiUsageContext`); actual enforcement for AI HTTP endpoints is in Functions (e.g. `aiUsageService.ts`).
-- **Whisper / Transformers.js** in the browser — local models; not the same as server-side Gemini keys.
+- **`VITE_MAX_AI_USAGE`** — client-side daily quota display / checks (`AiUsageContext`); actual enforcement for AI HTTP endpoints is in Functions via `checkAiAccess` (which calls `checkAndIncrementAiUsage` for non-BYOK users).
+- BYOK users bypass both client-side and server-side quota checks.
+- **Whisper / Transformers.js** in the browser — local models; not the same as server-side API keys.
 
 ## Security best-practice audit
 
@@ -129,7 +175,7 @@ This section reviews what is in place and what gaps exist, based on the actual c
 | **Secrets in Secret Manager** | `GOOGLE_AI_STUDIO_API_KEY` injected via GCP Secret Manager at Cloud Run runtime; `REPLICATE_API_TOKEN`, `SMTP_USER/PASS`, `EMAIL_FROM`, `MAGIC_LINK_REDIRECT_URL` all use Firebase `defineSecret` — never plain env vars. |
 | **Firebase Auth verified server-side** | Every AI endpoint is wrapped with `requireAuth` or `requireStoryOwnership` from `authService.ts`, which calls `admin.auth().verifyIdToken()`. Client-side token checks are not relied upon. |
 | **Horizontal privilege enforcement** | `requireStoryOwnership` fetches the story from Firestore and checks `storyData.userId === userId` before dispatching to the agent. A user cannot call AI actions on another user's story. |
-| **Server-side quota enforcement** | `checkAndIncrementAiUsage` is called at the top of every AI Function before the agent call, and returns HTTP 429 when the limit is hit. The `VITE_MAX_AI_USAGE` client-side check is a UX convenience, not the gate. |
+| **Server-side quota enforcement** | `checkAiAccess` is called at the top of every AI Function. For platform users it calls `checkAndIncrementAiUsage` and returns HTTP 429 when the limit is hit. BYOK users bypass the quota entirely. The `VITE_MAX_AI_USAGE` client-side check is a UX convenience, not the gate. |
 | **Functions CORS restricted** | `corsConfig.ts` allows only `https://story-6f89f.web.app` plus localhost — exact-match, no wildcards. |
 | **Cloud Run auth via identity tokens** | Functions obtain a GCP identity token (via `GoogleAuth.getIdTokenClient`) and attach it as `Authorization: Bearer` to every Cloud Run request. Cloud Run itself requires a valid Google identity. |
 | **Keyless CI/CD** | GitHub Actions uses Workload Identity Federation (OIDC). No service account JSON keys are stored in GitHub secrets or in the repo. |
@@ -206,7 +252,9 @@ details: "An unexpected error occurred. Please try again."
 | Secrets in Secret Manager / defineSecret | ✅ Yes (except `BOOKS_API_KEY`) |
 | Server-side Firebase Auth on all AI endpoints | ✅ Yes |
 | Story ownership enforced server-side | ✅ Yes |
-| AI quota enforced server-side (not just client) | ✅ Yes |
+| AI quota enforced server-side (not just client) | ✅ Yes (BYOK users bypass; platform users still rate-limited) |
+| BYOK keys encrypted at rest (AES-256-GCM) | ✅ Yes — `ENCRYPTION_KEY` Firebase secret; raw key never stored |
+| BYOK key never returned to frontend after save | ✅ Yes — only `hasCustomAiProvider: boolean` exposed |
 | Functions CORS restricted to known origins | ✅ Yes |
 | Cloud Run protected by Google identity tokens | ✅ Yes |
 | Keyless CI/CD (Workload Identity Federation) | ✅ Yes |

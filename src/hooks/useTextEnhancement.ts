@@ -6,8 +6,6 @@ interface UseTextEnhancementParams {
   editor: Editor | null;
   storyId: string;
   chapterId?: string;
-  canUseAI: () => boolean;
-  incrementAiUsage: () => Promise<void>;
   onError: (msg: string) => void;
 }
 
@@ -15,8 +13,6 @@ export function useTextEnhancement({
   editor,
   storyId,
   chapterId,
-  canUseAI,
-  incrementAiUsage,
   onError,
 }: UseTextEnhancementParams) {
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -24,11 +20,6 @@ export function useTextEnhancement({
   const handleTextEnhancement = useCallback(
     async (action: "expand" | "dialogue" | "rewrite") => {
       if (!editor) return;
-
-      if (!canUseAI()) {
-        onError("Daily AI usage limit reached. Please try again tomorrow.");
-        return;
-      }
 
       const { from, to } = editor.state.selection;
       const selectedText = editor.state.doc.textBetween(from, to, " ");
@@ -46,7 +37,6 @@ export function useTextEnhancement({
           selectedText,
           chapterId,
         });
-        await incrementAiUsage();
         editor
           .chain()
           .focus()
@@ -61,7 +51,7 @@ export function useTextEnhancement({
         setIsEnhancing(false);
       }
     },
-    [editor, storyId, chapterId, canUseAI, incrementAiUsage, onError],
+    [editor, storyId, chapterId, onError],
   );
 
   return { isEnhancing, handleTextEnhancement };

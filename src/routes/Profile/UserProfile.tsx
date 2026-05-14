@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
+
+const AiSettings = lazy(() => import("@/routes/Settings/AiSettings"));
 import { Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -25,6 +27,7 @@ import {
   Trash2,
   Sun,
   Moon,
+  Bot,
 } from "lucide-react";
 
 const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || "31337");
@@ -42,6 +45,7 @@ const TARGET_CHAIN_NAME =
 type Section =
   | "profile"
   | "wallet"
+  | "ai"
   | "notifications"
   | "privacy"
   | "appearance"
@@ -300,6 +304,7 @@ const UserProfile: React.FC = () => {
   const navItems: { id: Section; label: string; Icon: typeof User }[] = [
     { id: "profile", label: "Profile", Icon: User },
     { id: "wallet", label: "Wallet & Earnings", Icon: Wallet },
+    { id: "ai", label: "AI Provider", Icon: Bot },
     { id: "notifications", label: "Notifications", Icon: Bell },
     { id: "privacy", label: "Privacy", Icon: Shield },
     { id: "appearance", label: "Appearance", Icon: Globe },
@@ -871,6 +876,13 @@ const UserProfile: React.FC = () => {
                 </button>
               </Row>
             </Card>
+          )}
+
+          {/* ── AI Provider ── */}
+          {activeSection === "ai" && (
+            <Suspense fallback={<div className="h-32 rounded-ns border border-ns-border animate-pulse bg-ns-surface" />}>
+              <AiSettings />
+            </Suspense>
           )}
 
           {/* ── Account / Danger Zone ── */}

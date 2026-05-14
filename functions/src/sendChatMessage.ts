@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAndIncrementAiUsage } from "./aiUsageService";
+import { checkAiAccess } from "./aiSettings";
 import { getStoryContext } from "./contextService";
 import {
   getChatHistory,
@@ -32,15 +32,7 @@ export const sendChatMessage = onRequest(
   corsOptions,
   requireStoryOwnership(async (request, response, userId, storyId) => {
     try {
-      // Check AI usage limit
-      const usageCheck = await checkAndIncrementAiUsage(userId);
-      if (!usageCheck.allowed) {
-        response.status(429).json({
-          error: "Daily AI usage limit reached.",
-          details: `You have used ${usageCheck.currentUsage} out of 10 daily AI uses. Please try again tomorrow.`,
-        });
-        return;
-      }
+      const access = await checkAiAccess(userId);
 
       const { chatId, message, includeFullContext = true } = request.body;
 
@@ -101,7 +93,7 @@ export const sendChatMessage = onRequest(
           role: msg.role,
           content: msg.content,
         })),
-      });
+      }, 3, 1000, userId, access.providerConfig ?? undefined);
 
       if (!agentResponse.success || !agentResponse.data) {
         logger.error("Agent failed to generate chat response", {
@@ -110,9 +102,8 @@ export const sendChatMessage = onRequest(
           error: agentResponse.error,
         });
         response.status(500).json({
-          error: "Failed to generate chat response",
-          details:
-            agentResponse.error || "The AI service is currently unavailable.",
+          error: agentResponse.error || "Failed to generate chat response",
+          details: agentResponse.error,
         });
         return;
       }

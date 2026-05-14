@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { BookOpen, Loader, RefreshCw, Sparkles, X } from "lucide-react";
 import { generateStoryChoices, StoryChoice } from "@/api/ai";
-import { useAiUsage } from "@/contexts/AiUsageContext";
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
 
@@ -29,8 +28,6 @@ export function InteractiveStoryPanel({
   onClose,
   onChoiceInserted,
 }: InteractiveStoryPanelProps) {
-  const { canUseAI, incrementAiUsage } = useAiUsage();
-
   const [phase, setPhase] = useState<Phase>("loading");
   const [openingScene, setOpeningScene] = useState<string | null>(null);
   const [choices, setChoices] = useState<StoryChoice[]>([]);
@@ -47,14 +44,6 @@ export function InteractiveStoryPanel({
     if (fetchedForTurn.current === fetchKey) return;
     fetchedForTurn.current = fetchKey;
 
-    if (!canUseAI()) {
-      setErrorMessage(
-        "Daily AI usage limit reached. Please try again tomorrow.",
-      );
-      setPhase("error");
-      return;
-    }
-
     setPhase("loading");
     setChoices([]);
     setOpeningScene(null);
@@ -70,7 +59,6 @@ export function InteractiveStoryPanel({
       turnCount,
     })
       .then((data) => {
-        incrementAiUsage();
         setOpeningScene(data.openingScene ?? null);
         setChoices(data.choices ?? []);
         setPhase("choosing");
@@ -104,12 +92,6 @@ export function InteractiveStoryPanel({
   }
 
   async function handleEndStory() {
-    if (!canUseAI()) {
-      setErrorMessage(
-        "Daily AI usage limit reached. Please try again tomorrow.",
-      );
-      return;
-    }
     setPhase("ending-loading");
     try {
       const data = await generateStoryChoices({
@@ -119,7 +101,6 @@ export function InteractiveStoryPanel({
         currentContent: editor.getHTML(),
         turnCount,
       });
-      incrementAiUsage();
       const endingChoices = data.choices ?? [];
       if (endingChoices.length > 0) {
         insertText(endingChoices[0].sceneText);
@@ -135,12 +116,6 @@ export function InteractiveStoryPanel({
 
   async function handleCustomSubmit() {
     if (!customDirection.trim()) return;
-    if (!canUseAI()) {
-      setErrorMessage(
-        "Daily AI usage limit reached. Please try again tomorrow.",
-      );
-      return;
-    }
     setIsLoadingCustom(true);
     try {
       const data = await generateStoryChoices({
@@ -150,7 +125,6 @@ export function InteractiveStoryPanel({
         currentContent: customDirection,
         turnCount,
       });
-      incrementAiUsage();
       const results = data.choices ?? [];
       if (results.length > 0) {
         insertText(results[0].sceneText);

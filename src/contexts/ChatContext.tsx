@@ -10,7 +10,6 @@ import { ChatMessage } from "@/types/IChat";
 import { chatService } from "@/services/ChatService";
 import { sendChatMessage, clearChatSession } from "@/api/chat";
 import { useAuthContext } from "./AuthContext";
-import { useAiUsage } from "./AiUsageContext";
 
 interface ChatContextType {
   messages: ChatMessage[];
@@ -29,7 +28,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuthContext();
-  const { incrementAiUsage, canUseAI } = useAiUsage();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,12 +99,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      // Check AI usage limit
-      if (!canUseAI()) {
-        setError("Daily AI usage limit reached. Please try again tomorrow.");
-        return;
-      }
-
       const trimmedMessage = message.trim();
       if (!trimmedMessage) {
         setError("Message cannot be empty");
@@ -134,9 +126,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
           includeFullContext: true,
         });
 
-        // Increment AI usage
-        await incrementAiUsage();
-
         // Messages will be updated via Firestore listener
         // No need to manually add assistant response
       } catch (err: any) {
@@ -151,7 +140,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false);
       }
     },
-    [user, chatId, canUseAI, incrementAiUsage],
+    [user, chatId],
   );
 
   const clearChat = useCallback(
