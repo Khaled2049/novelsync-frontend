@@ -873,34 +873,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /getData:
-    get:
-      tags: [Utility]
-      summary: Export stories with nested subcollections
-      operationId: getData
-      responses:
-        '200':
-          description: Story export array
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  additionalProperties: true
-        '404':
-          description: No stories found
-          content:
-            text/plain:
-              schema:
-                type: string
-        '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-
 components:
   securitySchemes:
     BearerAuth:

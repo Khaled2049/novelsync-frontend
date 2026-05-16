@@ -17,9 +17,15 @@ const db = admin.firestore();
  */
 export const generateChapter = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { chapterNumber } = request.body;
 
@@ -37,7 +43,7 @@ export const generateChapter = onRequest(
 
       const providerConfig = access.providerConfig ?? undefined;
       // Start processing asynchronously
-      processChapterGeneration(jobId, storyId, chapterNumber, userId, providerConfig).catch((error) => {
+      processChapterGeneration(jobId, storyId, chapterNumber, userId, providerConfig, idToken).catch((error) => {
         logger.error(
           `Error in background chapter generation for job ${jobId}`,
           error,
@@ -68,6 +74,7 @@ async function processChapterGeneration(
   chapterNumber: number,
   userId?: string,
   providerConfig?: ProviderConfig,
+  firebaseToken?: string,
 ): Promise<void> {
   try {
     await updateJobStatus(db, jobId, "processing", 0);
@@ -89,7 +96,7 @@ async function processChapterGeneration(
       storyId,
       chapterNumber,
       previousChapters,
-    }, 3, 1000, userId, providerConfig);
+    }, 3, 1000, userId, providerConfig, firebaseToken);
 
     if (!agentResponse.success || !agentResponse.data) {
       throw new Error(agentResponse.error || "Agent generation failed");

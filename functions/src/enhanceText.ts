@@ -7,9 +7,15 @@ import { corsOptions } from "./corsConfig";
 
 export const enhanceText = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { action, selectedText, chapterId } = request.body;
 
@@ -57,7 +63,7 @@ export const enhanceText = onRequest(
         action,
         selectedText,
         chapterId,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({

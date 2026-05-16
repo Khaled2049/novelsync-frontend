@@ -8,6 +8,7 @@ import { corsOptions } from "./corsConfig";
 
 const VALID_MODES = ["opening", "continuation", "ending"] as const;
 type StoryChoicesMode = (typeof VALID_MODES)[number];
+const MAX_CURRENT_CONTENT_LENGTH = 5000;
 
 /**
  * POST /generateStoryChoices
@@ -27,10 +28,16 @@ type StoryChoicesMode = (typeof VALID_MODES)[number];
  */
 export const generateStoryChoices = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       // ── Quota check (bypassed for BYOK users) ─────────────────────────────
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
       // ── Validate request ────────────────────────────────────────────────────
       const { mode, currentContent, chapterId, turnCount } = request.body as {
         mode?: string;
@@ -45,6 +52,18 @@ export const generateStoryChoices = onRequest(
         });
         return;
       }
+      if (currentContent !== undefined && typeof currentContent !== "string") {
+        response.status(400).json({
+          error: "currentContent must be a string when provided",
+        });
+        return;
+      }
+      if ((currentContent ?? "").length > MAX_CURRENT_CONTENT_LENGTH) {
+        response.status(400).json({
+          error: `currentContent is too long (max ${MAX_CURRENT_CONTENT_LENGTH} characters)`,
+        });
+        return;
+      }
 
       // ── Call agent ──────────────────────────────────────────────────────────
       const agentResponse = await callAgentWithRetry("generateStoryChoices", {
@@ -54,7 +73,7 @@ export const generateStoryChoices = onRequest(
         currentContent: currentContent ?? "",
         chapterId,
         turnCount: turnCount ?? 0,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({

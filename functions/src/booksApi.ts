@@ -5,6 +5,7 @@
  */
 import { onRequest } from "firebase-functions/v2/https";
 import { corsOptions } from "./corsConfig";
+import { requireAuth } from "./authService";
 
 const BOOKS_API_KEY = process.env.BOOKS_API_KEY;
 const BOOKS_API_BASE_URL = "https://www.googleapis.com/books/v1";
@@ -23,7 +24,7 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
  * Search books endpoint.
  * GET /booksApi/search?q={query}&maxResults={maxResults}
  */
-export const searchBooks = onRequest(corsOptions, async (req, res) => {
+export const searchBooks = onRequest(corsOptions, requireAuth(async (req, res, _userId, _idToken) => {
   // Only allow GET requests
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
@@ -67,14 +68,14 @@ export const searchBooks = onRequest(corsOptions, async (req, res) => {
     const message = error instanceof Error ? error.message : "Internal server error";
     res.status(500).json({ error: message });
   }
-});
+}));
 
 /**
  * Get book details endpoint.
  * GET /getBookDetails?volumeId={volumeId}
  * Alternative: GET /getBookDetails/{volumeId} (extracted from path)
  */
-export const getBookDetails = onRequest(corsOptions, async (req, res) => {
+export const getBookDetails = onRequest(corsOptions, requireAuth(async (req, res, _userId, _idToken) => {
   // Only allow GET requests
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
@@ -130,4 +131,4 @@ export const getBookDetails = onRequest(corsOptions, async (req, res) => {
     const message = error instanceof Error ? error.message : "Internal server error";
     res.status(500).json({ error: message });
   }
-});
+}));

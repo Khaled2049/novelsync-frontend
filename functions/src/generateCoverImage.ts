@@ -5,11 +5,13 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { corsOptions } from "./corsConfig";
+import { requireStoryOwnership } from "./authService";
 import Replicate from "replicate";
 
 const replicateApiToken = defineSecret("REPLICATE_API_TOKEN");
 
 interface GenerateCoverRequest {
+  storyId: string;
   prompt: string;
 }
 
@@ -65,7 +67,7 @@ async function readableStreamToBase64(
  */
 export const generateCoverImage = onRequest(
   { secrets: [replicateApiToken], ...corsOptions },
-  async (req, res) => {
+  requireStoryOwnership(async (req, res, _userId, storyId) => {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
       return;
@@ -177,6 +179,7 @@ export const generateCoverImage = onRequest(
       res.status(200).json({
         image: imageBase64,
         prompt: prompt.trim(),
+        storyId,
         model: "flux-schnell",
         generation_time: Math.round(generationTime * 100) / 100,
       });
@@ -187,5 +190,5 @@ export const generateCoverImage = onRequest(
         error instanceof Error ? error.message : "Internal server error";
       res.status(500).json({ error: message });
     }
-  }
+  })
 );

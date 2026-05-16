@@ -11,9 +11,15 @@ import { corsOptions } from "./corsConfig";
  */
 export const brainstormIdeas = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { type, prompt, count } = request.body;
 
@@ -41,7 +47,7 @@ export const brainstormIdeas = onRequest(
         type,
         prompt,
         count: ideaCount,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
@@ -67,9 +73,15 @@ export const brainstormIdeas = onRequest(
  */
 export const brainstormCharacter = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
       const { role, archetype } = request.body;
 
       // Call agent synchronously
@@ -77,7 +89,7 @@ export const brainstormCharacter = onRequest(
         storyId,
         role,
         archetype,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({
@@ -103,11 +115,17 @@ export const brainstormCharacter = onRequest(
  */
 export const brainstormPlot = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const { plotType } = request.body;
 
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
       const validPlotTypes = ["conflict", "twist", "subplot", "development"];
       const finalPlotType =
         plotType && validPlotTypes.includes(plotType) ? plotType : "conflict";
@@ -116,7 +134,7 @@ export const brainstormPlot = onRequest(
       const agentResponse = await callAgentWithRetry("brainstormPlot", {
         storyId,
         plotType: finalPlotType,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({

@@ -5,11 +5,19 @@ import * as logger from "firebase-functions/logger";
 import { checkAiAccess } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
+const MAX_CONTENT_LENGTH = 5000;
+
 export const generateNextLines = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { content, cursorPosition, chapterId } = request.body;
 
@@ -17,6 +25,12 @@ export const generateNextLines = onRequest(
       if (!content || typeof content !== "string") {
         response.status(400).json({
           error: "content is required and must be a string",
+        });
+        return;
+      }
+      if (content.length > MAX_CONTENT_LENGTH) {
+        response.status(400).json({
+          error: `content is too long (max ${MAX_CONTENT_LENGTH} characters)`,
         });
         return;
       }
@@ -34,7 +48,7 @@ export const generateNextLines = onRequest(
         content,
         cursorPosition,
         chapterId,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({

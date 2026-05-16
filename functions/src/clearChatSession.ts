@@ -17,7 +17,7 @@ import { corsOptions } from "./corsConfig";
  */
 export const clearChatSession = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const { chatId } = request.body;
 
@@ -35,7 +35,7 @@ export const clearChatSession = onRequest(
       const agentResult = await callAgentWithRetry("clearMemory", {
         storyId,
         userId,
-      });
+      }, 3, 1000, userId, undefined, idToken);
 
       if (!agentResult.success) {
         logger.warn("Brain memory clear failed — chat deleted but memory may persist", {

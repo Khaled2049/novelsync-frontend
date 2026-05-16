@@ -18,10 +18,16 @@ type WizardEnhanceType = (typeof VALID_TYPES)[number];
  */
 export const enhanceWizardInput = onRequest(
   corsOptions,
-  requireAuth(async (request, response, userId) => {
+  requireAuth(async (request, response, userId, idToken) => {
     try {
       // ── Quota check (bypassed for BYOK users) ─────────────────────────────
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
       // ── Validate request ───────────────────────────────────────────────────
       const { type, data } = request.body as {
         type?: string;
@@ -45,7 +51,7 @@ export const enhanceWizardInput = onRequest(
         type,
         data,
         userId,
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         response.status(500).json({

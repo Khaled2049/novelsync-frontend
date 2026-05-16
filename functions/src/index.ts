@@ -26,7 +26,6 @@ export {
   getStoryJobsEndpoint as getStoryJobs,
 } from "./jobEndpoints";
 export { authenticate } from "./authenticate";
-export { getData } from "./getData";
 export { generateNextLines } from "./generateNextLines";
 export { generateStoryChoices } from "./generateStoryChoices";
 export { searchBooks, getBookDetails } from "./booksApi";
@@ -38,4 +37,8 @@ export { enhanceWizardInput } from "./enhanceWizardInput";
 export { onInviteApproved } from "./inviteService";
 export { joinCompetition } from "./competitionEndpoints";
 export { createUserByAdmin, setUserAdmin } from "./adminUserService";
-export { saveAiSettings, deleteAiSettings, validateAiKey } from "./aiSettingsEndpoints";
+export {
+  saveAiSettings,
+  deleteAiSettings,
+  validateAiKey,
+} from "./aiSettingsEndpoints";

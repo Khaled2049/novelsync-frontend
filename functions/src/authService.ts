@@ -24,6 +24,27 @@ export async function verifyAuth(request: Request): Promise<string | null> {
   }
 }
 
+export interface AuthContext {
+  userId: string;
+  idToken: string;
+}
+
+export async function verifyAuthContext(request: Request): Promise<AuthContext | null> {
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return { userId: decodedToken.uid, idToken };
+  } catch (error) {
+    logger.error("Error verifying auth token", error);
+    return null;
+  }
+}
+
 /**
  * Check if user owns the story.
  */
@@ -54,7 +75,8 @@ export function requireAuth(
   handler: (
     request: Request,
     response: Response,
-    userId: string
+    userId: string,
+    idToken: string
   ) => Promise<void>
 ) {
   return async (request: Request, response: Response): Promise<void> => {
@@ -63,14 +85,13 @@ export function requireAuth(
       return;
     }
 
-    const userId = await verifyAuth(request);
-
-    if (!userId) {
+    const authContext = await verifyAuthContext(request);
+    if (!authContext) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
 
-    await handler(request, response, userId);
+    await handler(request, response, authContext.userId, authContext.idToken);
   };
 }
 
@@ -82,7 +103,8 @@ export function requireStoryOwnership(
     request: Request,
     response: Response,
     userId: string,
-    storyId: string
+    storyId: string,
+    idToken: string
   ) => Promise<void>
 ) {
   return async (request: Request, response: Response): Promise<void> => {
@@ -91,9 +113,8 @@ export function requireStoryOwnership(
       return;
     }
 
-    const userId = await verifyAuth(request);
-
-    if (!userId) {
+    const authContext = await verifyAuthContext(request);
+    if (!authContext) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
@@ -106,7 +127,7 @@ export function requireStoryOwnership(
     }
 
     const db = admin.firestore();
-    const ownsStory = await verifyStoryOwnership(db, storyId, userId);
+    const ownsStory = await verifyStoryOwnership(db, storyId, authContext.userId);
 
     if (!ownsStory) {
       response
@@ -115,6 +136,6 @@ export function requireStoryOwnership(
       return;
     }
 
-    await handler(request, response, userId, storyId);
+    await handler(request, response, authContext.userId, storyId, authContext.idToken);
   };
 }

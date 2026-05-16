@@ -1,30 +1,32 @@
 /**
  * CORS configuration for Firebase Functions.
- * Allows requests from production domain and local development.
  *
- * Note: Firebase Functions v2 only supports origin configuration.
- * Methods, headers, and credentials are handled automatically.
- *
- * Security: Only exact origin matches are allowed (no wildcards).
- * Firebase Functions validates the Origin header against this list.
+ * Production only allows trusted web origins.
+ * Localhost origins are allowed only in the emulator.
  */
 
-// Production origins
 const productionOrigins = [
   "https://story-6f89f.web.app",
   "https://thetaletribe.com",
   "https://www.thetaletribe.com",
 ];
 
-// Development origins (localhost for local development)
 const developmentOrigins = ["http://localhost:5173", "http://localhost:3000"];
 
-// Always include both production and development origins
-// This is safe because endpoints are protected by authentication
-// CORS is only a browser security feature, not server security
-const allowedOrigins = [...productionOrigins, ...developmentOrigins];
+function getAllowedOrigins(): string[] {
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+  const extraOriginsRaw = process.env.CORS_EXTRA_ORIGINS ?? "";
+  const extraOrigins = extraOriginsRaw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+
+  return isEmulator
+    ? [...productionOrigins, ...developmentOrigins, ...extraOrigins]
+    : [...productionOrigins, ...extraOrigins];
+}
 
 export const corsOptions = {
-  cors: allowedOrigins,
+  cors: getAllowedOrigins(),
   invoker: "public",
 };

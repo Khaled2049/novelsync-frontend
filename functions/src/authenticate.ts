@@ -2,10 +2,24 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { corsOptions } from "./corsConfig";
 
+function isEmulatorRuntime(): boolean {
+  return (
+    process.env.FUNCTIONS_EMULATOR === "true" ||
+    typeof process.env.FIREBASE_AUTH_EMULATOR_HOST === "string"
+  );
+}
+
 export const authenticate = onRequest(
   corsOptions,
   async (request, response) => {
     try {
+      if (!isEmulatorRuntime()) {
+        response.status(403).json({
+          error: "authenticate is available in emulator only",
+        });
+        return;
+      }
+
       const { email, password } = request.body;
 
       if (!email || !password) {

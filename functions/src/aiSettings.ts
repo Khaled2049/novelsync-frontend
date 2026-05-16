@@ -16,6 +16,7 @@ export interface AiAccessResult {
   allowed: boolean;
   byok: boolean;
   providerConfig: ProviderConfig | null;
+  reason?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,11 +35,18 @@ function getEncryptionKey(): Buffer {
   return crypto.scryptSync(secret, "novelsync-ai-settings", KEY_LEN);
 }
 
-function encryptApiKey(plaintext: string): { ciphertext: string; iv: string; authTag: string } {
+function encryptApiKey(plaintext: string): {
+  ciphertext: string;
+  iv: string;
+  authTag: string;
+} {
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv) as crypto.CipherGCM;
-  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   return {
     ciphertext: encrypted.toString("base64"),
     iv: iv.toString("base64"),
@@ -46,7 +54,11 @@ function encryptApiKey(plaintext: string): { ciphertext: string; iv: string; aut
   };
 }
 
-function decryptApiKey(ciphertext: string, iv: string, authTag: string): string {
+function decryptApiKey(
+  ciphertext: string,
+  iv: string,
+  authTag: string,
+): string {
   const key = getEncryptionKey();
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
@@ -64,14 +76,20 @@ function decryptApiKey(ciphertext: string, iv: string, authTag: string): string 
 // Firestore helpers
 // ---------------------------------------------------------------------------
 
-export async function getUserAiSettings(uid: string): Promise<ProviderConfig | null> {
+export async function getUserAiSettings(
+  uid: string,
+): Promise<ProviderConfig | null> {
   try {
     const db = getFirestore();
     const doc = await db.collection("users").doc(uid).get();
     const settings = doc.data()?.aiSettings;
     if (!settings?.encryptedApiKey) return null;
 
-    const apiKey = decryptApiKey(settings.encryptedApiKey, settings.iv, settings.authTag);
+    const apiKey = decryptApiKey(
+      settings.encryptedApiKey,
+      settings.iv,
+      settings.authTag,
+    );
     return {
       provider: settings.provider,
       api_key: apiKey,
@@ -91,20 +109,23 @@ export async function setUserAiSettings(
 ): Promise<void> {
   const { ciphertext, iv, authTag } = encryptApiKey(apiKey);
   const db = getFirestore();
-  await db.collection("users").doc(uid).set(
-    {
-      aiSettings: {
-        provider,
-        encryptedApiKey: ciphertext,
-        iv,
-        authTag,
-        model: model || null,
-        createdAt: FieldValue.serverTimestamp(),
+  await db
+    .collection("users")
+    .doc(uid)
+    .set(
+      {
+        aiSettings: {
+          provider,
+          encryptedApiKey: ciphertext,
+          iv,
+          authTag,
+          model: model || null,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+        hasCustomAiProvider: true,
       },
-      hasCustomAiProvider: true,
-    },
-    { merge: true },
-  );
+      { merge: true },
+    );
 }
 
 export async function deleteUserAiSettings(uid: string): Promise<void> {
@@ -130,7 +151,10 @@ export async function validateProviderKey(
       );
       if (!resp.ok) {
         const body = await resp.text();
-        return { valid: false, error: `Gemini: ${resp.status} ${body.slice(0, 200)}` };
+        return {
+          valid: false,
+          error: `Gemini: ${resp.status} ${body.slice(0, 200)}`,
+        };
       }
       return { valid: true };
     }
@@ -141,7 +165,10 @@ export async function validateProviderKey(
       });
       if (!resp.ok) {
         const body = await resp.text();
-        return { valid: false, error: `OpenAI: ${resp.status} ${body.slice(0, 200)}` };
+        return {
+          valid: false,
+          error: `OpenAI: ${resp.status} ${body.slice(0, 200)}`,
+        };
       }
       return { valid: true };
     }
@@ -162,7 +189,10 @@ export async function validateProviderKey(
       });
       if (!resp.ok) {
         const body = await resp.text();
-        return { valid: false, error: `Claude: ${resp.status} ${body.slice(0, 200)}` };
+        return {
+          valid: false,
+          error: `Claude: ${resp.status} ${body.slice(0, 200)}`,
+        };
       }
       return { valid: true };
     }
@@ -188,5 +218,60 @@ export async function checkAiAccess(userId: string): Promise<AiAccessResult> {
     return { allowed: true, byok: true, providerConfig: settings };
   }
 
+  const allowed = await consumePlatformDailyQuota(userId);
+  if (!allowed) {
+    return {
+      allowed: false,
+      byok: false,
+      providerConfig: null,
+      reason:
+        "Daily AI quota exceeded. Add your own API key in Settings to continue.",
+    };
+  }
+
   return { allowed: true, byok: false, providerConfig: null };
+}
+
+function getDailyAiQuotaLimit(): number {
+  const raw = process.env.MAX_AI_USAGE || "100";
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return 100;
+  return parsed;
+}
+
+async function consumePlatformDailyQuota(userId: string): Promise<boolean> {
+  const db = getFirestore();
+  const userRef = db.collection("users").doc(userId);
+  const today = new Date().toISOString().split("T")[0];
+  const dailyLimit = getDailyAiQuotaLimit();
+
+  try {
+    return await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      const data = userSnap.data() || {};
+      const lastUsageDate =
+        typeof data.lastAiUsageDate === "string" ? data.lastAiUsageDate : "";
+      const priorUsage = typeof data.aiUsage === "number" ? data.aiUsage : 0;
+      const todayUsage = lastUsageDate === today ? priorUsage : 0;
+
+      if (todayUsage >= dailyLimit) {
+        return false;
+      }
+
+      tx.set(
+        userRef,
+        {
+          aiUsage: todayUsage + 1,
+          lastAiUsageDate: today,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return true;
+    });
+  } catch (error) {
+    logger.error("consumePlatformDailyQuota failed", { userId, error });
+    // Fail-closed to avoid free unlimited usage when quota state is unavailable.
+    return false;
+  }
 }

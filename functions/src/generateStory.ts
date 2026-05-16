@@ -16,9 +16,15 @@ const db = admin.firestore();
  */
 export const generateStory = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { genre, tone, length } = request.body;
 
@@ -31,7 +37,7 @@ export const generateStory = onRequest(
 
       const providerConfig = access.providerConfig ?? undefined;
       // Start processing asynchronously (don't await)
-      processStoryGeneration(jobId, storyId, { genre, tone, length }, userId, providerConfig).catch(
+      processStoryGeneration(jobId, storyId, { genre, tone, length }, userId, providerConfig, idToken).catch(
         (error) => {
           logger.error(
             `Error in background story generation for job ${jobId}`,
@@ -64,6 +70,7 @@ async function processStoryGeneration(
   options: { genre?: string; tone?: string; length?: string },
   userId?: string,
   providerConfig?: ProviderConfig,
+  firebaseToken?: string,
 ): Promise<void> {
   try {
     await updateJobStatus(db, jobId, "processing", 0);
@@ -74,7 +81,7 @@ async function processStoryGeneration(
       genre: options.genre,
       tone: options.tone,
       length: options.length,
-    }, 3, 1000, userId, providerConfig);
+    }, 3, 1000, userId, providerConfig, firebaseToken);
 
     if (!agentResponse.success || !agentResponse.data) {
       throw new Error(agentResponse.error || "Agent generation failed");

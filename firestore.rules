@@ -282,7 +282,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null;
+      // Prevent cross-user profile data exposure. Public profile data should live
+      // in a dedicated public collection/document if needed by other users.
+      allow read: if request.auth != null && request.auth.uid == userId;
 
       // FIX #11: follow/unfollow branches previously didn't restrict which fields could
       // change alongside followers — a user could follow someone and also overwrite their

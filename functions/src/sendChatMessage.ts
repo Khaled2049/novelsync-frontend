@@ -13,6 +13,8 @@ import {
 } from "./chatService";
 import { corsOptions } from "./corsConfig";
 
+const MAX_CHAT_MESSAGE_LENGTH = 5000;
+
 /**
  * POST /sendChatMessage
  * Send a chat message with story context for RAG-powered response.
@@ -30,9 +32,15 @@ import { corsOptions } from "./corsConfig";
  */
 export const sendChatMessage = onRequest(
   corsOptions,
-  requireStoryOwnership(async (request, response, userId, storyId) => {
+  requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
+      if (!access.allowed) {
+        response.status(429).json({
+          error: access.reason || "Daily AI quota exceeded",
+        });
+        return;
+      }
 
       const { chatId, message, includeFullContext = true } = request.body;
 
@@ -40,6 +48,12 @@ export const sendChatMessage = onRequest(
       if (!message || typeof message !== "string" || message.trim() === "") {
         response.status(400).json({
           error: "message is required and must be a non-empty string",
+        });
+        return;
+      }
+      if (message.length > MAX_CHAT_MESSAGE_LENGTH) {
+        response.status(400).json({
+          error: `message is too long (max ${MAX_CHAT_MESSAGE_LENGTH} characters)`,
         });
         return;
       }
@@ -93,7 +107,7 @@ export const sendChatMessage = onRequest(
           role: msg.role,
           content: msg.content,
         })),
-      }, 3, 1000, userId, access.providerConfig ?? undefined);
+      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
 
       if (!agentResponse.success || !agentResponse.data) {
         logger.error("Agent failed to generate chat response", {

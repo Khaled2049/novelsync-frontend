@@ -59,7 +59,7 @@ Firestore subcollection pattern: `stories/{id}/chapters`, `stories/{id}/chats/{i
 ### AI Features
 - **Chat**: Real-time Firestore subcollection + Cloud Function (`/sendChatMessage`) with story-context RAG
 - **Brainstorm / Text Enhancement**: API calls to Cloud Functions
-- **Daily quota**: `AiUsageContext` tracks usage against `VITE_MAX_AI_USAGE` (default 10). Resets daily. Check `canUseAI()` before any AI call.
+- **Daily quota**: `AiUsageContext` tracks usage against `VITE_MAX_AI_USAGE` (default 100). Resets daily. Check `canUseAI()` before any AI call. Server-side enforcement is in `functions/src/aiSettings.ts` (`checkAiAccess` → `consumePlatformDailyQuota`), controlled by `MAX_AI_USAGE` env var. BYOK users bypass both.
 
 ### Web3
 Wagmi config in `src/blockchain/config.ts`. Target chain from `VITE_CHAIN_ID` (default 31337 for local Anvil). Tipping contract ABI in `src/blockchain/abi/TippingPlatform.abi.json`. Wallet state machine: `DISCONNECTED → CONNECTING → CONNECTED → READY` (or `WRONG_NETWORK / ERROR`).
@@ -107,6 +107,6 @@ VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGE_SENDER_ID
 VITE_FIREBASE_APP_ID
 VITE_USE_EMULATORS          # default true in dev
-VITE_MAX_AI_USAGE           # default 10 (daily quota per user)
+VITE_MAX_AI_USAGE           # default 100 (daily quota display — server enforces MAX_AI_USAGE)
 VITE_CHAIN_ID               # default 31337 (local Anvil)
 ```

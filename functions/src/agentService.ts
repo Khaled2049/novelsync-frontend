@@ -78,6 +78,7 @@ export async function callAgent(
   parameters: Record<string, unknown>,
   userId?: string,
   providerConfig?: ProviderConfig,
+  firebaseToken?: string,
 ): Promise<AgentResponse> {
   const agentUrl = getAgentServiceUrl();
   const request: AgentRequest = {
@@ -104,6 +105,9 @@ export async function callAgent(
 
     if (identityToken) {
       headers.Authorization = `Bearer ${identityToken}`;
+    }
+    if (firebaseToken) {
+      headers["X-Firebase-Token"] = firebaseToken;
     }
 
     logger.info(`Making POST request to agent service...`, {
@@ -260,9 +264,10 @@ export async function callAgentWithRetry(
   retryDelay = 1000,
   userId?: string,
   providerConfig?: ProviderConfig,
+  firebaseToken?: string,
 ): Promise<AgentResponse> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const result = await callAgent(action, parameters, userId, providerConfig);
+    const result = await callAgent(action, parameters, userId, providerConfig, firebaseToken);
 
     // If successful, return immediately
     if (result.success) {
