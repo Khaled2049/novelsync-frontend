@@ -1,0 +1,66 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: Frontend Build & Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build (type-check + bundle)
+        run: yarn build
+        env:
+          VITE_FIREBASE_API_KEY: placeholder
+          VITE_FIREBASE_AUTH_DOMAIN: placeholder
+          VITE_FIREBASE_PROJECT_ID: placeholder
+          VITE_FIREBASE_STORAGE_BUCKET: placeholder
+          VITE_FIREBASE_MESSAGE_SENDER_ID: placeholder
+          VITE_FIREBASE_APP_ID: placeholder
+          VITE_FIREBASE_MEASUREMENT_ID: placeholder
+          VITE_RPC_URL: placeholder
+          VITE_USDC_TOKEN_ADDRESS: placeholder
+          VITE_TIPPING_CONTRACT_ADDRESS: placeholder
+          VITE_CHAIN_ID: "1"
+          VITE_MAX_AI_USAGE: "100"
+          VITE_APP_NAME: NovelSync
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+  functions:
+    name: Functions Type-check & Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Type-check
+        working-directory: functions
+        run: npm run build
+
+      - name: Dependency audit
+        working-directory: functions
+        run: npm audit --audit-level=high

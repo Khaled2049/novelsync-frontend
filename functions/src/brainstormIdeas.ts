@@ -3,14 +3,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAiAccess } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 
 /**
  * POST /brainstormIdeas - Generate brainstorming ideas (synchronous).
  */
 export const brainstormIdeas = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
@@ -72,7 +71,7 @@ export const brainstormIdeas = onRequest(
  * POST /brainstormCharacter - Generate character ideas (synchronous).
  */
 export const brainstormCharacter = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);
@@ -114,7 +113,7 @@ export const brainstormCharacter = onRequest(
  * POST /brainstormPlot - Generate plot ideas (synchronous).
  */
 export const brainstormPlot = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const { plotType } = request.body;

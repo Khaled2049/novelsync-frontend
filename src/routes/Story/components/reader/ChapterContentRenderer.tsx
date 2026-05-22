@@ -2,6 +2,25 @@
 
 import React, { JSX, useCallback } from "react";
 
+const ALLOWED_IMAGE_HOSTS = [
+  "firebasestorage.googleapis.com",
+  "storage.googleapis.com",
+];
+
+function isSafeImageSrc(src: string): boolean {
+  try {
+    const url = new URL(src);
+    return (
+      url.protocol === "https:" &&
+      ALLOWED_IMAGE_HOSTS.some(
+        (host) => url.hostname === host || url.hostname.endsWith(`.${host}`),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 interface ChapterContentRendererProps {
   content: string;
   onWordClick: (word: string, x: number, y: number) => void;
@@ -54,7 +73,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
           case "IMG": {
             const src = (el as HTMLImageElement).src;
             const alt = (el as HTMLImageElement).alt || "Story image";
-            if (!src || src.trim() === "") {
+            if (!src || !isSafeImageSrc(src)) {
               return null;
             }
             return (

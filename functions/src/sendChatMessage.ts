@@ -4,14 +4,13 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAiAccess } from "./aiSettings";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 import { getStoryContext } from "./contextService";
 import {
   getChatHistory,
   saveChatMessages,
   getOrCreateChatSession,
 } from "./chatService";
-import { corsOptions } from "./corsConfig";
 
 const MAX_CHAT_MESSAGE_LENGTH = 5000;
 
@@ -31,7 +30,7 @@ const MAX_CHAT_MESSAGE_LENGTH = 5000;
  * - contextUsed: { chapters, characters, plots, places }
  */
 export const sendChatMessage = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);

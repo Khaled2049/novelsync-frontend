@@ -7,8 +7,11 @@ import { requireStoryOwnership } from "./authService";
 import { createJob, updateJobStatus } from "./jobService";
 import { callAgentWithRetry } from "./agentService";
 import { getStoryContext } from "./contextService";
-import { checkAiAccess, ProviderConfig } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import {
+  checkAiAccess,
+  ProviderConfig,
+  corsWithEncryption,
+} from "./aiSettings";
 
 const db = admin.firestore();
 
@@ -16,7 +19,7 @@ const db = admin.firestore();
  * POST /generateChapter - Start asynchronous chapter generation.
  */
 export const generateChapter = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);

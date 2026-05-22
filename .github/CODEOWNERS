@@ -1,0 +1,16 @@
+# Default owner for the repository
+* @Khaled2049
+
+# Firebase security rules
+/firestore.rules @Khaled2049
+/storage.rules @Khaled2049
+
+# Cloud Functions backend
+/functions/src/ @Khaled2049
+
+# Infrastructure and deployment
+/terraform/ @Khaled2049
+/.github/workflows/ @Khaled2049
+
+# Security policy
+/SECURITY.md @Khaled2049

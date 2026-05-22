@@ -75,6 +75,8 @@ jobs:
           sync_secret "EMAIL_FROM" "${{ secrets.EMAIL_FROM }}"
           sync_secret "MAGIC_LINK_REDIRECT_URL" "${{ secrets.MAGIC_LINK_REDIRECT_URL }}"
           sync_secret "REPLICATE_API_TOKEN" "${{ secrets.REPLICATE_API_TOKEN }}"
+          sync_secret "ENCRYPTION_KEY" "${{ secrets.ENCRYPTION_KEY }}"
+          sync_secret "BOOKS_API_KEY" "${{ secrets.BOOKS_API_KEY }}"
 
       - name: Destroy old secret versions
         run: |
@@ -98,6 +100,8 @@ jobs:
           cleanup_secret "EMAIL_FROM"
           cleanup_secret "MAGIC_LINK_REDIRECT_URL"
           cleanup_secret "REPLICATE_API_TOKEN"
+          cleanup_secret "ENCRYPTION_KEY"
+          cleanup_secret "BOOKS_API_KEY"
 
       - name: Get Backend URL
         id: terraform

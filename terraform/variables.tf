@@ -43,5 +43,7 @@ variable "secret_names" {
     "EMAIL_FROM",
     "MAGIC_LINK_REDIRECT_URL",
     "REPLICATE_API_TOKEN",
+    "ENCRYPTION_KEY",
+    "BOOKS_API_KEY",
   ]
 }

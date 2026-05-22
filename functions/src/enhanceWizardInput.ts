@@ -3,8 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { requireAuth } from "./authService";
 import { callAgentWithRetry } from "./agentService";
-import { checkAiAccess } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 
 const VALID_TYPES = ["premise", "character", "place", "conflict", "blueprint"] as const;
 type WizardEnhanceType = (typeof VALID_TYPES)[number];
@@ -17,7 +16,7 @@ type WizardEnhanceType = (typeof VALID_TYPES)[number];
  * created yet at this point in the flow.
  */
 export const enhanceWizardInput = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireAuth(async (request, response, userId, idToken) => {
     try {
       // ── Quota check (bypassed for BYOK users) ─────────────────────────────

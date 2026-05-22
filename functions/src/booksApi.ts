@@ -4,10 +4,12 @@
  * The API key is stored server-side and never exposed to the client.
  */
 import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { corsOptions } from "./corsConfig";
 import { requireAuth } from "./authService";
 
-const BOOKS_API_KEY = process.env.BOOKS_API_KEY;
+const booksApiKey = defineSecret("BOOKS_API_KEY");
+const booksApiOptions = { secrets: [booksApiKey], ...corsOptions };
 const BOOKS_API_BASE_URL = "https://www.googleapis.com/books/v1";
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
@@ -24,18 +26,18 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
  * Search books endpoint.
  * GET /booksApi/search?q={query}&maxResults={maxResults}
  */
-export const searchBooks = onRequest(corsOptions, requireAuth(async (req, res, _userId, _idToken) => {
+export const searchBooks = onRequest(booksApiOptions, requireAuth(async (req, res, _userId, _idToken) => {
   // Only allow GET requests
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  // Check if API key is configured
-  if (!BOOKS_API_KEY) {
+  const apiKey = booksApiKey.value();
+  if (!apiKey) {
     res.status(500).json({
       error:
-        "Books API key not configured. Please set BOOKS_API_KEY environment variable.",
+        "Books API key not configured. Please set BOOKS_API_KEY secret.",
     });
     return;
   }
@@ -51,7 +53,7 @@ export const searchBooks = onRequest(corsOptions, requireAuth(async (req, res, _
 
     const url = new URL(`${BOOKS_API_BASE_URL}/volumes`);
     url.searchParams.set("q", query);
-    url.searchParams.set("key", BOOKS_API_KEY);
+    url.searchParams.set("key", apiKey);
     url.searchParams.set("maxResults", String(maxResults));
 
     const response = await fetchWithTimeout(url.toString(), 10000);
@@ -75,18 +77,18 @@ export const searchBooks = onRequest(corsOptions, requireAuth(async (req, res, _
  * GET /getBookDetails?volumeId={volumeId}
  * Alternative: GET /getBookDetails/{volumeId} (extracted from path)
  */
-export const getBookDetails = onRequest(corsOptions, requireAuth(async (req, res, _userId, _idToken) => {
+export const getBookDetails = onRequest(booksApiOptions, requireAuth(async (req, res, _userId, _idToken) => {
   // Only allow GET requests
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  // Check if API key is configured
-  if (!BOOKS_API_KEY) {
+  const apiKey = booksApiKey.value();
+  if (!apiKey) {
     res.status(500).json({
       error:
-        "Books API key not configured. Please set BOOKS_API_KEY environment variable.",
+        "Books API key not configured. Please set BOOKS_API_KEY secret.",
     });
     return;
   }
@@ -114,8 +116,13 @@ export const getBookDetails = onRequest(corsOptions, requireAuth(async (req, res
       return;
     }
 
+    if (!/^[a-zA-Z0-9_\-]{1,50}$/.test(volumeId)) {
+      res.status(400).json({ error: "Invalid volume ID." });
+      return;
+    }
+
     const url = new URL(`${BOOKS_API_BASE_URL}/volumes/${volumeId}`);
-    url.searchParams.set("key", BOOKS_API_KEY);
+    url.searchParams.set("key", apiKey);
 
     const response = await fetchWithTimeout(url.toString(), 10000);
 

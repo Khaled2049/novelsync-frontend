@@ -1,4 +1,5 @@
 import { storage } from "@/config/firebase";
+import { reserveStorageUpload } from "@/api/storage";
 import {
   ref,
   uploadBytes,
@@ -12,6 +13,10 @@ const PLACE_IMAGE_PATH = "place-images";
 const CHAPTER_IMAGE_PATH = "chapter-images";
 
 class StorageService {
+  private async reserveUploadSlot(): Promise<void> {
+    await reserveStorageUpload();
+  }
+
   /**
    * Upload a cover image to Firebase Storage.
    * Path: book-covers/{userId}/{storyId}-{timestamp}.{ext}
@@ -24,6 +29,7 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${COVERS_PATH}/${userId}/${storyId}-${Date.now()}.${ext}`;
+    await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,
@@ -44,6 +50,7 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${CHARACTER_ART_PATH}/${userId}/${characterId}-${Date.now()}.${ext}`;
+    await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,
@@ -64,6 +71,7 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const path = `${PLACE_IMAGE_PATH}/${userId}/${placeId}-${Date.now()}.${ext}`;
+    await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,
@@ -85,6 +93,7 @@ class StorageService {
   ): Promise<string> {
     const ext = file.type.split("/")[1] || "png";
     const path = `${CHAPTER_IMAGE_PATH}/${userId}/${storyId}/${chapterId}-${Date.now()}.${ext}`;
+    await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file, {
       contentType: file.type,
