@@ -3,8 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { callAgentWithRetry } from "./agentService";
 import { requireStoryOwnership } from "./authService";
 import * as logger from "firebase-functions/logger";
-import { checkAiAccess } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 
 const VALID_MODES = ["opening", "continuation", "ending"] as const;
 type StoryChoicesMode = (typeof VALID_MODES)[number];
@@ -27,7 +26,7 @@ const MAX_CURRENT_CONTENT_LENGTH = 5000;
  *   choices: { label: string, sceneText: string }[]  — 3–4 items
  */
 export const generateStoryChoices = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       // ── Quota check (bypassed for BYOK users) ─────────────────────────────

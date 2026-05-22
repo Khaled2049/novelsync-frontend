@@ -6,6 +6,7 @@ import {
   setUserAiSettings,
   deleteUserAiSettings,
   validateProviderKey,
+  corsWithEncryption,
 } from "./aiSettings";
 import { corsOptions } from "./corsConfig";
 
@@ -18,7 +19,7 @@ type Provider = (typeof VALID_PROVIDERS)[number];
  * Body: { provider: "gemini"|"claude"|"openai", apiKey: string, model?: string }
  */
 export const saveAiSettings = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireAuth(async (request, response, userId) => {
     try {
       const { provider, apiKey, model } = request.body as {

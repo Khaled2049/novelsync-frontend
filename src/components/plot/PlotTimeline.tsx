@@ -46,6 +46,7 @@ import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { getFunctionUrl } from "@/api";
 
 // Helper to ensure event has all required fields with defaults
 function ensureEventDefaults(
@@ -273,9 +274,7 @@ const PlotTimeline: React.FC = () => {
     }
 
     try {
-      const url = new URL(
-        "http://127.0.0.1:5001/story-6f89f/us-central1/createContext",
-      );
+      const url = new URL(getFunctionUrl("createContext"));
       url.searchParams.set("storyId", storyId);
       const res = await fetch(url.toString());
       const data = await res.json();

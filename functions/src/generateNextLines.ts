@@ -2,13 +2,12 @@ import { onRequest } from "firebase-functions/v2/https";
 import { callAgentWithRetry } from "./agentService";
 import { requireStoryOwnership } from "./authService";
 import * as logger from "firebase-functions/logger";
-import { checkAiAccess } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 
 const MAX_CONTENT_LENGTH = 5000;
 
 export const generateNextLines = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);

@@ -92,9 +92,8 @@ export const onInviteApproved = onDocumentUpdated(
               pass: smtpPass.value(), 
             },
             tls: {
-              ciphers: 'SSLv3',
               rejectUnauthorized: true,
-            }
+            },
           });
 
           // Send email

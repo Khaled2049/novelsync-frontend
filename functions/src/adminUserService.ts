@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { FieldValue } from "firebase-admin/firestore";
-import { randomInt } from "crypto";
+import { randomInt, randomBytes } from "crypto";
 import {
   uniqueNamesGenerator,
   adjectives,
@@ -46,7 +46,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function buildRandomPassword(): string {
-  return "password";
+  return randomBytes(20).toString("base64url");
 }
 
 function buildRandomUsername(): string {
@@ -174,12 +174,16 @@ export const createUserByAdmin = onRequest(
           { merge: true },
         );
 
+        const passwordResetLink = await admin
+          .auth()
+          .generatePasswordResetLink(normalizedEmail);
+
         response.status(200).json({
           success: true,
           uid: createdUser.uid,
           email: normalizedEmail,
           username,
-          password,
+          passwordResetLink,
         });
       } catch (error) {
         await admin.auth().deleteUser(createdUser.uid);

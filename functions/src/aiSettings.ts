@@ -2,6 +2,16 @@
 import * as crypto from "crypto";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
+import { defineSecret } from "firebase-functions/params";
+import { corsOptions } from "./corsConfig";
+
+export const encryptionKey = defineSecret("ENCRYPTION_KEY");
+
+/** onRequest options for endpoints that encrypt/decrypt BYOK API keys. */
+export const corsWithEncryption = {
+  ...corsOptions,
+  secrets: [encryptionKey],
+};
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LEN = 32;
@@ -24,13 +34,13 @@ export interface AiAccessResult {
 // ---------------------------------------------------------------------------
 
 function getEncryptionKey(): Buffer {
-  const secret = process.env.ENCRYPTION_KEY;
+  const secret = encryptionKey.value();
   if (!secret) {
     if (process.env.FUNCTIONS_EMULATOR === "true") {
       // Deterministic dev key — never used in production
       return crypto.scryptSync("dev-key-local-only", "novelsync-salt", KEY_LEN);
     }
-    throw new Error("ENCRYPTION_KEY env var required in production");
+    throw new Error("ENCRYPTION_KEY secret required in production");
   }
   return crypto.scryptSync(secret, "novelsync-ai-settings", KEY_LEN);
 }

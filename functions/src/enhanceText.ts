@@ -2,11 +2,10 @@ import { onRequest } from "firebase-functions/v2/https";
 import { callAgentWithRetry } from "./agentService";
 import { requireStoryOwnership } from "./authService";
 import * as logger from "firebase-functions/logger";
-import { checkAiAccess } from "./aiSettings";
-import { corsOptions } from "./corsConfig";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
 
 export const enhanceText = onRequest(
-  corsOptions,
+  corsWithEncryption,
   requireStoryOwnership(async (request, response, userId, storyId, idToken) => {
     try {
       const access = await checkAiAccess(userId);

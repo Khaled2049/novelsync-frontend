@@ -2,48 +2,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function storyIsVisibleTo(storyId) {
+      let s = get(/databases/$(database)/documents/stories/$(storyId)).data;
+      return s.isPublished == true || (request.auth != null && s.userId == request.auth.uid);
+    }
+
     // Invites collection for invite-only signup
     match /invites/{email} {
+      // enforce linkSentCount == 0 on create — prevent injecting a pre-incremented counter.
       allow create: if request.auth == null
                     && request.resource.data.email == email
                     && request.resource.data.status == "pending"
+                    && request.resource.data.linkSentCount == 0
                     && request.resource.data.keys().hasAll(["email", "status", "requestedAt", "linkSentCount"]);
 
-      // FIX #12: split read into get + list. Unauthenticated list would expose all invited
-      // emails and their statuses. Only allow direct document lookups (get), not collection scans.
+      // Unauthenticated get is intentional — allows invite status check before login.
+      // list=false prevents email enumeration via collection scans.
       allow get: if request.auth == null ||
                    (request.auth != null && request.auth.token.email == email);
       allow list: if false;
 
+      // scope update to status field only — other fields immutable after create.
       allow update: if request.auth != null
                     && request.auth.token.email != null
                     && request.auth.token.email == email
                     && request.resource.data.status == "completed"
-                    && (resource.data.status == "sent" || resource.data.status == "approved");
+                    && (resource.data.status == "sent" || resource.data.status == "approved")
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
 
       allow delete: if false;
     }
 
     match /messages/{messageId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.content.size() <= 10000;
       allow update, delete: if request.auth != null && resource.data.creator == request.auth.uid;
     }
 
     match /comments/{commentId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.content.size() <= 10000;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /posts/{postId} {
       allow read: if true;
       allow create: if request.auth != null;
-      // FIX #16: added upvoteCount/downvoteCount to allowed update keys so VoteService
-      // batch writes (vote doc + counter on same post) don't fail for non-authors.
+      // counters must change by exactly ±1 and stay >= 0 — prevents arbitrary value injection.
       allow update: if request.auth != null && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoteCount', 'downvoteCount']) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']) &&
+         request.resource.data.commentCount >= 0 &&
+         (request.resource.data.commentCount == resource.data.commentCount + 1 ||
+          request.resource.data.commentCount == resource.data.commentCount - 1)) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoteCount', 'downvoteCount']) &&
+         request.resource.data.upvoteCount >= 0 &&
+         request.resource.data.downvoteCount >= 0 &&
+         request.resource.data.upvoteCount >= resource.data.upvoteCount - 1 &&
+         request.resource.data.upvoteCount <= resource.data.upvoteCount + 1 &&
+         request.resource.data.downvoteCount >= resource.data.downvoteCount - 1 &&
+         request.resource.data.downvoteCount <= resource.data.downvoteCount + 1) ||
         resource.data.authorId == request.auth.uid
       );
       allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
@@ -51,8 +68,7 @@ service cloud.firestore {
       match /reports/{reportId} {
         allow read: if request.auth != null && resource.data.userId == request.auth.uid;
         allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        // FIX #14: reports were mutable in a way that let an attacker claim ownership by
-        // writing their own userId in the same request. Reports should be immutable after create.
+        // Reports immutable after create — prevents ownership hijack.
         allow update: if false;
         allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
       }
@@ -67,10 +83,16 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.auth != null;
-        // FIX #16: allow upvoteCount/downvoteCount updates so comment vote batches don't fail.
+        // vote counter delta bounded to ±1, non-negative.
         allow update: if request.auth != null && (
           resource.data.authorId == request.auth.uid ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoteCount', 'downvoteCount'])
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoteCount', 'downvoteCount']) &&
+           request.resource.data.upvoteCount >= 0 &&
+           request.resource.data.downvoteCount >= 0 &&
+           request.resource.data.upvoteCount >= resource.data.upvoteCount - 1 &&
+           request.resource.data.upvoteCount <= resource.data.upvoteCount + 1 &&
+           request.resource.data.downvoteCount >= resource.data.downvoteCount - 1 &&
+           request.resource.data.downvoteCount <= resource.data.downvoteCount + 1)
         );
         allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
 
@@ -85,24 +107,42 @@ service cloud.firestore {
 
     match /plotTemplates/{templateId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      // enforce userId on create so ownership is consistent with update/delete.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /stories/{storyId} {
-      allow read: if true;
+      allow read: if resource.data.isPublished == true
+                  || (request.auth != null && resource.data.userId == request.auth.uid);
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
 
       allow update: if (
+        // Unauthenticated view increment: exactly +1 only.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']) &&
         request.resource.data.views == resource.data.views + 1
       ) ||
       (request.auth != null && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating']) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingsCount']) ||
+        // likes delta bounded to ±1, non-negative — prevents arbitrary counter injection.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
+         request.resource.data.likes >= 0 &&
+         (request.resource.data.likes == resource.data.likes + 1 ||
+          request.resource.data.likes == resource.data.likes - 1)) ||
+        // averageRating bounded to valid 1–5 range.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating']) &&
+         request.resource.data.averageRating >= 1 &&
+         request.resource.data.averageRating <= 5) ||
+        // ratingsCount increment-only (ratings are permanent).
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingsCount']) &&
+         request.resource.data.ratingsCount >= 0 &&
+         request.resource.data.ratingsCount == resource.data.ratingsCount + 1) ||
+        // combined averageRating+ratingsCount — both constraints must hold.
         (request.resource.data.diff(resource.data).affectedKeys().hasAll(['averageRating', 'ratingsCount']) &&
-         request.resource.data.diff(resource.data).affectedKeys().size() == 2) ||
+         request.resource.data.diff(resource.data).affectedKeys().size() == 2 &&
+         request.resource.data.averageRating >= 1 &&
+         request.resource.data.averageRating <= 5 &&
+         request.resource.data.ratingsCount >= 0 &&
+         request.resource.data.ratingsCount == resource.data.ratingsCount + 1) ||
         resource.data.userId == request.auth.uid
       ));
 
@@ -125,13 +165,15 @@ service cloud.firestore {
           request.resource.data.rating <= 5;
       }
 
-      // FIX #13: create was open to any auth user — any user could inject chapters into
-      // any story. Now gated on parent story ownership (same as update/delete).
       match /chapters/{chapterId} {
-        allow read: if true;
+        allow read: if storyIsVisibleTo(storyId);
         allow create: if request.auth != null &&
-          get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
-        allow update, delete: if request.auth != null &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid &&
+          (!('content' in request.resource.data) || request.resource.data.content.size() <= 100000);
+        allow update: if request.auth != null &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid &&
+          (!('content' in request.resource.data) || request.resource.data.content.size() <= 100000);
+        allow delete: if request.auth != null &&
           get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
 
         match /comments/{commentId} {
@@ -147,26 +189,26 @@ service cloud.firestore {
 
           match /likes/{likeId} {
             allow read: if true;
+            // constrain likeId == auth.uid — prevents multiple likes per user on same comment.
             allow create: if request.auth != null &&
+              likeId == request.auth.uid &&
               request.resource.data.userId == request.auth.uid;
             allow delete: if request.auth != null &&
-              resource.data.userId == request.auth.uid;
+              likeId == request.auth.uid;
           }
         }
       }
 
-      // FIX #13: same — create now requires parent story ownership.
       match /plots/{plotId} {
-        allow read: if true;
+        allow read: if storyIsVisibleTo(storyId);
         allow create: if request.auth != null &&
           get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
         allow update, delete: if request.auth != null &&
           get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
       }
 
-      // FIX #13: same for characters and places.
       match /characters/{characterId} {
-        allow read: if true;
+        allow read: if storyIsVisibleTo(storyId);
         allow create: if request.auth != null &&
           get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
         allow update, delete: if request.auth != null &&
@@ -174,7 +216,7 @@ service cloud.firestore {
       }
 
       match /places/{placeId} {
-        allow read: if true;
+        allow read: if storyIsVisibleTo(storyId);
         allow create: if request.auth != null &&
           get(/databases/$(database)/documents/stories/$(storyId)).data.userId == request.auth.uid;
         allow update, delete: if request.auth != null &&
@@ -195,17 +237,31 @@ service cloud.firestore {
 
     match /bookClubs/{clubId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.creatorId == request.auth.uid;
       allow delete: if request.auth != null && request.auth.uid == resource.data.creatorId;
+      // members update — non-creators may only add/remove themselves (mirrors follower logic).
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.creatorId ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-         request.resource.data.members.hasAll([request.auth.uid]))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) && (
+          // Join: add yourself only
+          (request.resource.data.members.size() == resource.data.members.size() + 1 &&
+           request.resource.data.members.hasAll(resource.data.members) &&
+           !resource.data.members.hasAny([request.auth.uid])) ||
+          // Leave: remove yourself only
+          (request.resource.data.members.size() == resource.data.members.size() - 1 &&
+           resource.data.members.hasAll(request.resource.data.members) &&
+           resource.data.members.hasAny([request.auth.uid]))
+        ))
       );
 
       match /messages/{messageId} {
         allow read: if true;
-        allow create: if request.auth != null;
+        // require membership or creator status — prevents non-members from posting.
+        allow create: if request.auth != null &&
+          request.resource.data.content.size() <= 10000 && (
+          get(/databases/$(database)/documents/bookClubs/$(clubId)).data.creatorId == request.auth.uid ||
+          get(/databases/$(database)/documents/bookClubs/$(clubId)).data.members.hasAny([request.auth.uid])
+        );
         allow delete: if request.auth != null &&
           resource.data.senderId == request.auth.uid;
       }
@@ -240,9 +296,6 @@ service cloud.firestore {
       }
     }
 
-    // FIX #15: restored client writes but with a "counts can only increase" guard to
-    // prevent users from resetting their own rate-limit counters to bypass daily limits.
-    // A user can create their own activity doc and increment counters, but cannot decrease any.
     match /userActivity/{activityId} {
       allow read: if request.auth != null && (
         activityId.matches(request.auth.uid + '_.*') ||
@@ -254,6 +307,7 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid;
 
       // Counts can only increase — prevents resetting to 0 to bypass rate limits.
+      // added upper bounds (10 000) to prevent MAX_INT injection.
       allow update: if request.auth != null &&
         activityId.matches(request.auth.uid + '_.*') &&
         request.resource.data.userId == resource.data.userId &&
@@ -265,13 +319,24 @@ service cloud.firestore {
         request.resource.data.get('voteChangeCount', 0)      >= resource.data.get('voteChangeCount', 0) &&
         request.resource.data.get('promptCount', 0)          >= resource.data.get('promptCount', 0) &&
         request.resource.data.get('promptResponseCount', 0)  >= resource.data.get('promptResponseCount', 0) &&
-        request.resource.data.get('progressUpdateCount', 0)  >= resource.data.get('progressUpdateCount', 0);
+        request.resource.data.get('progressUpdateCount', 0)  >= resource.data.get('progressUpdateCount', 0) &&
+        request.resource.data.get('postCount', 0)            <= 10000 &&
+        request.resource.data.get('commentCount', 0)         <= 10000 &&
+        request.resource.data.get('messageCount', 0)         <= 10000 &&
+        request.resource.data.get('bookSearchCount', 0)      <= 10000 &&
+        request.resource.data.get('pollCount', 0)            <= 10000 &&
+        request.resource.data.get('voteChangeCount', 0)      <= 10000 &&
+        request.resource.data.get('promptCount', 0)          <= 10000 &&
+        request.resource.data.get('promptResponseCount', 0)  <= 10000 &&
+        request.resource.data.get('progressUpdateCount', 0)  <= 10000;
 
       allow delete: if false;
     }
 
+    // private lists were readable by all authenticated users — now owner-only when not public.
     match /bookLists/{listId} {
-      allow read: if resource.data.isPublic == true || request.auth != null;
+      allow read: if resource.data.isPublic == true ||
+                   (request.auth != null && resource.data.userId == request.auth.uid);
       allow create: if request.auth != null &&
                        request.resource.data.userId == request.auth.uid;
       allow update: if request.auth != null &&
@@ -281,19 +346,23 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // Prevent cross-user profile data exposure. Public profile data should live
-      // in a dedicated public collection/document if needed by other users.
+      // block sensitive fields on create — Cloud Functions set these via Admin SDK, never the client.
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        !('hasCustomAiProvider' in request.resource.data) &&
+        !('aiSettings' in request.resource.data) &&
+        !('role' in request.resource.data) &&
+        !('isAdmin' in request.resource.data);
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // FIX #11: follow/unfollow branches previously didn't restrict which fields could
-      // change alongside followers — a user could follow someone and also overwrite their
-      // bio, username, etc. in the same write. Now all three branches are field-scoped:
-      // own-profile branch locks out followers, follow/unfollow locks to followers only.
+      // own-profile branch now also blocks sensitive BYOK/admin fields to prevent
+      // self-elevating hasCustomAiProvider to bypass AI quotas.
       allow update: if request.auth != null && (
-        // Own profile: any field except followers
+        // Own profile: any field except followers and sensitive admin/BYOK fields
         (userId == request.auth.uid &&
-         request.resource.data.followers == resource.data.followers) ||
+         request.resource.data.followers == resource.data.followers &&
+         !request.resource.data.diff(resource.data).affectedKeys()
+           .hasAny(['hasCustomAiProvider', 'aiSettings', 'role', 'isAdmin', 'aiUsage', 'lastAiUsageDate'])) ||
         // Follow/unfollow: only the followers field may change
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers']) && (
           // Follow: add yourself
@@ -307,6 +376,12 @@ service cloud.firestore {
         ))
       );
 
+      // Daily storage upload counters — written only by Cloud Functions (Admin SDK).
+      match /_storageQuota/{dayKey} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
       match /competitionJoins/{competitionId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create, update, delete: if false;
@@ -316,9 +391,10 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
+      // create now requires userId == auth.uid — prevents posting into other users' subcollections.
       match /posts/{postId} {
         allow read: if true;
-        allow create: if request.auth != null;
+        allow create: if request.auth != null && userId == request.auth.uid;
         allow update: if request.auth != null && resource.data.creator == request.auth.uid;
         allow delete: if request.auth != null && resource.data.creator == request.auth.uid;
       }

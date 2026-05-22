@@ -85,6 +85,11 @@ const apiClient = {
 
 export default apiClient;
 
+export function getFunctionUrl(functionName: string): string {
+  const path = functionName.startsWith("/") ? functionName : `/${functionName}`;
+  return `${baseURL}${path}`;
+}
+
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {
     const e = error as {
