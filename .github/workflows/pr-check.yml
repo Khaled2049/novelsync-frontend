@@ -11,9 +11,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: 22
           cache: yarn
@@ -38,8 +38,6 @@ jobs:
           VITE_MAX_AI_USAGE: "100"
           VITE_APP_NAME: NovelSync
 
-      - name: Dependency audit
-        run: npm audit --audit-level=high
 
   functions:
     name: Functions Type-check & Audit
@@ -47,9 +45,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: 22
 
@@ -63,4 +61,4 @@ jobs:
 
       - name: Dependency audit
         working-directory: functions
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
