@@ -39,7 +39,7 @@ jobs:
           VITE_APP_NAME: NovelSync
 
       - name: Dependency audit
-        run: npm audit --audit-level=high
+        run: yarn audit --level critical
 
   functions:
     name: Functions Type-check & Audit
