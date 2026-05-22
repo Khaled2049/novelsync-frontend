@@ -39,7 +39,7 @@ jobs:
           VITE_APP_NAME: NovelSync
 
       - name: Dependency audit
-        run: yarn audit --level critical
+        run: yarn audit; code=$?; test $((code & 16)) -eq 0
 
   functions:
     name: Functions Type-check & Audit
