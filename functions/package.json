@@ -37,5 +37,9 @@
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^3.1.0"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "protobufjs": "^7.5.5",
+    "fast-xml-parser": "^5.0.0"
+  }
 }
