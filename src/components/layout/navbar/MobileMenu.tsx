@@ -110,7 +110,11 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
           {user ? (
             <>
               <div className="mb-4 pb-4 border-b border-ns-border">
-                <div className="flex items-center gap-3 px-4 py-2">
+                <Link
+                  to="/profile"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-2 rounded-ns hover:bg-ns-surface transition-colors"
+                >
                   {user.photoURL && user.photoURL.trim() !== "" ? (
                     <img
                       src={user.photoURL}
@@ -132,7 +136,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
                       {user.email}
                     </p>
                   </div>
-                </div>
+                </Link>
               </div>
 
               <div className="space-y-1 mb-6">

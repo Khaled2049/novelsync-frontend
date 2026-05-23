@@ -48,29 +48,6 @@ interface StoryEarnings extends StoryMetadata {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const Toggle = ({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) => (
-  <button
-    role="switch"
-    aria-checked={checked}
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 cursor-pointer ${
-      checked ? "bg-ns-accent" : "bg-ns-border"
-    }`}
-  >
-    <span
-      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-        checked ? "translate-x-5" : "translate-x-0"
-      }`}
-    />
-  </button>
-);
-
 const Card = ({
   title,
   children,
@@ -101,7 +78,7 @@ const Row = ({
   description?: string;
   children: React.ReactNode;
 }) => (
-  <div className="flex items-center justify-between gap-6 py-4 border-b border-ns-border last:border-0">
+  <div className="flex flex-col items-start gap-3 py-4 border-b border-ns-border last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
     <div>
       <p className="text-sm font-ui font-medium text-ns-ink">{label}</p>
       {description && (
@@ -294,7 +271,7 @@ const UserProfile: React.FC = () => {
     <div className="min-h-screen bg-ns-bg">
       {/* ── Profile header ── */}
       <div className="bg-ns-elevated border-b border-ns-border">
-        <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 sm:py-10">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
@@ -353,15 +330,15 @@ const UserProfile: React.FC = () => {
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-5xl mx-auto px-6 py-8 flex gap-8 items-start">
+      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-4 sm:px-6 sm:py-8 lg:flex-row lg:gap-8 lg:items-start">
         {/* Sidebar */}
-        <aside className="w-48 flex-shrink-0 sticky top-6">
-          <nav className="space-y-0.5">
+        <aside className="w-full lg:w-48 lg:flex-shrink-0 lg:sticky lg:top-6">
+          <nav className="flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0">
             {navItems.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveSection(id)}
-                className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-ns text-sm font-ui text-left transition-colors ${
+                className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-ns text-sm font-ui text-left transition-colors whitespace-nowrap lg:w-full ${
                   activeSection === id
                     ? "bg-ns-surface-hover text-ns-ink font-medium"
                     : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
@@ -441,7 +418,7 @@ const UserProfile: React.FC = () => {
                           <Link
                             key={story.id}
                             to={`/story/${story.id}`}
-                            className="flex items-center gap-3 py-3.5 -mx-6 px-6 hover:bg-ns-surface-hover transition-colors group"
+                            className="flex items-center gap-3 py-3.5 -mx-4 px-4 sm:-mx-6 sm:px-6 hover:bg-ns-surface-hover transition-colors group"
                           >
                             {story.coverImageUrl ? (
                               <img
@@ -544,6 +521,8 @@ const UserProfile: React.FC = () => {
                         <code className="flex-1 px-3 py-2 text-xs font-mono bg-ns-surface border border-ns-border rounded-ns text-ns-ink truncate">
                           {connectedAddress}
                         </code>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={handleCopyAddress}
                           className="p-2 rounded-ns border border-ns-border bg-ns-surface hover:bg-ns-surface-hover text-ns-ink-muted hover:text-ns-ink transition-colors"
@@ -619,7 +598,7 @@ const UserProfile: React.FC = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-ns-surface border border-ns-border rounded-ns">
                         <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-2">
                           ETH
@@ -665,7 +644,7 @@ const UserProfile: React.FC = () => {
                       .map((story) => (
                         <div
                           key={story.id}
-                          className="flex items-center justify-between py-3.5 gap-4"
+                          className="flex flex-col items-start py-3.5 gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                         >
                           <Link
                             to={`/story/${story.id}`}
@@ -690,7 +669,7 @@ const UserProfile: React.FC = () => {
                       ))}
                   </div>
                   {(totalEthEarnings > 0 || totalUsdcEarnings > 0) && (
-                    <div className="mt-4 pt-4 border-t border-ns-border flex items-center justify-between">
+                    <div className="mt-4 pt-4 border-t border-ns-border flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted">
                         Total
                       </span>
