@@ -112,7 +112,7 @@ const HelpSupport = () => {
               className="text-sm text-dark-green dark:text-light-green hover:underline flex items-center gap-1"
             >
               <Mail className="w-4 h-4" />
-              shoibal.not@gmail.com
+              khaledhossain.not@gmail.com
             </a>
           </div>
         </div>

@@ -1,6 +1,6 @@
 // src/components/reader/ReaderSettingsPanel.tsx
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { X, Settings, Type, BookOpen, Palette } from "lucide-react";
 import { ReaderSettings } from "@/types/IReader";
 
@@ -15,8 +15,20 @@ export const ReaderSettingsPanel: React.FC<ReaderSettingsPanelProps> = ({
   onUpdateSettings,
   onClose,
 }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
   return (
-    <div className="fixed top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6">
+    <div ref={panelRef} className="fixed top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
           <Settings size={20} className="text-gray-900 dark:text-gray-100" />

@@ -14,7 +14,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { IUser } from "../../../types/IUser";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface UserDropdownProps {
   isOpen: boolean;
@@ -150,9 +149,6 @@ const UserDropdown = ({
             </div>
           </div>
         </Link>
-        <div className="pr-3">
-          <ThemeToggle />
-        </div>
       </div>
 
       {/* Menu Items */}

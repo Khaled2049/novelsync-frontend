@@ -133,7 +133,7 @@ export const ChapterContentRenderer: React.FC<ChapterContentRendererProps> = ({
             return (
               <blockquote
                 key={key}
-                className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-6 text-gray-700 dark:text-gray-300"
+                className="border-l-4 border-current opacity-70 pl-4 italic my-6 text-current"
               >
                 {el.textContent}
               </blockquote>

@@ -24,7 +24,14 @@ const Footer: React.FC = () => {
           </p>
         </div>
         <p className="text-center text-sm text-ns-ink-muted font-ui">
-          {new Date().getFullYear()} Khaled Hossain
+          <a
+            href="https://khaled.codexn.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-ns-accent hover:text-ns-accent-hover hover:underline"
+          >
+            {new Date().getFullYear()} Khaled Hossain
+          </a>
         </p>
       </div>
     </footer>

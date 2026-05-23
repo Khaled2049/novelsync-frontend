@@ -1,10 +1,8 @@
 import { Outlet, useLocation, Link } from "react-router-dom";
 
-import { ListTodo, Trophy, BookOpen, Megaphone, Users } from "lucide-react";
+import { Trophy, BookOpen, Megaphone, Users } from "lucide-react";
 import AllStories from "./AllStories";
 import Home from "../Home";
-
-import BookLists from "@/components/explore/BookLists";
 import Announcements from "@/components/explore/Announcements";
 import Competitions from "@/components/explore/Competitions";
 
@@ -31,13 +29,13 @@ const tabs: Tab[] = [
     component: <Home />,
     path: "/explore/community",
   },
-  {
-    id: "book-lists",
-    label: "Book Lists",
-    icon: <ListTodo className="w-5 h-5" />,
-    component: <BookLists />,
-    path: "/explore/book-lists",
-  },
+  // {
+  //   id: "book-lists",
+  //   label: "Book Lists",
+  //   icon: <ListTodo className="w-5 h-5" />,
+  //   component: <BookLists />,
+  //   path: "/explore/book-lists",
+  // },
   {
     id: "competitions",
     label: "Competitions",

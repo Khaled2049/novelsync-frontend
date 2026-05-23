@@ -193,7 +193,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                           e.stopPropagation();
                           onChapterDelete(chapter.id);
                         }}
-                        className="flex-shrink-0 p-2 opacity-0 group-hover:opacity-100 text-ns-ink-muted hover:text-ns-destructive transition-all duration-150"
+                        className="flex-shrink-0 p-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-ns-ink-muted hover:text-ns-destructive transition-all duration-150"
                         aria-label="Delete chapter"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

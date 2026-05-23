@@ -418,7 +418,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       </BubbleMenu>
 
       <div className="w-full bg-ns-elevated text-ns-ink transition-colors">
-        <div className="mx-auto w-full max-w-4xl px-6 py-10 sm:px-10 lg:px-16">
+        <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-10 lg:px-16">
           <EditorContent
             onClick={() => editor.commands.focus()}
             className="w-full focus:outline-none max-w-none"

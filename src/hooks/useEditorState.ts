@@ -26,6 +26,7 @@ type EditorAction =
         story: Story;
         chapters: Chapter[];
         currentChapter: Chapter | null;
+        leftSidebarOpen: boolean;
       };
     }
   | { type: "SELECT_CHAPTER"; payload: Chapter }
@@ -43,6 +44,8 @@ type EditorAction =
   | { type: "SET_ACTIVE_TAB"; payload: "chapters" | "ai" }
   | { type: "TOGGLE_LEFT_SIDEBAR" }
   | { type: "TOGGLE_RIGHT_SIDEBAR" }
+  | { type: "SET_LEFT_SIDEBAR"; payload: boolean }
+  | { type: "SET_RIGHT_SIDEBAR"; payload: boolean }
   | { type: "SET_RIGHT_TAB"; payload: "format" | "document" }
   | { type: "RESET" };
 
@@ -77,6 +80,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         storyTitle: action.payload.story.title,
         storyDescription: action.payload.story.description,
         chapterTitle: action.payload.currentChapter?.title || "",
+        leftSidebarOpen: action.payload.leftSidebarOpen,
+        rightSidebarOpen: false,
         isLoading: false,
         metadataChanged: false,
       };
@@ -171,6 +176,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case "TOGGLE_RIGHT_SIDEBAR":
       return { ...state, rightSidebarOpen: !state.rightSidebarOpen };
 
+    case "SET_LEFT_SIDEBAR":
+      return { ...state, leftSidebarOpen: action.payload };
+
+    case "SET_RIGHT_SIDEBAR":
+      return { ...state, rightSidebarOpen: action.payload };
+
     case "SET_RIGHT_TAB":
       return { ...state, rightTab: action.payload };
 
@@ -196,10 +207,16 @@ export function useEditorState() {
         story: Story,
         chapters: Chapter[],
         currentChapter: Chapter | null,
+        options?: { leftSidebarOpen?: boolean },
       ) =>
         dispatch({
           type: "LOAD_STORY",
-          payload: { story, chapters, currentChapter },
+          payload: {
+            story,
+            chapters,
+            currentChapter,
+            leftSidebarOpen: options?.leftSidebarOpen ?? true,
+          },
         }),
 
       selectChapter: (chapter: Chapter) =>
@@ -234,6 +251,12 @@ export function useEditorState() {
       toggleLeftSidebar: () => dispatch({ type: "TOGGLE_LEFT_SIDEBAR" }),
 
       toggleRightSidebar: () => dispatch({ type: "TOGGLE_RIGHT_SIDEBAR" }),
+
+      setLeftSidebarOpen: (isOpen: boolean) =>
+        dispatch({ type: "SET_LEFT_SIDEBAR", payload: isOpen }),
+
+      setRightSidebarOpen: (isOpen: boolean) =>
+        dispatch({ type: "SET_RIGHT_SIDEBAR", payload: isOpen }),
 
       setRightTab: (tab: "format" | "document") =>
         dispatch({ type: "SET_RIGHT_TAB", payload: tab }),

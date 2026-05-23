@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          const tokenResult = await firebaseUser.getIdTokenResult();
           const newUser = {
             ...firebaseUser,
             ...userData,
@@ -64,6 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             location: userData.location,
             walletAddress: userData.walletAddress,
             hasCustomAiProvider: userData.hasCustomAiProvider === true,
+            isAdmin: tokenResult.claims["admin"] === true,
+            aiUsage: typeof userData.aiUsage === "number" ? userData.aiUsage : 0,
+            lastAiUsageDate:
+              typeof userData.lastAiUsageDate === "string"
+                ? userData.lastAiUsageDate
+                : "",
           };
           setUser(newUser);
         } else {
@@ -81,6 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             occupation: "Occupation",
             location: "Location",
             walletAddress: undefined,
+            aiUsage: 0,
+            lastAiUsageDate: "",
           };
           setUser(newUser);
         }

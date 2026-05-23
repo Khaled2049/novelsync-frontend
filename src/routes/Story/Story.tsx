@@ -1,5 +1,7 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { BookOpen, Layers, Users, MapPin } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { StoryWorkspaceTabs } from "./components/StoryWorkspaceTabs";
 
 const NAV_ITEMS = [
   { label: "Editor", path: "", icon: BookOpen, end: true },
@@ -9,10 +11,11 @@ const NAV_ITEMS = [
 ] as const;
 
 const Story = () => {
+  const { storyId } = useParams<{ storyId: string }>();
+
   return (
     <div className="flex h-full bg-ns-bg overflow-hidden">
-      {/* ── Left Nav Sidebar ── */}
-      <nav className="flex-shrink-0 w-44 bg-ns-surface border-r border-ns-border flex flex-col pt-4 pb-4 px-2 gap-0.5">
+      <nav className="hidden lg:flex flex-shrink-0 w-44 bg-ns-surface border-r border-ns-border flex-col pt-4 pb-4 px-2 gap-0.5">
         {NAV_ITEMS.map(({ label, path, icon: Icon, end }) => (
           <NavLink
             key={label}
@@ -32,8 +35,13 @@ const Story = () => {
         ))}
       </nav>
 
-      <div className="flex-1 overflow-hidden min-w-0">
-        <main className="h-full overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0 flex flex-col">
+        <StoryWorkspaceTabs
+          basePath="/create"
+          storyId={storyId}
+          className="lg:hidden"
+        />
+        <main className="h-full overflow-hidden min-h-0">
           <Outlet />
         </main>
       </div>

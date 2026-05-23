@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bot,
   Key,
@@ -10,10 +10,17 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { auth } from "@/config/firebase";
+import { auth, firestore } from "@/config/firebase";
+import {
+  AI_SETTINGS_COPY,
+  PLATFORM_AI_DAILY_LIMIT,
+  getPlatformAiRemaining,
+  getTodayPlatformAiUsage,
+} from "@/config/aiQuota";
 
 // ── Firebase Functions base URL ────────────────────────────────────────────
 const isDevelopment = import.meta.env.MODE === "development";
@@ -46,6 +53,11 @@ interface ProviderMeta {
   accent: string;
   border: string;
   bg: string;
+}
+
+interface QuotaSnapshot {
+  aiUsage: number;
+  lastAiUsageDate: string;
 }
 
 const PROVIDERS: Record<ProviderKey, ProviderMeta> = {
@@ -106,6 +118,57 @@ const AiSettings = () => {
 
   // Track local BYOK status (mirrors user.hasCustomAiProvider but updated on save/remove)
   const [isActive, setIsActive] = useState(!!user?.hasCustomAiProvider);
+  const [quotaSnapshot, setQuotaSnapshot] = useState<QuotaSnapshot | null>(null);
+
+  const effectiveAiUsage = quotaSnapshot?.aiUsage ?? user?.aiUsage;
+  const effectiveLastAiUsageDate =
+    quotaSnapshot?.lastAiUsageDate ?? user?.lastAiUsageDate;
+  const usedToday = useMemo(
+    () => getTodayPlatformAiUsage(effectiveAiUsage, effectiveLastAiUsageDate),
+    [effectiveAiUsage, effectiveLastAiUsageDate],
+  );
+  const requestsRemaining = useMemo(
+    () => getPlatformAiRemaining(effectiveAiUsage, effectiveLastAiUsageDate),
+    [effectiveAiUsage, effectiveLastAiUsageDate],
+  );
+  const usagePercent = useMemo(() => {
+    if (PLATFORM_AI_DAILY_LIMIT <= 0) return 0;
+    return Math.min(100, Math.round((usedToday / PLATFORM_AI_DAILY_LIMIT) * 100));
+  }, [usedToday]);
+
+  useEffect(() => {
+    setIsActive(!!user?.hasCustomAiProvider);
+  }, [user?.hasCustomAiProvider]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setQuotaSnapshot(null);
+      return;
+    }
+
+    let isMounted = true;
+    const refreshQuotaSnapshot = async () => {
+      try {
+        const userRef = doc(firestore, "users", user.uid);
+        const snapshot = await getDoc(userRef);
+        if (!snapshot.exists() || !isMounted) return;
+
+        const data = snapshot.data();
+        setQuotaSnapshot({
+          aiUsage: typeof data.aiUsage === "number" ? data.aiUsage : 0,
+          lastAiUsageDate:
+            typeof data.lastAiUsageDate === "string" ? data.lastAiUsageDate : "",
+        });
+      } catch (error) {
+        console.error("Failed to refresh AI usage snapshot:", error);
+      }
+    };
+
+    refreshQuotaSnapshot();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid]);
 
   const handleProviderChange = (p: ProviderKey) => {
     setProvider(p);
@@ -181,22 +244,52 @@ const AiSettings = () => {
         <p className="text-xs font-ui text-black/50 dark:text-white/50 uppercase tracking-wider mb-1">
           Current Status
         </p>
+        <p className="text-xs text-black/60 dark:text-white/60 font-body mb-3">
+          Choose NovelSync&apos;s shared AI quota or connect your own provider key.
+        </p>
         {isActive ? (
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-dark-green dark:text-light-green shrink-0" />
-            <span className="text-sm font-body text-black dark:text-white">
-              Custom provider active —{" "}
-              <span className="font-semibold capitalize">{provider}</span>
-              {" · "}
-              <span className="text-black/60 dark:text-white/60">Unlimited usage</span>
-            </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-dark-green dark:text-light-green shrink-0" />
+              <span className="text-sm font-body text-black dark:text-white">
+                Your <span className="font-semibold capitalize">{provider}</span> key
+                {" — "}
+                billed by <span className="font-semibold capitalize">{provider}</span>,
+                not NovelSync
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-black/60 dark:text-white/60 font-body">
+              {AI_SETTINGS_COPY.byokNoLimitHint}
+            </p>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0" />
-            <span className="text-sm font-body text-black/70 dark:text-white/70">
-              Platform default — 10 AI uses / day
-            </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0" />
+              <span className="text-sm font-body text-black/70 dark:text-white/70">
+                {AI_SETTINGS_COPY.platformLabel} — {usedToday} of{" "}
+                {PLATFORM_AI_DAILY_LIMIT} requests used today
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-dark-green dark:bg-light-green transition-all"
+                style={{ width: `${usagePercent}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-black/60 dark:text-white/60 font-body">
+              {AI_SETTINGS_COPY.platformResetHint}
+            </p>
+            {requestsRemaining <= 0 ? (
+              <p className="mt-2 text-xs text-red-500 font-body">
+                Daily limit reached. Add your own API key below to keep using AI, or
+                try again after midnight UTC.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-black/60 dark:text-white/60 font-body">
+                {requestsRemaining} requests remaining today.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -345,7 +438,8 @@ const AiSettings = () => {
       {isActive && (
         <div className="mt-6 pt-5 border-t border-black/10 dark:border-white/10">
           <p className="text-xs text-black/50 dark:text-white/50 font-body mb-3">
-            Removing your custom provider will revert to the platform default (10 uses/day).
+            You&apos;ll return to NovelSync AI ({PLATFORM_AI_DAILY_LIMIT} requests/day,
+            resets at midnight UTC).
           </p>
           <Button
             variant="outline"

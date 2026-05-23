@@ -1,6 +1,7 @@
 // src/components/reader/ReaderBottomBar.tsx
 
 import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ReaderBottomBarProps {
   theme: {
@@ -19,24 +20,48 @@ export const ReaderBottomBar: React.FC<ReaderBottomBarProps> = ({
   theme,
   currentChapterIndex,
   totalChapters,
+  onPrevChapter,
+  onNextChapter,
 }) => {
   const progress = ((currentChapterIndex + 1) / totalChapters) * 100;
+  const isFirst = currentChapterIndex === 0;
+  const isLast = currentChapterIndex === totalChapters - 1;
 
   return (
     <div
       className={`fixed bottom-0 left-0 w-full ${theme.bg} border-t ${theme.border} shadow-lg transition-colors duration-300`}
     >
       <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-center">
-          <span className={`text-sm font-medium ${theme.text}`}>
-            Chapter {currentChapterIndex + 1} of {totalChapters}
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={onPrevChapter}
+            disabled={isFirst}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${theme.hover} ${theme.text} disabled:opacity-30 disabled:cursor-not-allowed`}
+            aria-label="Previous chapter"
+          >
+            <ChevronLeft size={16} />
+            Prev
+          </button>
+
+          <span className={`text-sm font-medium ${theme.text} tabular-nums`}>
+            {currentChapterIndex + 1} / {totalChapters}
           </span>
+
+          <button
+            onClick={onNextChapter}
+            disabled={isLast}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${theme.hover} ${theme.text} disabled:opacity-30 disabled:cursor-not-allowed`}
+            aria-label="Next chapter"
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+        <div className="mt-2 w-full bg-current opacity-10 rounded-full h-1">
           <div
-            className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+            className="bg-ns-accent-deep h-1 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
             role="progressbar"
             aria-valuenow={progress}
