@@ -24,7 +24,7 @@ export const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
       {/* Fixed FAB trigger */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-20 right-4 md:bottom-24 md:right-6 z-30 w-11 h-11 rounded-full bg-ns-accent text-white shadow-ns-lg hover:bg-ns-accent-hover active:scale-95 transition-all duration-200 flex items-center justify-center ${
+        className={`fixed bottom-24 right-4 md:bottom-24 md:right-6 z-30 w-11 h-11 rounded-full bg-ns-accent text-white shadow-ns-lg hover:bg-ns-accent-hover active:scale-95 transition-all duration-200 flex items-center justify-center ${
           isOpen
             ? "opacity-0 pointer-events-none scale-90"
             : "opacity-100 scale-100"

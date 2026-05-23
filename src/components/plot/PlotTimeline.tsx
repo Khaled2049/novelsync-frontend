@@ -331,7 +331,7 @@ const PlotTimeline: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-ns-bg">
       {/* ── Toolbar ── */}
-      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-3 border-b border-ns-border bg-ns-surface">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-3 border-b border-ns-border bg-ns-surface overflow-x-auto">
         {/* Page title */}
         <span className="font-heading italic text-lg text-ns-ink mr-2 hidden sm:block">
           Plot Timeline
@@ -395,8 +395,8 @@ const PlotTimeline: React.FC = () => {
       </div>
 
       {/* ── Scrollable Content ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4 max-w-5xl mx-auto">
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 space-y-4 max-w-5xl min-w-[640px] md:min-w-0 mx-auto">
           {/* Tension Curve Chart */}
           <AnimatePresence>
             {showTensionChart && (

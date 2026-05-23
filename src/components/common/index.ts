@@ -3,6 +3,7 @@ export { ConfirmDialog, UnsavedChangesDialog } from "./ConfirmDialog";
 export { default as CollapsibleDiv } from "./CollapsibleDiv";
 export { ThemeToggle } from "./ThemeToggle";
 export { ThemeToaster } from "./ThemeToaster";
+export { SlideOverPanel } from "./SlideOverPanel";
 export * as Icons from "./Icons";
 export { default as SignInPrompt } from "./SignInPrompt";
 export { default as BookSearch } from "./BookSearch";

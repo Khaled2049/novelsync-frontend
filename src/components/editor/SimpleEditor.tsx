@@ -26,6 +26,7 @@ import {
   Sparkles,
   Undo2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -39,8 +40,9 @@ import { SidebarPanel } from "@/components/layout/SidebarPanel";
 import { TipTapEditor } from "@/components/editor/TipTapEditor";
 import {
   ConfirmDialog,
+  SlideOverPanel,
   UnsavedChangesDialog,
-} from "@/components/common/ConfirmDialog";
+} from "@/components/common";
 import { Editor } from "@tiptap/react";
 
 // Import hooks
@@ -50,6 +52,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { FloatingChatButton } from "../chat/FloatingChatButton";
 import { useCoWrite } from "@/hooks/useCoWrite";
 import { InteractiveStoryPanel } from "@/components/editor/InteractiveStoryPanel";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 const DEMO_STORY: Story = {
   id: "demo",
@@ -84,6 +87,7 @@ export function SimpleEditor() {
 
   // Use the new consolidated state hook
   const { state, actions } = useEditorState();
+  const { isLgUp } = useBreakpoint();
 
   // Network status
   const { isOnline } = useNetworkStatus();
@@ -121,6 +125,14 @@ export function SimpleEditor() {
   const fontSizes = ["12px", "14px", "16px", "18px", "20px", "24px", "28px"];
   const lineHeights = ["1.2", "1.4", "1.6", "1.8", "2"];
   const paragraphSpacings = ["0", "0.5rem", "0.75rem", "1rem", "1.25rem"];
+
+  useEffect(() => {
+    if (isLgUp) {
+      return;
+    }
+    actions.setLeftSidebarOpen(false);
+    actions.setRightSidebarOpen(false);
+  }, [isLgUp, actions]);
 
   // Save function that will be passed to useAutosave
   const performSave = useCallback(
@@ -186,16 +198,20 @@ export function SimpleEditor() {
       if (story) {
         const storyChapters = await storiesRepo.getChapters(loadStoryId);
         const firstChapter = storyChapters.length > 0 ? storyChapters[0] : null;
-        actions.loadStory(story, storyChapters, firstChapter);
+        actions.loadStory(story, storyChapters, firstChapter, {
+          leftSidebarOpen: isLgUp,
+        });
       }
     },
-    [actions, resetSaveState],
+    [actions, isLgUp, resetSaveState],
   );
 
   // Load story on component mount
   useEffect(() => {
     if (isDemo) {
-      actions.loadStory(DEMO_STORY, [DEMO_CHAPTER], DEMO_CHAPTER);
+      actions.loadStory(DEMO_STORY, [DEMO_CHAPTER], DEMO_CHAPTER, {
+        leftSidebarOpen: isLgUp,
+      });
       return;
     }
     if (storyId) {
@@ -248,6 +264,9 @@ export function SimpleEditor() {
       setUnsavedChangesDialogOpen(true);
     } else {
       actions.selectChapter(chapter);
+      if (!isLgUp) {
+        actions.setLeftSidebarOpen(false);
+      }
       resetSaveState();
     }
   };
@@ -259,6 +278,9 @@ export function SimpleEditor() {
     }
     if (pendingChapter) {
       actions.selectChapter(pendingChapter);
+      if (!isLgUp) {
+        actions.setLeftSidebarOpen(false);
+      }
       resetSaveState();
     }
     setPendingChapter(null);
@@ -268,6 +290,9 @@ export function SimpleEditor() {
   const handleDiscardAndContinue = () => {
     if (pendingChapter) {
       actions.selectChapter(pendingChapter);
+      if (!isLgUp) {
+        actions.setLeftSidebarOpen(false);
+      }
       resetSaveState();
     }
     setPendingChapter(null);
@@ -330,6 +355,395 @@ export function SimpleEditor() {
         ? "justify"
         : "left";
 
+  const openChaptersPanel = () => {
+    if (!isLgUp) {
+      actions.setRightSidebarOpen(false);
+    }
+    actions.setLeftSidebarOpen(true);
+  };
+
+  const openInspectorPanel = () => {
+    if (!isLgUp) {
+      actions.setLeftSidebarOpen(false);
+    }
+    actions.setRightSidebarOpen(true);
+  };
+
+  const closeChaptersPanel = () => {
+    actions.setLeftSidebarOpen(false);
+  };
+
+  const closeInspectorPanel = () => {
+    actions.setRightSidebarOpen(false);
+  };
+
+  const inspectorPanelContent = (
+    <>
+      <div className="flex border-b border-ns-border flex-shrink-0">
+        <button
+          onClick={() => actions.setRightTab("format")}
+          className={`flex-1 py-2.5 font-ui text-xs font-medium tracking-wide transition-all duration-150 ${
+            state.rightTab === "format"
+              ? "border-b-2 border-ns-accent text-ns-accent"
+              : "text-ns-ink-muted hover:text-ns-ink-secondary hover:bg-ns-surface-hover"
+          }`}
+        >
+          Format
+        </button>
+        <button
+          onClick={() => actions.setRightTab("document")}
+          className={`flex-1 py-2.5 font-ui text-xs font-medium tracking-wide transition-all duration-150 ${
+            state.rightTab === "document"
+              ? "border-b-2 border-ns-accent text-ns-accent"
+              : "text-ns-ink-muted hover:text-ns-ink-secondary hover:bg-ns-surface-hover"
+          }`}
+        >
+          Document
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {state.rightTab === "format" && editor && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
+                Text
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={fontSize}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setFontSize(value);
+                    editor.chain().focus().setFontSize(value).run();
+                  }}
+                  className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
+                >
+                  {fontSizes.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  defaultValue={fontFamilies[0]}
+                  onChange={(event) => {
+                    editor.chain().focus().setFontFamily(event.target.value).run();
+                  }}
+                  className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
+                >
+                  {fontFamilies.map((family) => (
+                    <option key={family} value={family}>
+                      {family.includes("Helvetica Neue")
+                        ? "Helvetica Neue"
+                        : family.split(",")[0].replace(/'/g, "")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => editor.chain().focus().undo().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Undo"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().redo().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Redo"
+                >
+                  <Redo2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Divider"
+                >
+                  <RemoveFormatting className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().clearTextFormatting().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Clear formatting"
+                >
+                  <Eraser className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  className={`px-2 py-1.5 rounded-ns border text-xs font-semibold ${editor.isActive("bold") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Bold"
+                >
+                  B
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  className={`px-2 py-1.5 rounded-ns border text-xs italic ${editor.isActive("italic") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Italic"
+                >
+                  I
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleUnderline().run()}
+                  className={`px-2 py-1.5 rounded-ns border text-xs underline ${editor.isActive("underline") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Underline"
+                >
+                  U
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleStrike().run()}
+                  className={`px-2 py-1.5 rounded-ns border text-xs line-through ${editor.isActive("strike") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Strikethrough"
+                >
+                  S
+                </button>
+                <button
+                  onClick={applyLink}
+                  className={`p-2 rounded-ns border ${editor.isActive("link") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Link"
+                >
+                  <Link2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
+                Structure
+              </p>
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  onClick={() => editor.chain().focus().setParagraph().run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("paragraph") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Paragraph"
+                >
+                  <Pilcrow className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 1 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Heading 1"
+                >
+                  <Heading1 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 2 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Heading 2"
+                >
+                  <Heading2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("bulletList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Bullet list"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("orderedList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Numbered list"
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                  className={`p-2 rounded-ns border ${editor.isActive("blockquote") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Quote"
+                >
+                  <Quote className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
+                Paragraph
+              </p>
+              <div className="flex items-center gap-1 flex-wrap mb-2">
+                <button
+                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                  className={`p-2 rounded-ns border ${activeTextAlign === "left" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Align left"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                  className={`p-2 rounded-ns border ${activeTextAlign === "center" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Align center"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                  className={`p-2 rounded-ns border ${activeTextAlign === "right" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Align right"
+                >
+                  <AlignRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+                  className={`p-2 rounded-ns border ${activeTextAlign === "justify" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
+                  title="Justify"
+                >
+                  <AlignJustify className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().decreaseIndent().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Outdent"
+                >
+                  <IndentDecrease className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => editor.chain().focus().increaseIndent().run()}
+                  className="p-2 rounded-ns border border-ns-border hover:bg-white"
+                  title="Indent"
+                >
+                  <IndentIncrease className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={lineHeight}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setLineHeight(value);
+                    editor.chain().focus().setLineHeight(value).run();
+                  }}
+                  className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
+                >
+                  {lineHeights.map((value) => (
+                    <option key={value} value={value}>
+                      Line {value}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={paragraphSpacing}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setParagraphSpacing(value);
+                    editor.chain().focus().setParagraphSpacing(value).run();
+                  }}
+                  className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
+                >
+                  {paragraphSpacings.map((value) => (
+                    <option key={value} value={value}>
+                      Space {value === "0" ? "none" : value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
+                Colors
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui flex items-center justify-between gap-2">
+                  Text
+                  <input
+                    type="color"
+                    value={fontColor}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setFontColor(value);
+                      editor.chain().focus().setColor(value).run();
+                    }}
+                    className="h-6 w-8 cursor-pointer border-0 bg-transparent"
+                  />
+                </label>
+                <label className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui flex items-center justify-between gap-2">
+                  Highlight
+                  <input
+                    type="color"
+                    value={highlightColor}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setHighlightColor(value);
+                      editor.chain().focus().setHighlightColor(value).run();
+                    }}
+                    className="h-6 w-8 cursor-pointer border-0 bg-transparent"
+                  />
+                </label>
+              </div>
+              <button
+                onClick={() => editor.chain().focus().unsetHighlightColor().run()}
+                className="mt-2 w-full rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui hover:bg-ns-surface-hover"
+              >
+                Clear highlight
+              </button>
+            </div>
+          </div>
+        )}
+
+        {state.rightTab === "document" && (
+          <div className="space-y-4">
+            <div className="rounded-ns border border-ns-border bg-white p-3 space-y-1.5">
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-1">
+                Details
+              </p>
+              <p className="text-xs font-ui text-ns-ink-secondary">
+                Words:{" "}
+                <span className="text-ns-ink">
+                  {editor?.storage.characterCount?.words?.() || 0}
+                </span>
+              </p>
+              <p className="text-xs font-ui text-ns-ink-secondary">
+                Characters:{" "}
+                <span className="text-ns-ink">
+                  {editor?.storage.characterCount?.characters?.() || 0}
+                </span>
+              </p>
+              <p className="text-xs font-ui text-ns-ink-secondary">
+                Chapters: <span className="text-ns-ink">{state.chapters.length}</span>
+              </p>
+            </div>
+            <div className="rounded-ns border border-ns-border bg-white p-3">
+              <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
+                Defaults
+              </p>
+              <button
+                onClick={() => {
+                  if (!editor) return;
+                  setFontSize("16px");
+                  setLineHeight("1.8");
+                  setParagraphSpacing("0");
+                  setFontColor("#1f2937");
+                  setHighlightColor("#fef3c7");
+                  editor
+                    .chain()
+                    .focus()
+                    .setFontFamily(fontFamilies[0])
+                    .setFontSize("16px")
+                    .setColor("#1f2937")
+                    .unsetHighlightColor()
+                    .setLineHeight("1.8")
+                    .setParagraphSpacing("0")
+                    .unsetTextAlign()
+                    .run();
+                }}
+                className="w-full rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui hover:bg-ns-surface-hover"
+              >
+                Reset document style
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="relative w-full h-full bg-ns-bg flex overflow-hidden">
       {state.isLoading ? (
@@ -344,13 +758,21 @@ export function SimpleEditor() {
         <>
           {/* ── Left Sidebar ── */}
           <div
-            className={`relative bg-ns-surface border-r border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
+            className={`hidden lg:block relative bg-ns-surface border-r border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
               state.leftSidebarOpen ? "w-80" : "w-0"
             }`}
             style={{
               transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
+            <button
+              type="button"
+              onClick={actions.toggleLeftSidebar}
+              aria-label="Close chapters panel"
+              className="absolute top-2 right-2 z-30 rounded-ns p-1.5 text-ns-ink-muted hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
             <div className="w-80 h-full">
               <SidebarPanel
                 chapters={state.chapters}
@@ -376,7 +798,7 @@ export function SimpleEditor() {
                 ? "Collapse chapters panel"
                 : "Expand chapters panel"
             }
-            className="absolute top-1/2 -translate-y-1/2 z-20 bg-ns-elevated border border-ns-border rounded-r-ns py-4 w-5 flex items-center justify-center shadow-ns-sm hover:bg-ns-surface-hover hover:shadow-ns transition-all duration-200 group"
+            className="hidden lg:flex absolute top-1/2 -translate-y-1/2 z-20 bg-ns-elevated border border-ns-border rounded-r-ns py-4 w-5 items-center justify-center shadow-ns-sm hover:bg-ns-surface-hover hover:shadow-ns transition-all duration-200 group"
             style={{ left: state.leftSidebarOpen ? "320px" : "0px" }}
           >
             {state.leftSidebarOpen ? (
@@ -388,6 +810,30 @@ export function SimpleEditor() {
 
           {/* ── Main Editor Area ── */}
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div className="lg:hidden flex items-center justify-between border-b border-ns-border bg-ns-surface px-3 py-2 gap-2">
+              <p className="font-ui text-xs text-ns-ink-secondary truncate">
+                {state.currentChapter?.title || "No chapter selected"}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={openChaptersPanel}
+                  className="inline-flex items-center gap-1 rounded-ns border border-ns-border px-2 py-1 text-[11px] font-ui text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+                >
+                  <BookPlus className="h-3.5 w-3.5" />
+                  Chapters
+                </button>
+                <button
+                  type="button"
+                  onClick={openInspectorPanel}
+                  className="inline-flex items-center gap-1 rounded-ns border border-ns-border px-2 py-1 text-[11px] font-ui text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+                >
+                  <AlignLeft className="h-3.5 w-3.5" />
+                  Format
+                </button>
+              </div>
+            </div>
+
             {/* Writing Canvas */}
             {state.currentChapter ? (
               <div className="flex-1 overflow-y-auto bg-ns-bg">
@@ -457,9 +903,7 @@ export function SimpleEditor() {
                   </div>
                 )}
 
-                {/* 3-column grid: left | center | right — right column has padding to clear ThemeToggle */}
-                <div className="grid grid-cols-3 items-center px-4 py-2">
-                  {/* Left: Co-Write + New Chapter + Save */}
+                <div className="hidden sm:grid sm:grid-cols-3 items-center px-4 py-2">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
@@ -493,7 +937,6 @@ export function SimpleEditor() {
                     </button>
                   </div>
 
-                  {/* Center: Autosave status */}
                   <div className="flex items-center justify-center gap-1.5 font-ui text-xs text-ns-ink-muted select-none">
                     {saveState.status === "saving" && (
                       <>
@@ -508,8 +951,7 @@ export function SimpleEditor() {
                     {!isOnline && <span className="text-ns-gold">Offline</span>}
                   </div>
 
-                  {/* Right: Publish — pr-16 keeps it clear of the fixed ThemeToggle */}
-                  <div className="flex items-center justify-end pr-16">
+                  <div className="flex items-center justify-end">
                     <button
                       onClick={handlePublish}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 ${
@@ -528,6 +970,65 @@ export function SimpleEditor() {
                     </button>
                   </div>
                 </div>
+
+                <div className="sm:hidden border-t border-ns-border px-3 py-2 space-y-2">
+                  <div className="flex items-center justify-center gap-1.5 font-ui text-xs text-ns-ink-muted select-none">
+                    {saveState.status === "saving" && (
+                      <>
+                        <Loader className="w-3 h-3 animate-spin text-ns-accent flex-shrink-0" />
+                        <span>Saving…</span>
+                      </>
+                    )}
+                    {saveState.status === "saved" && <span>Saved</span>}
+                    {saveState.status === "error" && (
+                      <span className="text-ns-destructive">Save failed</span>
+                    )}
+                    {!isOnline && <span className="text-ns-gold">Offline</span>}
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <button
+                      onClick={() => {
+                        if (requireAuth()) openCoWrite();
+                      }}
+                      className="inline-flex justify-center rounded-ns border border-ns-border px-2 py-1.5 text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+                      aria-label="Open Co-Write"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleNewChapter}
+                      className="inline-flex justify-center rounded-ns border border-ns-border px-2 py-1.5 text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+                      aria-label="Create new chapter"
+                    >
+                      <BookPlus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (state.currentChapter?.content) {
+                          forceSave(state.currentChapter.content);
+                        }
+                      }}
+                      disabled={!isDirty || saveState.status === "saving"}
+                      className="inline-flex justify-center rounded-ns border border-ns-border px-2 py-1.5 text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Save chapter"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handlePublish}
+                      className={`inline-flex justify-center rounded-ns px-2 py-1.5 text-white transition-colors ${
+                        state.story?.isPublished
+                          ? "bg-ns-destructive hover:bg-ns-destructive-hover"
+                          : "bg-ns-accent hover:bg-ns-accent-hover"
+                      }`}
+                      aria-label={
+                        state.story?.isPublished ? "Unpublish story" : "Publish story"
+                      }
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -540,7 +1041,7 @@ export function SimpleEditor() {
                 ? "Collapse inspector panel"
                 : "Expand inspector panel"
             }
-            className="absolute top-1/2 -translate-y-1/2 z-20 bg-ns-elevated border border-ns-border rounded-l-ns py-4 w-5 flex items-center justify-center shadow-ns-sm hover:bg-ns-surface-hover hover:shadow-ns transition-all duration-200 group"
+            className="hidden lg:flex absolute top-1/2 -translate-y-1/2 z-20 bg-ns-elevated border border-ns-border rounded-l-ns py-4 w-5 items-center justify-center shadow-ns-sm hover:bg-ns-surface-hover hover:shadow-ns transition-all duration-200 group"
             style={{ right: state.rightSidebarOpen ? "320px" : "0px" }}
           >
             {state.rightSidebarOpen ? (
@@ -552,441 +1053,57 @@ export function SimpleEditor() {
 
           {/* ── Right Sidebar ── */}
           <div
-            className={`relative bg-ns-surface border-l border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
+            className={`hidden lg:block relative bg-ns-surface border-l border-ns-border transition-all duration-300 overflow-hidden flex-shrink-0 ${
               state.rightSidebarOpen ? "w-80" : "w-0"
             }`}
             style={{
               transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
+            <button
+              type="button"
+              onClick={actions.toggleRightSidebar}
+              aria-label="Close format and document panel"
+              className="absolute top-2 right-2 z-30 rounded-ns p-1.5 text-ns-ink-muted hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
             <div className="w-80 h-full flex flex-col overflow-hidden">
-              {/* Tab Bar */}
-              <div className="flex border-b border-ns-border flex-shrink-0">
-                <button
-                  onClick={() => actions.setRightTab("format")}
-                  className={`flex-1 py-2.5 font-ui text-xs font-medium tracking-wide transition-all duration-150 ${
-                    state.rightTab === "format"
-                      ? "border-b-2 border-ns-accent text-ns-accent"
-                      : "text-ns-ink-muted hover:text-ns-ink-secondary hover:bg-ns-surface-hover"
-                  }`}
-                >
-                  Format
-                </button>
-                <button
-                  onClick={() => actions.setRightTab("document")}
-                  className={`flex-1 py-2.5 font-ui text-xs font-medium tracking-wide transition-all duration-150 ${
-                    state.rightTab === "document"
-                      ? "border-b-2 border-ns-accent text-ns-accent"
-                      : "text-ns-ink-muted hover:text-ns-ink-secondary hover:bg-ns-surface-hover"
-                  }`}
-                >
-                  Document
-                </button>
-              </div>
-
-              {/* Tab Content */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {state.rightTab === "format" && editor && (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
-                        Text
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={fontSize}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setFontSize(value);
-                            editor.chain().focus().setFontSize(value).run();
-                          }}
-                          className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
-                        >
-                          {fontSizes.map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          defaultValue={fontFamilies[0]}
-                          onChange={(event) => {
-                            editor
-                              .chain()
-                              .focus()
-                              .setFontFamily(event.target.value)
-                              .run();
-                          }}
-                          className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
-                        >
-                          {fontFamilies.map((family) => (
-                            <option key={family} value={family}>
-                              {family.includes("Helvetica Neue")
-                                ? "Helvetica Neue"
-                                : family.split(",")[0].replace(/'/g, "")}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => editor.chain().focus().undo().run()}
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Undo"
-                        >
-                          <Undo2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => editor.chain().focus().redo().run()}
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Redo"
-                        >
-                          <Redo2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setHorizontalRule().run()
-                          }
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Divider"
-                        >
-                          <RemoveFormatting className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().clearTextFormatting().run()
-                          }
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Clear formatting"
-                        >
-                          <Eraser className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleBold().run()
-                          }
-                          className={`px-2 py-1.5 rounded-ns border text-xs font-semibold ${editor.isActive("bold") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Bold"
-                        >
-                          B
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleItalic().run()
-                          }
-                          className={`px-2 py-1.5 rounded-ns border text-xs italic ${editor.isActive("italic") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Italic"
-                        >
-                          I
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleUnderline().run()
-                          }
-                          className={`px-2 py-1.5 rounded-ns border text-xs underline ${editor.isActive("underline") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Underline"
-                        >
-                          U
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleStrike().run()
-                          }
-                          className={`px-2 py-1.5 rounded-ns border text-xs line-through ${editor.isActive("strike") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Strikethrough"
-                        >
-                          S
-                        </button>
-                        <button
-                          onClick={applyLink}
-                          className={`p-2 rounded-ns border ${editor.isActive("link") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Link"
-                        >
-                          <Link2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
-                        Structure
-                      </p>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setParagraph().run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("paragraph") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Paragraph"
-                        >
-                          <Pilcrow className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor
-                              .chain()
-                              .focus()
-                              .toggleHeading({ level: 1 })
-                              .run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 1 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Heading 1"
-                        >
-                          <Heading1 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor
-                              .chain()
-                              .focus()
-                              .toggleHeading({ level: 2 })
-                              .run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 2 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Heading 2"
-                        >
-                          <Heading2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleBulletList().run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("bulletList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Bullet list"
-                        >
-                          <List className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleOrderedList().run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("orderedList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Numbered list"
-                        >
-                          <ListOrdered className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().toggleBlockquote().run()
-                          }
-                          className={`p-2 rounded-ns border ${editor.isActive("blockquote") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Quote"
-                        >
-                          <Quote className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
-                        Paragraph
-                      </p>
-                      <div className="flex items-center gap-1 flex-wrap mb-2">
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setTextAlign("left").run()
-                          }
-                          className={`p-2 rounded-ns border ${activeTextAlign === "left" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Align left"
-                        >
-                          <AlignLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setTextAlign("center").run()
-                          }
-                          className={`p-2 rounded-ns border ${activeTextAlign === "center" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Align center"
-                        >
-                          <AlignCenter className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setTextAlign("right").run()
-                          }
-                          className={`p-2 rounded-ns border ${activeTextAlign === "right" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Align right"
-                        >
-                          <AlignRight className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().setTextAlign("justify").run()
-                          }
-                          className={`p-2 rounded-ns border ${activeTextAlign === "justify" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
-                          title="Justify"
-                        >
-                          <AlignJustify className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().decreaseIndent().run()
-                          }
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Outdent"
-                        >
-                          <IndentDecrease className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            editor.chain().focus().increaseIndent().run()
-                          }
-                          className="p-2 rounded-ns border border-ns-border hover:bg-white"
-                          title="Indent"
-                        >
-                          <IndentIncrease className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={lineHeight}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setLineHeight(value);
-                            editor.chain().focus().setLineHeight(value).run();
-                          }}
-                          className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
-                        >
-                          {lineHeights.map((value) => (
-                            <option key={value} value={value}>
-                              Line {value}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={paragraphSpacing}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setParagraphSpacing(value);
-                            editor
-                              .chain()
-                              .focus()
-                              .setParagraphSpacing(value)
-                              .run();
-                          }}
-                          className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
-                        >
-                          {paragraphSpacings.map((value) => (
-                            <option key={value} value={value}>
-                              Space {value === "0" ? "none" : value}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
-                        Colors
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui flex items-center justify-between gap-2">
-                          Text
-                          <input
-                            type="color"
-                            value={fontColor}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              setFontColor(value);
-                              editor.chain().focus().setColor(value).run();
-                            }}
-                            className="h-6 w-8 cursor-pointer border-0 bg-transparent"
-                          />
-                        </label>
-                        <label className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui flex items-center justify-between gap-2">
-                          Highlight
-                          <input
-                            type="color"
-                            value={highlightColor}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              setHighlightColor(value);
-                              editor
-                                .chain()
-                                .focus()
-                                .setHighlightColor(value)
-                                .run();
-                            }}
-                            className="h-6 w-8 cursor-pointer border-0 bg-transparent"
-                          />
-                        </label>
-                      </div>
-                      <button
-                        onClick={() =>
-                          editor.chain().focus().unsetHighlightColor().run()
-                        }
-                        className="mt-2 w-full rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui hover:bg-ns-surface-hover"
-                      >
-                        Clear highlight
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {state.rightTab === "document" && (
-                  <div className="space-y-4">
-                    <div className="rounded-ns border border-ns-border bg-white p-3 space-y-1.5">
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-1">
-                        Details
-                      </p>
-                      <p className="text-xs font-ui text-ns-ink-secondary">
-                        Words:{" "}
-                        <span className="text-ns-ink">
-                          {editor?.storage.characterCount?.words?.() || 0}
-                        </span>
-                      </p>
-                      <p className="text-xs font-ui text-ns-ink-secondary">
-                        Characters:{" "}
-                        <span className="text-ns-ink">
-                          {editor?.storage.characterCount?.characters?.() || 0}
-                        </span>
-                      </p>
-                      <p className="text-xs font-ui text-ns-ink-secondary">
-                        Chapters:{" "}
-                        <span className="text-ns-ink">
-                          {state.chapters.length}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="rounded-ns border border-ns-border bg-white p-3">
-                      <p className="text-[10px] tracking-[0.09em] uppercase text-ns-ink-muted font-ui mb-2">
-                        Defaults
-                      </p>
-                      <button
-                        onClick={() => {
-                          if (!editor) return;
-                          setFontSize("16px");
-                          setLineHeight("1.8");
-                          setParagraphSpacing("0");
-                          setFontColor("#1f2937");
-                          setHighlightColor("#fef3c7");
-                          editor
-                            .chain()
-                            .focus()
-                            .setFontFamily(fontFamilies[0])
-                            .setFontSize("16px")
-                            .setColor("#1f2937")
-                            .unsetHighlightColor()
-                            .setLineHeight("1.8")
-                            .setParagraphSpacing("0")
-                            .unsetTextAlign()
-                            .run();
-                        }}
-                        className="w-full rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui hover:bg-ns-surface-hover"
-                      >
-                        Reset document style
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {inspectorPanelContent}
             </div>
           </div>
+
+          <SlideOverPanel
+            open={!isLgUp && state.leftSidebarOpen}
+            onClose={closeChaptersPanel}
+            side="left"
+            title="Chapters"
+          >
+            <SidebarPanel
+              chapters={state.chapters}
+              currentChapterId={state.currentChapter?.id || ""}
+              chapterTitle={state.chapterTitle}
+              storyTitle={state.storyTitle}
+              onChapterSelect={handleChapterSelect}
+              onChapterDelete={handleChapterDeleteRequest}
+              onStoryTitleChange={actions.updateStoryTitle}
+              onChapterTitleChange={actions.updateChapterTitle}
+              onMetadataChange={handleMetadataChange}
+              activeTab={state.activeTab}
+              onTabChange={actions.setActiveTab}
+            />
+          </SlideOverPanel>
+
+          <SlideOverPanel
+            open={!isLgUp && state.rightSidebarOpen}
+            onClose={closeInspectorPanel}
+            side="right"
+            title="Format & Document"
+          >
+            <div className="h-full flex flex-col overflow-hidden">
+              {inspectorPanelContent}
+            </div>
+          </SlideOverPanel>
 
           {!isDemo && <FloatingChatButton storyId={state.story?.id} />}
 

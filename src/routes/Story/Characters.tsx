@@ -5,6 +5,8 @@ import { characterService } from "@/services/CharacterService";
 import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { SlideOverPanel } from "@/components/common";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 import {
   Users,
   UserPlus,
@@ -14,6 +16,7 @@ import {
   X,
   Plus,
   Check,
+  List,
 } from "lucide-react";
 
 const RELATIONSHIP_TYPES: CharacterRelationship["type"][] = [
@@ -71,6 +74,7 @@ const Field: React.FC<{
 const Characters: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
   const { isDemo, requireAuth } = useDemoMode();
+  const { isLgUp } = useBreakpoint();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     null,
@@ -91,6 +95,7 @@ const Characters: React.FC = () => {
     type: CharacterRelationship["type"];
     description: string;
   }>({ characterId: "", type: "ally", description: "" });
+  const [isRosterOpen, setIsRosterOpen] = useState(false);
 
   useEffect(() => {
     loadCharacters();
@@ -104,11 +109,20 @@ const Characters: React.FC = () => {
 
   const handleCharacterClick = (character: Character) => {
     setSelectedCharacter(character);
+    if (!isLgUp) {
+      setIsRosterOpen(false);
+    }
     setEditing(false);
     setDraft(null);
     setArtPreview(null);
     setArtFile(null);
   };
+
+  useEffect(() => {
+    if (isLgUp) {
+      setIsRosterOpen(false);
+    }
+  }, [isLgUp]);
 
   const handleAddCharacter = (newCharacter: Character) => {
     setCharacters((prev) => [...prev, newCharacter]);
@@ -257,12 +271,19 @@ const Characters: React.FC = () => {
           <UserPlus className="w-3.5 h-3.5" />
           Add Character
         </button>
+        <button
+          onClick={() => setIsRosterOpen(true)}
+          className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 border border-ns-border font-ui text-xs text-ns-ink-secondary rounded-ns hover:bg-ns-surface-hover hover:text-ns-ink transition-all duration-150"
+        >
+          <List className="w-3.5 h-3.5" />
+          Roster
+        </button>
       </div>
 
       {/* ── Two-Panel Content ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Roster */}
-        <div className="w-64 flex-shrink-0 border-r border-ns-border flex flex-col bg-ns-surface">
+        <div className="hidden lg:flex w-64 flex-shrink-0 border-r border-ns-border flex-col bg-ns-surface">
           <div className="flex-1 overflow-y-auto py-3 px-3">
             {characters.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
@@ -732,6 +753,82 @@ const Characters: React.FC = () => {
           )}
         </div>
       </div>
+
+      <SlideOverPanel
+        open={!isLgUp && isRosterOpen}
+        onClose={() => setIsRosterOpen(false)}
+        side="left"
+        title="Characters"
+      >
+        <div className="h-full bg-ns-surface">
+          <div className="h-full overflow-y-auto py-3 px-3">
+            {characters.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
+                <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
+                  <Users className="w-5 h-5 text-ns-accent opacity-60" />
+                </div>
+                <p className="font-ui text-xs text-ns-ink-muted text-center leading-relaxed">
+                  No characters yet.
+                  <br />
+                  Add your first character.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {characters.map((c) => {
+                  const isSelected = selectedCharacter?.id === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => handleCharacterClick(c)}
+                      className={`flex items-center gap-3 rounded-ns px-3 py-2.5 cursor-pointer transition-all duration-150 group ${
+                        isSelected
+                          ? "bg-ns-accent-subtle"
+                          : "hover:bg-ns-surface-hover"
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
+                        {c.artUrl ? (
+                          <img
+                            src={c.artUrl}
+                            alt={c.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full flex items-center justify-center font-ui font-semibold text-sm transition-colors ${
+                              isSelected
+                                ? "bg-ns-accent text-white"
+                                : "bg-ns-border text-ns-ink-secondary"
+                            }`}
+                          >
+                            {c.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`font-ui text-xs font-medium truncate transition-colors ${
+                            isSelected ? "text-ns-ink" : "text-ns-ink-secondary"
+                          }`}
+                        >
+                          {c.name}
+                        </p>
+                        {c.age && c.age > 0 && (
+                          <p className="font-ui text-[10px] text-ns-ink-muted">
+                            Age {c.age}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </SlideOverPanel>
 
       {/* ── Modals ── */}
       {isAddModalOpen && (

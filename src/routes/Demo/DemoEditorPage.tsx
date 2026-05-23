@@ -1,14 +1,7 @@
 import React from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { PenLine, Users, Layers, Map } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
-
-const tabs = [
-  { to: "/try", label: "Editor", Icon: PenLine, end: true },
-  { to: "/try/characters", label: "Characters", Icon: Users, end: false },
-  { to: "/try/plot", label: "Plot", Icon: Layers, end: false },
-  { to: "/try/places", label: "Places", Icon: Map, end: false },
-];
+import { StoryWorkspaceTabs } from "../Story/components/StoryWorkspaceTabs";
 
 const DemoEditorPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,26 +23,7 @@ const DemoEditorPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-ns-border bg-ns-surface">
-          {tabs.map(({ to, label, Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs transition-colors ${
-                  isActive
-                    ? "bg-ns-accent-subtle text-ns-accent font-medium"
-                    : "text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
-                }`
-              }
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </NavLink>
-          ))}
-        </div>
+        <StoryWorkspaceTabs basePath="/try" />
 
         {/* Active tab content */}
         <div className="flex-1 min-h-0">
