@@ -150,9 +150,6 @@ const UserDropdown = ({
             </div>
           </div>
         </Link>
-        <div className="pr-3">
-          <ThemeToggle />
-        </div>
       </div>
 
       {/* Menu Items */}

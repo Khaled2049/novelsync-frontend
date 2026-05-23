@@ -14,4 +14,7 @@ export interface IUser extends FirebaseUser {
   location: string;
   walletAddress?: string;
   hasCustomAiProvider?: boolean;
+  isAdmin?: boolean;
+  aiUsage?: number;
+  lastAiUsageDate?: string;
 }

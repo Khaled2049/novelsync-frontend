@@ -21,6 +21,7 @@ interface ChapterReaderProps {
   currentChapter: Chapter;
   currentChapterIndex: number;
   totalChapters: number;
+  chapterLoading?: boolean;
   onBackToDetails: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
@@ -31,6 +32,7 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
   currentChapter,
   currentChapterIndex,
   totalChapters,
+  chapterLoading = false,
   onBackToDetails,
   onPrevChapter,
   onNextChapter,
@@ -83,21 +85,16 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFirstChapter, isLastChapter, onPrevChapter, onNextChapter]);
 
-  // Top bar visibility
-  const [showTopBar, setShowTopBar] = useState(true);
-
   // Handle search toggle
   const handleSearchToggle = () => {
     setShowSearch(!showSearch);
     if (showSearch) {
       clearSearch();
     }
-    setShowTopBar(false);
   };
 
   const handleSettingsToggle = () => {
     setShowSettings(!showSettings);
-    setShowTopBar(false);
   };
 
   return (
@@ -105,20 +102,12 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
       className={`min-h-screen transition-colors duration-300 ${currentTheme.bg} ${currentTheme.text}`}
     >
       {/* Top Navigation Bar */}
-      {showTopBar ? (
-        <ReaderTopBar
-          theme={currentTheme}
-          onBack={onBackToDetails}
-          onSearchToggle={handleSearchToggle}
-          onSettingsToggle={handleSettingsToggle}
-        />
-      ) : (
-        <button
-          onClick={() => setShowTopBar(true)}
-          className="fixed top-0 left-0 w-full h-14 z-50"
-          aria-label="Show navigation bar"
-        />
-      )}
+      <ReaderTopBar
+        theme={currentTheme}
+        onBack={onBackToDetails}
+        onSearchToggle={handleSearchToggle}
+        onSettingsToggle={handleSettingsToggle}
+      />
 
       {/* Settings Panel */}
       {showSettings && (
@@ -185,6 +174,35 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         </button>
       )}
 
+      {/* Chapter loading overlay */}
+      {chapterLoading && (
+        <div
+          className={`fixed inset-0 z-40 flex items-center justify-center ${currentTheme.bg}`}
+          style={{ opacity: 0.85 }}
+        >
+          <svg
+            className="w-8 h-8 animate-spin"
+            style={{ opacity: 0.5 }}
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              className="opacity-25"
+            />
+            <path
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              className="opacity-75"
+            />
+          </svg>
+        </div>
+      )}
+
       {/* Main Reading Content */}
       <ReaderContent
         chapter={currentChapter}
@@ -194,6 +212,18 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         textAlign={settings.textAlign}
         onWordClick={lookupWord}
       />
+
+      {/* The End */}
+      {isLastChapter && (
+        <div className="flex flex-col items-center gap-3 py-16 pb-32" style={{ opacity: 0.6 }}>
+          <div className="flex items-center gap-4 w-48">
+            <div className="flex-1 h-px bg-current" style={{ opacity: 0.3 }} />
+            <span className="text-xs select-none">✦</span>
+            <div className="flex-1 h-px bg-current" style={{ opacity: 0.3 }} />
+          </div>
+          <p className={`font-heading italic text-3xl ${currentTheme.text}`}>The End</p>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <ReaderBottomBar

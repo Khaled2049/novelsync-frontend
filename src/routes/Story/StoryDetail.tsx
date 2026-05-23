@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useMemo,
   useRef,
-  useTransition,
 } from "react";
 import { useParams } from "react-router-dom";
 import { storiesRepo } from "../../services/StoriesRepo";
@@ -72,7 +71,7 @@ const StoryDetail: React.FC = () => {
   );
 
   const chapterContentCache = useRef<Record<string, string>>({});
-  const [readNowPending, startReadNowTransition] = useTransition();
+  const [readNowPending, setReadNowPending] = useState(false);
 
   // --- Data Loading ---
   const loadChapterContent = useCallback(
@@ -262,11 +261,9 @@ const StoryDetail: React.FC = () => {
     setState((prev) => ({
       ...prev,
       currentChapterIndex: prevIndex,
-      currentChapter:
-        cached && chapterMeta
-          ? ({ ...chapterMeta, content: cached } as Chapter)
-          : null,
-      chapterLoading: !cached,
+      ...(cached && chapterMeta
+        ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
+        : { chapterLoading: true }),
     }));
 
     if (!cached) loadChapterContent(prevIndex, state.chapters);
@@ -304,11 +301,9 @@ const StoryDetail: React.FC = () => {
     setState((prev) => ({
       ...prev,
       currentChapterIndex: nextIndex,
-      currentChapter:
-        cached && chapterMeta
-          ? ({ ...chapterMeta, content: cached } as Chapter)
-          : null,
-      chapterLoading: !cached,
+      ...(cached && chapterMeta
+        ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
+        : { chapterLoading: true }),
     }));
 
     if (!cached) loadChapterContent(nextIndex, state.chapters);
@@ -601,19 +596,22 @@ const StoryDetail: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => {
-                      startReadNowTransition(() => {
+                      if (readNowPending) return;
+                      setReadNowPending(true);
+                      if (id && user && state.story) {
+                        readingProgressService.saveProgress(user.uid, {
+                          storyId: id,
+                          chapterIndex: state.currentChapterIndex,
+                          storyTitle: state.story.title,
+                          storyAuthor: state.story.author,
+                          coverImageUrl: state.story.coverImageUrl ?? "",
+                          totalChapters: state.chapters.length,
+                        });
+                      }
+                      setTimeout(() => {
+                        setReadNowPending(false);
                         setViewMode("reader");
-                        if (id && user && state.story) {
-                          readingProgressService.saveProgress(user.uid, {
-                            storyId: id,
-                            chapterIndex: state.currentChapterIndex,
-                            storyTitle: state.story.title,
-                            storyAuthor: state.story.author,
-                            coverImageUrl: state.story.coverImageUrl ?? "",
-                            totalChapters: state.chapters.length,
-                          });
-                        }
-                      });
+                      }, 500);
                     }}
                     disabled={readNowPending}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns shadow-ns-sm hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 disabled:opacity-70 disabled:cursor-wait"
@@ -712,8 +710,7 @@ const StoryDetail: React.FC = () => {
 
   // --- VIEW 2: READER ---
   if (!state.currentChapter) {
-    if (state.chapterLoading) return <StoryLoadingState />;
-    return <StoryErrorState error="No chapter available" onRetry={() => {}} />;
+    return <StoryLoadingState />;
   }
 
   return (
@@ -721,6 +718,7 @@ const StoryDetail: React.FC = () => {
       currentChapter={state.currentChapter}
       currentChapterIndex={state.currentChapterIndex}
       totalChapters={state.chapters.length}
+      chapterLoading={state.chapterLoading}
       onBackToDetails={() => setViewMode("details")}
       onPrevChapter={handlePrevChapter}
       onNextChapter={handleNextChapter}

@@ -19,8 +19,6 @@ import {
   Wallet,
   Loader2,
   AlertCircle,
-  Bell,
-  Shield,
   Globe,
   Copy,
   CheckCircle2,
@@ -42,14 +40,7 @@ const TARGET_CHAIN_NAME =
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Section =
-  | "profile"
-  | "wallet"
-  | "ai"
-  | "notifications"
-  | "privacy"
-  | "appearance"
-  | "account";
+type Section = "profile" | "wallet" | "ai" | "appearance";
 
 interface StoryEarnings extends StoryMetadata {
   earnings: { eth: string; usdc: string };
@@ -156,17 +147,6 @@ const UserProfile: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Settings state (local only — no backend for notifications/privacy yet)
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    marketing: false,
-  });
-  const [privacy, setPrivacy] = useState({
-    profileVisibility: "public",
-    showEmail: false,
-  });
 
   useEffect(() => {
     setConnectedAddress(address || null);
@@ -305,8 +285,6 @@ const UserProfile: React.FC = () => {
     { id: "profile", label: "Profile", Icon: User },
     { id: "wallet", label: "Wallet & Earnings", Icon: Wallet },
     { id: "ai", label: "AI Provider", Icon: Bot },
-    { id: "notifications", label: "Notifications", Icon: Bell },
-    { id: "privacy", label: "Privacy", Icon: Shield },
     { id: "appearance", label: "Appearance", Icon: Globe },
   ];
 
@@ -402,23 +380,6 @@ const UserProfile: React.FC = () => {
                 {label}
               </button>
             ))}
-
-            <div className="my-3 border-t border-ns-border" />
-
-            <button
-              onClick={() => setActiveSection("account")}
-              className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 rounded-ns text-sm font-ui text-left transition-colors ${
-                activeSection === "account"
-                  ? "bg-ns-destructive/5 text-ns-destructive font-medium"
-                  : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-destructive"
-              }`}
-            >
-              {activeSection === "account" && (
-                <span className="absolute left-0 top-2 bottom-2 w-[2px] bg-ns-destructive rounded-full" />
-              )}
-              <Trash2 className="w-4 h-4 flex-shrink-0 text-ns-destructive/70" />
-              Account
-            </button>
           </nav>
         </aside>
 
@@ -782,77 +743,6 @@ const UserProfile: React.FC = () => {
             </>
           )}
 
-          {/* ── Notifications ── */}
-          {activeSection === "notifications" && (
-            <Card title="Notification Preferences">
-              <Row
-                label="Email Notifications"
-                description="Receive notifications via email"
-              >
-                <Toggle
-                  checked={notifications.email}
-                  onChange={(v) =>
-                    setNotifications((n) => ({ ...n, email: v }))
-                  }
-                />
-              </Row>
-              <Row
-                label="Push Notifications"
-                description="Receive browser push notifications"
-              >
-                <Toggle
-                  checked={notifications.push}
-                  onChange={(v) => setNotifications((n) => ({ ...n, push: v }))}
-                />
-              </Row>
-              <Row
-                label="Marketing Emails"
-                description="Receive updates about new features"
-              >
-                <Toggle
-                  checked={notifications.marketing}
-                  onChange={(v) =>
-                    setNotifications((n) => ({ ...n, marketing: v }))
-                  }
-                />
-              </Row>
-            </Card>
-          )}
-
-          {/* ── Privacy ── */}
-          {activeSection === "privacy" && (
-            <Card title="Privacy Settings">
-              <Row
-                label="Profile Visibility"
-                description="Who can view your profile"
-              >
-                <select
-                  value={privacy.profileVisibility}
-                  onChange={(e) =>
-                    setPrivacy((p) => ({
-                      ...p,
-                      profileVisibility: e.target.value,
-                    }))
-                  }
-                  className="text-sm font-ui bg-ns-surface border border-ns-border rounded-ns px-3 py-1.5 text-ns-ink focus:outline-none focus:ring-1 focus:ring-ns-accent cursor-pointer"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                  <option value="friends">Friends Only</option>
-                </select>
-              </Row>
-              <Row
-                label="Show Email"
-                description="Allow others to see your email address"
-              >
-                <Toggle
-                  checked={privacy.showEmail}
-                  onChange={(v) => setPrivacy((p) => ({ ...p, showEmail: v }))}
-                />
-              </Row>
-            </Card>
-          )}
-
           {/* ── Appearance ── */}
           {activeSection === "appearance" && (
             <Card title="Appearance">
@@ -880,40 +770,13 @@ const UserProfile: React.FC = () => {
 
           {/* ── AI Provider ── */}
           {activeSection === "ai" && (
-            <Suspense fallback={<div className="h-32 rounded-ns border border-ns-border animate-pulse bg-ns-surface" />}>
+            <Suspense
+              fallback={
+                <div className="h-32 rounded-ns border border-ns-border animate-pulse bg-ns-surface" />
+              }
+            >
               <AiSettings />
             </Suspense>
-          )}
-
-          {/* ── Account / Danger Zone ── */}
-          {activeSection === "account" && (
-            <Card>
-              <div className="flex items-center gap-3 pb-5 mb-5 border-b border-ns-border">
-                <div className="w-9 h-9 rounded-full bg-ns-destructive/10 flex items-center justify-center flex-shrink-0">
-                  <Trash2 className="w-4 h-4 text-ns-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm font-ui font-semibold text-ns-ink">
-                    Danger Zone
-                  </p>
-                  <p className="text-xs font-ui text-ns-ink-muted">
-                    Irreversible actions — proceed with care
-                  </p>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-ui font-medium text-ns-ink mb-1">
-                  Delete Account
-                </p>
-                <p className="text-xs font-ui text-ns-ink-muted mb-4 leading-relaxed">
-                  Once you delete your account, there is no going back. All your
-                  stories, lists, and data will be permanently removed.
-                </p>
-                <button className="px-4 py-2 text-sm font-ui font-medium bg-ns-destructive hover:bg-ns-destructive/90 text-white rounded-ns transition-colors">
-                  Delete Account
-                </button>
-              </div>
-            </Card>
           )}
         </main>
       </div>

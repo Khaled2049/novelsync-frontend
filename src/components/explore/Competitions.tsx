@@ -350,7 +350,9 @@ const Competitions: React.FC = () => {
               {user && (
                 <button
                   onClick={handleStartCreate}
-                  className="inline-flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors"
+                  disabled={!user.isAdmin}
+                  title={!user.isAdmin ? "Only admins can create competitions" : undefined}
+                  className="inline-flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-neutral-900 dark:text-white border border-neutral-900 dark:border-white px-4 py-2 hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-900 dark:disabled:hover:bg-transparent dark:disabled:hover:text-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Create Competition
