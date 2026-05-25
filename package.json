@@ -71,7 +71,8 @@
     "unique-names-generator": "^4.7.1",
     "uuid": "^10.0.0",
     "viem": "^2.46.3",
-    "wagmi": "^3.5.0"
+    "wagmi": "^3.5.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@types/aos": "^3.0.7",

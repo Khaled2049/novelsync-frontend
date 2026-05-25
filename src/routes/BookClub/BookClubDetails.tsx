@@ -12,6 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
+  Edit,
+  Save,
+  X,
 } from "lucide-react";
 import { bookClubRepo } from "./bookClubRepo";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -42,6 +45,9 @@ const BookClubDetails: React.FC = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [userCurrentChapter, setUserCurrentChapter] = useState<number>(0);
   const previousMemberIdsRef = useRef<string>("");
+  const [isEditingMeetup, setIsEditingMeetup] = useState(false);
+  const [meetupDraft, setMeetupDraft] = useState("");
+  const [isSavingMeetup, setIsSavingMeetup] = useState(false);
 
 
   // Fetch usernames for member IDs
@@ -174,46 +180,35 @@ const BookClubDetails: React.FC = () => {
         {/* Mobile Overlay */}
         {isSidebarExpanded && (
           <div
-            className="md:hidden fixed inset-0 bg-black/50 z-10 transition-opacity duration-300"
+            className="md:hidden fixed inset-0 bg-black/50 z-20 transition-opacity duration-300"
             onClick={() => setIsSidebarExpanded(false)}
             aria-hidden="true"
           />
         )}
 
-        {/* Sidebar Toggle Button (Mobile) */}
-        <button
-          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-          className="md:hidden fixed top-4 left-4 z-30 p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:text-dark-green dark:hover:text-light-green transition-all rounded-lg shadow-sm"
-          aria-label="Toggle sidebar"
-        >
-          {isSidebarExpanded ? (
-            <ChevronLeft size={20} />
-          ) : (
-            <ChevronRight size={20} />
-          )}
-        </button>
-
-        {/* Sidebar */}
+        {/* Sidebar — mobile: fixed drawer (translate only, always in DOM); desktop: relative push */}
         <aside
-          className={`${
-            isSidebarExpanded
-              ? "w-[280px] sm:w-80 md:w-80 translate-x-0"
-              : "-translate-x-full w-0"
-          } fixed md:relative h-full border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
-            isSidebarExpanded ? "block" : "hidden md:block"
-          }`}
+          className={`
+            w-72 fixed md:relative h-full shrink-0
+            border-r border-neutral-200 dark:border-neutral-800
+            bg-white dark:bg-neutral-900 z-30 md:z-auto
+            transition-all duration-300 ease-in-out overflow-hidden
+            ${isSidebarExpanded
+              ? "translate-x-0 md:w-72"
+              : "-translate-x-full md:translate-x-0 md:w-0 md:border-r-0"
+            }
+          `}
         >
-          <div className="p-3 sm:p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-2 sm:gap-3">
+          <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+            <h2 className="text-base md:text-lg font-ui font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
               <Users
-                className="text-dark-green dark:text-light-green w-5 h-5 sm:w-6 sm:h-6"
-                size={20}
+                className="text-dark-green dark:text-light-green w-4 h-4 md:w-5 md:h-5"
+                size={16}
               />
               {isSidebarExpanded && (
                 <>
-                  <span className="hidden sm:inline">Members</span>
-                  <span className="sm:hidden">Members</span>
-                  <span className="text-xs sm:text-sm font-sans font-normal text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 sm:px-2 py-0.5 rounded">
+                  <span>Members</span>
+                  <span className="text-xs font-normal text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
                     {club.members?.length || 0}
                   </span>
                 </>
@@ -252,35 +247,32 @@ const BookClubDetails: React.FC = () => {
                   return (
                     <div
                       key={member.id}
-                      className="group flex items-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg"
+                      className="group flex items-center gap-3 p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg"
                     >
-                      {/* Avatar Placeholder */}
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 font-bold text-base sm:text-lg rounded-full shrink-0 relative">
+                      {/* Avatar */}
+                      <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 font-semibold text-sm rounded-full shrink-0 relative">
                         {member.username.charAt(0).toUpperCase()}
                         {isAdmin && (
                           <div className="absolute -top-1 -right-1 bg-dark-green dark:bg-light-green rounded-full p-0.5">
-                            <Crown
-                              size={12}
-                              className="text-white w-3 h-3 sm:w-3.5 sm:h-3.5"
-                            />
+                            <Crown size={9} className="text-white" />
                           </div>
                         )}
                       </div>
 
                       {/* Name */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base sm:text-lg font-semibold text-neutral-900 dark:text-white truncate group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white truncate group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
                             {member.username}
                           </p>
                           {isAdmin && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-dark-green/10 dark:bg-light-green/10 text-dark-green dark:text-light-green border border-dark-green/20 dark:border-light-green/20">
-                              <Crown size={10} className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-dark-green/10 dark:bg-light-green/10 text-dark-green dark:text-light-green border border-dark-green/20 dark:border-light-green/20 shrink-0">
+                              <Crown size={8} />
                               Admin
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
                           {isAdmin ? "Creator" : "Member"}
                         </p>
                       </div>
@@ -307,92 +299,98 @@ const BookClubDetails: React.FC = () => {
         </aside>
 
         {/* Sidebar Expand Button (when collapsed) */}
+        {/* Desktop: expand button when sidebar collapsed */}
         {!isSidebarExpanded && (
           <button
             onClick={() => setIsSidebarExpanded(true)}
-            className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-20 p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:text-dark-green dark:hover:text-light-green transition-all rounded-lg shadow-sm"
+            className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-20 p-1.5 bg-white dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 border-l-0 hover:text-dark-green dark:hover:text-light-green transition-all rounded-r-lg shadow-sm"
             aria-label="Expand sidebar"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={16} />
           </button>
         )}
 
-        <main className="flex-1 flex flex-col overflow-hidden md:ml-0">
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Mobile sticky header — always below navbar (top-16), replaces the broken top-4 button */}
+          <div className="md:hidden sticky top-0 z-10 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800 px-4 py-2.5 flex items-center justify-between gap-3">
+            <button
+              onClick={() => setIsSidebarExpanded(true)}
+              className="flex items-center gap-1.5 text-xs font-ui font-medium text-neutral-600 dark:text-neutral-400 hover:text-dark-green dark:hover:text-light-green transition-colors"
+            >
+              <Users size={14} />
+              <span>Members ({club.members?.length || 0})</span>
+            </button>
+            <p className="text-xs font-ui font-medium text-neutral-900 dark:text-white truncate flex-1 text-right">
+              {club.name}
+            </p>
+          </div>
+
           <div className="flex-1 overflow-y-auto">
-            {/* Chat Toggle Button (Visible when chat is closed) */}
+            {/* Chat toggle — desktop only floating button */}
             {!isChatOpen && (
               <button
                 onClick={() => setIsChatOpen(true)}
-                className="fixed md:absolute top-20 md:top-6 right-4 md:right-6 z-30 p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:text-dark-green dark:hover:text-light-green transition-all hover:scale-110 rounded-lg shadow-sm"
+                className="hidden md:flex absolute top-6 right-6 z-10 p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:text-dark-green dark:hover:text-light-green transition-all hover:scale-110 rounded-lg shadow-sm"
                 title="Open Discussion"
               >
-                <PanelRightOpen size={20} />
+                <PanelRightOpen size={18} />
               </button>
             )}
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 lg:px-12">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 lg:px-12">
               {/* Club Hero */}
-              <div className="bg-white dark:bg-neutral-900 p-4 sm:p-8 md:p-10 mb-6 sm:mb-10 relative overflow-hidden group border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm transition-colors duration-300">
-                <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 sm:mb-4 text-neutral-900 dark:text-white">
+              <div className="bg-white dark:bg-neutral-900 p-4 sm:p-6 md:p-8 mb-4 sm:mb-8 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm transition-colors duration-300">
+                <h1 className="text-lg sm:text-3xl md:text-4xl font-serif font-bold mb-2 sm:mb-3 text-neutral-900 dark:text-white">
                   {club.name}
                 </h1>
-                <p className="text-neutral-600 dark:text-neutral-400 text-base sm:text-lg leading-relaxed max-w-2xl font-medium">
+                <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed max-w-2xl">
                   {club.description}
                 </p>
               </div>
 
               {/* Book of the Month */}
-              <section className="mb-6 sm:mb-10">
+              <section className="mb-4 sm:mb-8">
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm transition-all duration-300">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 md:mb-8">
-                    <div className="p-2 sm:p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-                      <Book size={20} className="w-5 h-5 sm:w-7 sm:h-7" />
+                  <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                    <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
+                      <Book size={16} className="sm:w-5 sm:h-5" />
                     </div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-neutral-900 dark:text-white">
+                    <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white">
                       Reading Now
                     </h2>
                   </div>
 
                   {club.bookOfTheMonth ? (
-                    <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 items-start">
-                      {/* Book Cover with 3D effect */}
+                    <div className="flex gap-4 sm:gap-6 md:gap-8 items-start">
+                      {/* Book Cover */}
                       {club.bookOfTheMonth.volumeInfo.imageLinks?.thumbnail && (
-                        <div className="relative group mx-auto md:mx-0 shrink-0 perspective-1000">
-                          <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-100/20 translate-y-4 translate-x-4 blur-md rounded-lg"></div>
+                        <div className="relative group shrink-0">
+                          <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-100/20 translate-y-3 translate-x-3 blur-md rounded-lg"></div>
                           <img
-                            src={
-                              club.bookOfTheMonth.volumeInfo.imageLinks
-                                .thumbnail
-                            }
+                            src={club.bookOfTheMonth.volumeInfo.imageLinks.thumbnail}
                             alt={club.bookOfTheMonth.volumeInfo.title}
-                            className="w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 object-cover relative z-10 transform group-hover:-rotate-y-6 transition-transform duration-500 rounded-lg shadow-lg"
+                            className="w-20 h-30 sm:w-32 sm:h-48 md:w-40 md:h-60 object-cover relative z-10 rounded-lg shadow-lg"
                           />
                         </div>
                       )}
 
-                      <div className="flex-1 space-y-2 sm:space-y-3 md:space-y-4 pt-0 sm:pt-2">
-                        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white leading-tight">
+                      <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+                        <h3 className="text-sm sm:text-lg md:text-xl font-bold text-neutral-900 dark:text-white leading-snug">
                           {club.bookOfTheMonth.volumeInfo.title}
                         </h3>
-                        <p className="text-base sm:text-lg md:text-xl text-dark-green dark:text-light-green font-medium font-serif italic">
-                          by{" "}
-                          {club.bookOfTheMonth.volumeInfo.authors?.join(", ")}
+                        <p className="text-xs sm:text-sm md:text-base text-dark-green dark:text-light-green font-medium font-serif italic">
+                          by {club.bookOfTheMonth.volumeInfo.authors?.join(", ")}
                         </p>
-                        <div className="w-12 sm:w-16 h-1 bg-dark-green dark:bg-light-green my-2 sm:my-3 md:my-4"></div>
-                        <p className="text-sm sm:text-base md:text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        <div className="w-8 sm:w-12 h-0.5 bg-dark-green dark:bg-light-green"></div>
+                        <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-4 sm:line-clamp-none">
                           {club.bookOfTheMonth.volumeInfo.description}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-neutral-400 dark:text-neutral-500 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
-                      <Book
-                        size={32}
-                        className="sm:w-10 sm:h-10 mb-2 sm:mb-3 opacity-50"
-                      />
-                      <p className="text-base sm:text-lg">
-                        No book selected for this month.
-                      </p>
+                    <div className="flex flex-col items-center justify-center py-8 text-neutral-400 dark:text-neutral-500 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
+                      <Book size={28} className="mb-2 opacity-50" />
+                      <p className="text-sm">No book selected for this month.</p>
                     </div>
                   )}
                 </div>
@@ -412,59 +410,108 @@ const BookClubDetails: React.FC = () => {
               <PollsSection club={club} isCreator={isCreator} />
 
               {/* Meetup Schedule */}
-              <section className="mb-6 sm:mb-10">
+              <section className="mb-4 sm:mb-8">
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="p-2 sm:p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-                      <Calendar size={20} className="w-5 h-5 sm:w-7 sm:h-7" />
+                  <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
+                        <Calendar size={16} className="sm:w-5 sm:h-5" />
+                      </div>
+                      <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
+                        Next Meetup
+                      </h2>
                     </div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-neutral-900 dark:text-white">
-                      Next Meetup
-                    </h2>
+                    {isCreator && !isEditingMeetup && (
+                      <button
+                        onClick={() => {
+                          setMeetupDraft(club.meetUp ?? "");
+                          setIsEditingMeetup(true);
+                        }}
+                        className="p-1.5 rounded-md text-neutral-400 hover:text-dark-green dark:hover:text-light-green hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+                        title="Edit meetup details"
+                      >
+                        <Edit size={15} />
+                      </button>
+                    )}
                   </div>
 
-                  {club.meetUp ? (
-                    <div className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-4 sm:p-6 flex items-start gap-3 sm:gap-4 rounded-lg">
-                      <div className="h-full w-1 bg-dark-green dark:bg-light-green rounded-full"></div>
+                  {isEditingMeetup ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={meetupDraft}
+                        onChange={(e) => setMeetupDraft(e.target.value)}
+                        rows={3}
+                        placeholder="e.g. Saturday June 14 at 7pm — Zoom link: ..."
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green resize-none"
+                        disabled={isSavingMeetup}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            setIsSavingMeetup(true);
+                            try {
+                              await bookClubRepo.updateMeetUp(club.id, meetupDraft.trim());
+                              setIsEditingMeetup(false);
+                            } catch (e) {
+                              console.error("Failed to save meetup:", e);
+                            } finally {
+                              setIsSavingMeetup(false);
+                            }
+                          }}
+                          disabled={isSavingMeetup}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-dark-green dark:bg-light-green text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                        >
+                          <Save size={13} />
+                          {isSavingMeetup ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setIsEditingMeetup(false)}
+                          disabled={isSavingMeetup}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                        >
+                          <X size={13} />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : club.meetUp ? (
+                    <div className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-4 flex items-start gap-3 rounded-lg">
+                      <div className="w-1 bg-dark-green dark:bg-light-green rounded-full self-stretch min-h-[1.5rem] shrink-0"></div>
                       <div>
-                        <p className="text-neutral-900 dark:text-white text-base sm:text-lg font-medium">
+                        <p className="text-neutral-900 dark:text-white text-sm sm:text-base font-medium whitespace-pre-wrap">
                           {club.meetUp}
                         </p>
-                        <p className="text-neutral-500 dark:text-neutral-400 text-xs sm:text-sm mt-1">
+                        <p className="text-neutral-500 dark:text-neutral-400 text-xs mt-1">
                           Don't forget to bring your notes!
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <p className="italic text-sm sm:text-base text-neutral-400 dark:text-neutral-500 pl-3 sm:pl-4 border-l-4 border-neutral-200 dark:border-neutral-800">
-                      No meetup scheduled yet.
+                    <p className="italic text-sm text-neutral-400 dark:text-neutral-500 pl-3 border-l-4 border-neutral-200 dark:border-neutral-800">
+                      {isCreator ? "No meetup scheduled yet. Click the edit button to add one." : "No meetup scheduled yet."}
                     </p>
                   )}
                 </div>
               </section>
+
               {user && (
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 overflow-hidden mb-6 rounded-2xl shadow-sm">
                   <button
                     onClick={() => setIsChatOpen(!isChatOpen)}
                     className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-200"
                   >
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-neutral-900 dark:text-white flex items-center">
+                    <h2 className="text-base sm:text-lg md:text-xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-2">
                       <MessageCircle
-                        className="mr-2 sm:mr-3 text-dark-green dark:text-light-green w-5 h-5 sm:w-7 sm:h-7"
-                        size={20}
+                        className="text-dark-green dark:text-light-green w-4 h-4 sm:w-5 sm:h-5"
+                        size={16}
                       />
                       Chat Room
                     </h2>
                     {isChatOpen ? (
-                      <ChevronUp
-                        className="text-dark-green dark:text-light-green w-5 h-5 sm:w-7 sm:h-7"
-                        size={20}
-                      />
+                      <ChevronUp className="text-dark-green dark:text-light-green w-4 h-4" size={16} />
                     ) : (
-                      <ChevronDown
-                        className="text-dark-green dark:text-light-green w-5 h-5 sm:w-7 sm:h-7"
-                        size={20}
-                      />
+                      <ChevronDown className="text-dark-green dark:text-light-green w-4 h-4" size={16} />
                     )}
                   </button>
                   {isChatOpen && (

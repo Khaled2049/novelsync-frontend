@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BarChart3, Plus, CheckCircle2 } from "lucide-react";
+import { BarChart3, Plus, CheckCircle2, ChevronUp, ChevronDown } from "lucide-react";
 import { IPoll, IClub, IBookOfTheMonth } from "@/types/IClub";
 import { bookClubRepo } from "../bookClubRepo";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -278,34 +278,51 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
     return Math.round((count / total) * 100);
   };
 
+  const [isExpanded, setIsExpanded] = useState(true);
   const activePolls = polls.filter((p) => p.isActive);
   const pastPolls = polls.filter((p) => !p.isActive);
 
   return (
-    <section className="mb-10">
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-2xl shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-              <BarChart3 size={28} />
+    <section className="mb-4 sm:mb-8">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden">
+        {/* Collapsible header */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full p-4 sm:p-6 flex items-center justify-between gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
+              <BarChart3 size={16} className="sm:w-5 sm:h-5" />
             </div>
-            <h2 className="text-3xl font-serif font-bold text-neutral-900 dark:text-white">
+            <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
               Polls
             </h2>
-            <span className="text-sm text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+            <span className="text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded shrink-0">
               {activePolls.length} active
             </span>
           </div>
-          {isCreator && (
-            <Button
-              onClick={() => setIsCreatingPoll(true)}
-              className="bg-dark-green dark:bg-light-green text-white hover:opacity-90"
-            >
-              <Plus size={18} className="mr-2" />
-              Create Poll
-            </Button>
+          {isExpanded ? (
+            <ChevronUp className="text-dark-green dark:text-light-green shrink-0 w-4 h-4" size={16} />
+          ) : (
+            <ChevronDown className="text-dark-green dark:text-light-green shrink-0 w-4 h-4" size={16} />
           )}
-        </div>
+        </button>
+
+        {isExpanded && (
+        <div className="p-4 sm:p-6 pt-0">
+          {isCreator && (
+            <div className="mb-4 sm:mb-6">
+              <Button
+                size="sm"
+                onClick={() => setIsCreatingPoll(true)}
+                className="bg-dark-green dark:bg-light-green text-white hover:opacity-90 shrink-0 text-xs sm:text-sm"
+              >
+                <Plus size={14} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Create Poll</span>
+                <span className="sm:hidden">Add Poll</span>
+              </Button>
+            </div>
+          )}
 
         {activePolls.length === 0 && pastPolls.length === 0 ? (
           <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
@@ -342,7 +359,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
                           </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-1">
+                      <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-white mb-1">
                         {poll.question}
                       </h3>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -420,7 +437,7 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
 
             {pastPolls.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+                <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-white mb-3">
                   Past Polls
                 </h3>
                 <div className="space-y-4">
@@ -461,6 +478,8 @@ const PollsSection: React.FC<PollsSectionProps> = ({ club, isCreator }) => {
               </div>
             )}
           </div>
+        )}
+        </div>
         )}
       </div>
 

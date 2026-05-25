@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDemoStore } from "@/stores";
 
 interface DemoModeContextValue {
   isDemo: boolean;
@@ -11,26 +12,28 @@ interface DemoModeContextValue {
   requireAuth: () => boolean;
 }
 
-const DemoModeContext = createContext<DemoModeContextValue>({
-  isDemo: false,
-  requireAuth: () => true,
-});
-
 export function DemoModeProvider({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
+  const setDemoMode = useDemoStore((state) => state.setDemoMode);
 
-  const requireAuth = useCallback((): boolean => {
-    navigate("/sign-in");
-    return false;
-  }, [navigate]);
+  useEffect(() => {
+    setDemoMode(true);
+    return () => {
+      setDemoMode(false);
+    };
+  }, [setDemoMode]);
 
-  return (
-    <DemoModeContext.Provider value={{ isDemo: true, requireAuth }}>
-      {children}
-    </DemoModeContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 export function useDemoMode(): DemoModeContextValue {
-  return useContext(DemoModeContext);
+  const navigate = useNavigate();
+  const isDemo = useDemoStore((state) => state.isDemo);
+
+  const requireAuth = useCallback((): boolean => {
+    if (!isDemo) return true;
+    navigate("/sign-in");
+    return false;
+  }, [isDemo, navigate]);
+
+  return { isDemo, requireAuth };
 }

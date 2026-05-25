@@ -2,17 +2,15 @@ import "./polyfills";
 import "./index.css";
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { AuthProvider } from "./contexts/AuthContext";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { NavbarWrapper } from "./NavbarWrapper";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import { Web3Provider } from "./contexts/Web3Provider";
 import { ThemeToaster } from "./components/common/ThemeToaster";
 import { SEOProvider } from "./contexts/HelmetProvider";
-import { ChatProvider } from "./contexts/ChatContext";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { appQueryClient } from "./lib/queryClient";
+import { AuthBootstrap } from "./components/AppBootstrap/AuthBootstrap";
 
 const Root = lazy(() => import("./routes/root"));
 const Signin = lazy(() => import("./routes/Auth/sign-in"));
@@ -148,6 +146,14 @@ const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingFallback />}>
                 <Home />
+              </Suspense>
+            ),
+          },
+          {
+            path: "book-clubs",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <BookClubs />
               </Suspense>
             ),
           },
@@ -341,14 +347,9 @@ createRoot(document.getElementById("root")!).render(
   <SEOProvider>
     <QueryClientProvider client={appQueryClient}>
       <Web3Provider>
-        <ThemeProvider>
-          <AuthProvider>
-            <ChatProvider>
-              <RouterProvider router={router} />
-              <ThemeToaster />
-            </ChatProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthBootstrap />
+        <RouterProvider router={router} />
+        <ThemeToaster />
       </Web3Provider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

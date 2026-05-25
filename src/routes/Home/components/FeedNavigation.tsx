@@ -1,7 +1,7 @@
 import React from "react";
-import { Home, TrendingUp, Book } from "lucide-react";
+import { Home, TrendingUp } from "lucide-react";
 
-export type FeedType = "home" | "popular" | "book-clubs";
+export type FeedType = "home" | "popular";
 
 interface FeedNavigationProps {
   activeFeed: FeedType;
@@ -15,12 +15,6 @@ const navItems = [
     label: "Popular",
     icon: TrendingUp,
     symbol: "↑",
-  },
-  {
-    id: "book-clubs" as FeedType,
-    label: "Book Clubs",
-    icon: Book,
-    symbol: "◎",
   },
 ];
 

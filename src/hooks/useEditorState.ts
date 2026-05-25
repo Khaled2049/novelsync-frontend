@@ -47,6 +47,7 @@ type EditorAction =
   | { type: "SET_LEFT_SIDEBAR"; payload: boolean }
   | { type: "SET_RIGHT_SIDEBAR"; payload: boolean }
   | { type: "SET_RIGHT_TAB"; payload: "format" | "document" }
+  | { type: "SET_STORY_PUBLISHED"; payload: boolean }
   | { type: "RESET" };
 
 // Initial state
@@ -185,6 +186,10 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case "SET_RIGHT_TAB":
       return { ...state, rightTab: action.payload };
 
+    case "SET_STORY_PUBLISHED":
+      if (!state.story) return state;
+      return { ...state, story: { ...state.story, isPublished: action.payload } };
+
     case "RESET":
       return initialState;
 
@@ -260,6 +265,9 @@ export function useEditorState() {
 
       setRightTab: (tab: "format" | "document") =>
         dispatch({ type: "SET_RIGHT_TAB", payload: tab }),
+
+      setStoryPublished: (isPublished: boolean) =>
+        dispatch({ type: "SET_STORY_PUBLISHED", payload: isPublished }),
 
       reset: () => dispatch({ type: "RESET" }),
     }),

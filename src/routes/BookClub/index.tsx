@@ -9,6 +9,7 @@ import { useAuthContext } from "../../contexts/AuthContext";
 import { bookClubRepo } from "./bookClubRepo";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 const BookClubs = () => {
   const { user } = useAuthContext();
@@ -28,13 +29,15 @@ const BookClubs = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [selectedClub, setSelectedClub] = useState<IClub | null>(null);
+  const [clubToDelete, setClubToDelete] = useState<IClub | null>(null);
 
   const handleCreateClub = async (newClub: IClub) => {
     if (user) {
       newClub.creatorId = user.uid;
     }
-    await bookClubRepo.createBookClub(newClub);
-    setBookClubs((prevClubs) => [...prevClubs, newClub]);
+    const id = await bookClubRepo.createBookClub(newClub);
+    // Use the Firestore-generated ID so card navigation hits the right document
+    setBookClubs((prevClubs) => [...prevClubs, { ...newClub, id }]);
     setShowCreateForm(false);
   };
 
@@ -71,12 +74,19 @@ const BookClubs = () => {
 
   const handleDeleteClub = (club: IClub) => {
     if (club.creatorId === user?.uid) {
-      if (window.confirm("Are you sure you want to delete this club?")) {
-        bookClubRepo.deleteBookClub(club.id);
-      }
-      setBookClubs((prevClubs) => prevClubs.filter((c) => c.id !== club.id));
+      setClubToDelete(club);
     } else {
       alert("You can only delete clubs you created.");
+    }
+  };
+
+  const confirmDeleteClub = () => {
+    if (clubToDelete) {
+      bookClubRepo.deleteBookClub(clubToDelete.id);
+      setBookClubs((prevClubs) =>
+        prevClubs.filter((c) => c.id !== clubToDelete.id),
+      );
+      setClubToDelete(null);
     }
   };
 
@@ -113,6 +123,17 @@ const BookClubs = () => {
 
   return (
     <div className="min-h-screen">
+      <ConfirmDialog
+        open={!!clubToDelete}
+        onOpenChange={(open) => !open && setClubToDelete(null)}
+        title="Delete Book Club"
+        description={`"${clubToDelete?.name}" will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete Club"
+        cancelLabel="Keep Club"
+        variant="danger"
+        onConfirm={confirmDeleteClub}
+      />
+
       <SEOHead
         title={`Book Clubs - ${APP_NAME}`}
         description={`Join reading communities and book clubs on ${APP_NAME}. Read together, discuss stories, and connect with fellow readers.`}

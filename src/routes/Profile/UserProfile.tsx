@@ -349,7 +349,7 @@ const UserProfile: React.FC = () => {
                   <EditableField
                     label="Bio"
                     value={user?.bio || ""}
-                    onSave={(v) => updateProfile(user!.uid, { bio: v })}
+                    onSave={(v) => updateProfile({ bio: v })}
                     placeholder="Write something about yourself…"
                     multiline
                     maxLength={300}
@@ -357,14 +357,14 @@ const UserProfile: React.FC = () => {
                   <EditableField
                     label="Occupation"
                     value={user?.occupation || ""}
-                    onSave={(v) => updateProfile(user!.uid, { occupation: v })}
+                    onSave={(v) => updateProfile({ occupation: v })}
                     placeholder="What do you do?"
                     maxLength={50}
                   />
                   <EditableField
                     label="Location"
                     value={user?.location || ""}
-                    onSave={(v) => updateProfile(user!.uid, { location: v })}
+                    onSave={(v) => updateProfile({ location: v })}
                     placeholder="Where are you based?"
                     maxLength={50}
                   />

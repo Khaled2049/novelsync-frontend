@@ -28,15 +28,10 @@ import {
 import { RATE_LIMITS } from "@/config/rateLimits";
 
 class BookClubRepo {
-  createBookClub = async (club: IClub) => {
-    try {
-      const clubRef: DocumentReference = doc(
-        collection(firestore, "bookClubs"),
-      );
-      await setDoc(clubRef, { ...club, id: clubRef.id });
-    } catch (error) {
-      console.error("Error creating book club:", error);
-    }
+  createBookClub = async (club: IClub): Promise<string> => {
+    const clubRef: DocumentReference = doc(collection(firestore, "bookClubs"));
+    await setDoc(clubRef, { ...club, id: clubRef.id });
+    return clubRef.id;
   };
 
   getBookClubs = async () => {
@@ -103,6 +98,11 @@ class BookClubRepo {
     } catch (error) {
       console.error("Error updating book club:", error);
     }
+  };
+
+  updateMeetUp = async (clubId: string, meetUp: string): Promise<void> => {
+    const clubRef = doc(firestore, "bookClubs", clubId);
+    await updateDoc(clubRef, { meetUp });
   };
 
   deleteBookClub = async (id: string) => {

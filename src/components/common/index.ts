@@ -7,3 +7,4 @@ export { SlideOverPanel } from "./SlideOverPanel";
 export * as Icons from "./Icons";
 export { default as SignInPrompt } from "./SignInPrompt";
 export { default as BookSearch } from "./BookSearch";
+export { default as SearchField } from "./SearchField";

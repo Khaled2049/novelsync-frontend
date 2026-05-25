@@ -1,53 +1,42 @@
 import { Outlet, useLocation, Link } from "react-router-dom";
-
-import { Trophy, BookOpen, Megaphone, Users } from "lucide-react";
-import AllStories from "./AllStories";
-import Home from "../Home";
-import Announcements from "@/components/explore/Announcements";
-import Competitions from "@/components/explore/Competitions";
+import { Trophy, BookOpen, Megaphone, Users, Book } from "lucide-react";
 
 interface Tab {
   id: string;
   path: string;
   label: string;
   icon: React.ReactNode;
-  component: React.ReactNode;
 }
 
 const tabs: Tab[] = [
   {
     id: "stories",
     label: "Stories",
-    icon: <BookOpen className="w-5 h-5" />,
-    component: <AllStories />,
+    icon: <BookOpen className="w-4 h-4" />,
     path: "/explore/stories",
   },
   {
     id: "community",
     label: "Community",
-    icon: <Users className="w-5 h-5" />,
-    component: <Home />,
+    icon: <Users className="w-4 h-4" />,
     path: "/explore/community",
   },
-  // {
-  //   id: "book-lists",
-  //   label: "Book Lists",
-  //   icon: <ListTodo className="w-5 h-5" />,
-  //   component: <BookLists />,
-  //   path: "/explore/book-lists",
-  // },
   {
     id: "competitions",
     label: "Competitions",
-    icon: <Trophy className="w-5 h-5" />,
-    component: <Competitions />,
+    icon: <Trophy className="w-4 h-4" />,
     path: "/explore/competitions",
   },
   {
-    id: "Announcements",
+    id: "book-clubs",
+    label: "Book Clubs",
+    icon: <Book className="w-4 h-4" />,
+    path: "/explore/book-clubs",
+  },
+  {
+    id: "announcements",
     label: "Announcements",
-    icon: <Megaphone className="w-5 h-5" />,
-    component: <Announcements />,
+    icon: <Megaphone className="w-4 h-4" />,
     path: "/explore/announcements",
   },
 ];
@@ -55,41 +44,88 @@ const tabs: Tab[] = [
 const StoriesLayout = () => {
   const location = useLocation();
 
+  const isActive = (path: string) =>
+    location.pathname === path ||
+    (location.pathname === "/explore" && path === "/explore/stories");
+
   return (
-    <div className="min-h-full bg-neutral-50 dark:bg-black overflow-x-hidden">
-      <div className="container mx-auto px-2 sm:px-4 pb-6">
-        <div className="w-full mb-2 sm:mb-4">
-          <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-            <div className="flex flex-col space-y-2 sm:space-y-4 py-2 sm:py-3">
-              {/* Main navigation */}
-              <nav className="flex justify-start sm:justify-center space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-2 sm:mx-0 px-2 sm:px-0 touch-pan-x">
-                {tabs.map((tab) => (
-                  <Link
-                    key={tab.id}
-                    to={tab.path}
-                    className={`
-                      flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-2 sm:py-2 rounded-md text-xs sm:text-sm font-medium
-                      transition-colors duration-200 ease-in-out min-w-fit whitespace-nowrap snap-start
-                      touch-manipulation
-                      ${
-                        tab.path === location.pathname ||
-                        (location.pathname === "/stories" &&
-                          tab.path === "/stories")
-                          ? "bg-dark-green dark:bg-light-green text-white"
-                          : "text-black/70 dark:text-white/70 hover:bg-black/10 dark:hover:bg-neutral-50/10 active:bg-black/20 dark:active:bg-neutral-50/20"
-                      }
-                    `}
-                  >
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </Link>
-                ))}
+    <div className="min-h-full bg-ns-bg">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-4">
+        <div className="flex gap-6 pt-6 pb-10">
+          {/* Desktop left sidebar nav */}
+          <aside className="hidden lg:flex w-40 shrink-0">
+            <div className="sticky top-20 pt-8">
+              <div className="mb-4 px-3">
+                <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-ns-ink-muted">
+                  Explore
+                </span>
+                <div className="mt-2 h-px bg-ns-border" />
+              </div>
+              <nav className="flex flex-col gap-0.5">
+                {tabs.map((tab) => {
+                  const active = isActive(tab.path);
+                  return (
+                    <Link
+                      key={tab.id}
+                      to={tab.path}
+                      className={`
+                        group flex items-center gap-2.5 px-3 py-2 rounded-ns text-sm font-ui font-medium
+                        transition-all duration-150
+                        ${
+                          active
+                            ? "bg-ns-accent text-white shadow-ns-sm"
+                            : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                        }
+                      `}
+                    >
+                      <span
+                        className={`shrink-0 transition-opacity ${active ? "opacity-100" : "opacity-50 group-hover:opacity-80"}`}
+                      >
+                        {tab.icon}
+                      </span>
+                      {tab.label}
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
+          </aside>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Mobile / tablet horizontal scroll strip */}
+            <div className="lg:hidden mb-4">
+              <nav className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
+                {tabs.map((tab) => {
+                  const active = isActive(tab.path);
+                  return (
+                    <Link
+                      key={tab.id}
+                      to={tab.path}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full border
+                        text-xs font-ui font-medium whitespace-nowrap shrink-0
+                        transition-all duration-150 touch-manipulation
+                        ${
+                          active
+                            ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
+                            : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
+                        }
+                      `}
+                    >
+                      <span className={active ? "opacity-90" : "opacity-50"}>
+                        {tab.icon}
+                      </span>
+                      {tab.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <Outlet />
           </div>
         </div>
-
-        <Outlet />
       </div>
     </div>
   );

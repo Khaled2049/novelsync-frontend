@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, TrendingUp, Book } from "lucide-react";
+import { Home, TrendingUp } from "lucide-react";
 import { FeedType } from "./FeedNavigation";
 
 interface MobileTabsProps {
@@ -21,11 +21,6 @@ const MobileTabs: React.FC<MobileTabsProps> = ({
       id: "popular" as FeedType,
       label: "Popular",
       icon: TrendingUp,
-    },
-    {
-      id: "book-clubs" as FeedType,
-      label: "Clubs",
-      icon: Book,
     },
   ];
 
