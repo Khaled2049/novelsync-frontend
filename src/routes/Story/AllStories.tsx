@@ -1,12 +1,13 @@
 import { useAuthContext } from "../../contexts/AuthContext";
 import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
-import { StoryMetadata } from "@/types/IStory";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 import StoriesHeader from "@/components/story/StoriesHeader";
+import { StoryMetadata } from "@/types/IStory";
+import { usePublishedStories } from "@/hooks/queries/useStoryQueries";
 
 const CATEGORIES = [
   { id: "all", name: "All", value: "all", symbol: "◆" },
@@ -68,9 +69,14 @@ const AllStories: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [stories, setStories] = useState<StoryMetadata[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [loading, setLoading] = useState(false);
+
+  const {
+    data: stories = [],
+    isLoading: loading,
+    isError,
+    error,
+  } = usePublishedStories(selectedCategory);
 
   const storiesPerPage = 24;
   const indexOfLastNovel = currentPage * storiesPerPage;
@@ -80,9 +86,10 @@ const AllStories: React.FC = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadStories();
-  }, [selectedCategory]);
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -93,26 +100,6 @@ const AllStories: React.FC = () => {
       setIsModalOpen(true);
     } else {
       console.error("User not authenticated");
-    }
-  };
-
-  const loadStories = async () => {
-    setLoading(true);
-    try {
-      let storyList: StoryMetadata[];
-      if (selectedCategory === "all") {
-        storyList = await storiesRepo.getPublishedStories();
-      } else {
-        storyList =
-          await storiesRepo.getPublishedStoriesByCategory(selectedCategory);
-      }
-      setStories(storyList);
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Error loading stories:", error);
-      setStories([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -161,7 +148,7 @@ const AllStories: React.FC = () => {
                   return (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.value)}
+                      onClick={() => handleCategoryChange(category.value)}
                       className={`
                         flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
                         rounded-full border text-xs font-ui font-medium tracking-wide
@@ -187,6 +174,13 @@ const AllStories: React.FC = () => {
             </div>
 
             {/* Story grid */}
+            {isError && (
+              <div className="mb-6 px-4 py-3 rounded-ns border border-ns-destructive/20 bg-ns-accent-subtle text-ns-destructive font-ui text-sm">
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load stories. Please try again."}
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <span className="text-ns-ink-muted font-ui text-sm">

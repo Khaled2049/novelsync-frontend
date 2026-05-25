@@ -10,6 +10,9 @@ import { Web3Provider } from "./contexts/Web3Provider";
 import { ThemeToaster } from "./components/common/ThemeToaster";
 import { SEOProvider } from "./contexts/HelmetProvider";
 import { ChatProvider } from "./contexts/ChatContext";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { appQueryClient } from "./lib/queryClient";
 
 const Root = lazy(() => import("./routes/root"));
 const Signin = lazy(() => import("./routes/Auth/sign-in"));
@@ -336,15 +339,18 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <SEOProvider>
-    <Web3Provider>
-      <ThemeProvider>
-        <AuthProvider>
-          <ChatProvider>
-            <RouterProvider router={router} />
-            <ThemeToaster />
-          </ChatProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </Web3Provider>
+    <QueryClientProvider client={appQueryClient}>
+      <Web3Provider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ChatProvider>
+              <RouterProvider router={router} />
+              <ThemeToaster />
+            </ChatProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </Web3Provider>
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   </SEOProvider>,
 );

@@ -1,5 +1,8 @@
-import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
-import { userService } from "@/services/UserService";
+import { type Dispatch, type SetStateAction } from "react";
+import {
+  useWalletAddressQuery,
+  useSetWalletAddress,
+} from "@/hooks/queries/useUserQueries";
 
 interface UseUserWalletAddressResult {
   walletAddress: string | null;
@@ -9,43 +12,39 @@ interface UseUserWalletAddressResult {
 }
 
 /**
- * Hook to fetch wallet address for a user
- * @param userId - The user's ID (optional, if not provided, returns null)
- * @returns Object with walletAddress, loading, and error states
+ * Hook to fetch wallet address for a user.
+ * Backed by TanStack Query — results are cached and deduplicated.
  */
 export const useUserWalletAddress = (
   userId: string | undefined | null,
 ): UseUserWalletAddressResult => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: walletAddress = null,
+    isLoading,
+    error,
+  } = useWalletAddressQuery(userId);
+  const setInCache = useSetWalletAddress(userId);
 
-  useEffect(() => {
-    if (!userId) {
-      setWalletAddress(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  // Preserve the Dispatch<SetStateAction<string | null>> interface for existing callers.
+  // When called as a setter function (value or updater), it writes to the query cache.
+  const setWalletAddress: Dispatch<SetStateAction<string | null>> = (
+    valueOrUpdater,
+  ) => {
+    const next =
+      typeof valueOrUpdater === "function"
+        ? valueOrUpdater(walletAddress)
+        : valueOrUpdater;
+    setInCache(next);
+  };
 
-    const fetchWalletAddress = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const address = await userService.getUserWalletAddress(userId);
-        setWalletAddress(address);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to fetch wallet address";
-        setError(errorMessage);
-        setWalletAddress(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWalletAddress();
-  }, [userId]);
-
-  return { walletAddress, loading, error, setWalletAddress };
+  return {
+    walletAddress,
+    loading: isLoading,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : null,
+    setWalletAddress,
+  };
 };

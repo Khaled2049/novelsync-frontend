@@ -9,9 +9,8 @@ import { useParams } from "react-router-dom";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { Chapter, Story } from "@/types/IStory";
 import { CommentService } from "@/services/CommentService";
-import { Comment as IComment } from "@/types/IComment";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { onSnapshot, orderBy, query } from "firebase/firestore";
+import { useComments } from "@/hooks/queries/useCommentQueries";
 import { StoryLoadingState } from "./components/StoryLoadingState";
 import { StoryErrorState } from "./components/StoryErrorState";
 import { StorySynopsis } from "./components/StorySynopsis";
@@ -30,10 +29,8 @@ interface StoryDetailState {
   currentChapter: Chapter | null;
   currentChapterIndex: number;
   likes: number;
-  comments: IComment[];
   loading: boolean;
   chapterLoading: boolean;
-  commentsLoading: boolean;
   error: string | null;
   isLiked: boolean;
   userRating: number | null;
@@ -56,15 +53,19 @@ const StoryDetail: React.FC = () => {
     currentChapter: null,
     currentChapterIndex: 0,
     likes: 0,
-    comments: [],
     loading: true,
     chapterLoading: false,
-    commentsLoading: true,
     error: null,
     isLiked: false,
     userRating: null,
     ratingsCount: 0,
   });
+
+  // Real-time comments via React Query (onSnapshot under the hood)
+  const { data: comments = [], isPending: commentsLoading } = useComments(
+    id,
+    state.currentChapter?.id,
+  );
 
   const { walletAddress: authorWalletAddress } = useUserWalletAddress(
     state.story?.userId,
@@ -401,52 +402,6 @@ const StoryDetail: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (!id || !state.currentChapter) {
-      setState((prev) => ({ ...prev, comments: [], commentsLoading: false }));
-      return;
-    }
-
-    setState((prev) => ({ ...prev, commentsLoading: true }));
-    const commentsCollection = commentService.getCommentsCollection(
-      id,
-      state.currentChapter.id,
-    );
-    const q = query(commentsCollection, orderBy("createdAt", "asc"));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const updatedComments = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            storyId: id,
-            chapterId: state.currentChapter!.id,
-            message: data.message,
-            userId: data.userId,
-            parentId: data.parentId || null,
-            likes: data.likes || [],
-            createdAt: data.createdAt?.toDate(),
-            updatedAt: data.updatedAt?.toDate(),
-            username: data.username,
-          };
-        });
-
-        setState((prev) => ({
-          ...prev,
-          comments: updatedComments,
-          commentsLoading: false,
-        }));
-      },
-      (error) => {
-        console.error("Error listening to comments:", error);
-        setState((prev) => ({ ...prev, commentsLoading: false }));
-      },
-    );
-
-    return () => unsubscribe();
-  }, [id, state.currentChapter, commentService]);
 
   // --- Render ---
   if (state.loading) {
@@ -692,8 +647,8 @@ const StoryDetail: React.FC = () => {
                 <StoryCommentsSection
                   storyId={id!}
                   chapterId={state.currentChapter.id}
-                  comments={state.comments}
-                  commentsLoading={state.commentsLoading}
+                  comments={comments}
+                  commentsLoading={commentsLoading}
                   currentUser={user}
                   onLike={handleCommentLike}
                   onReply={handleReply}

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, firestore } from "../config/firebase";
 import {
@@ -36,11 +37,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const queryClient = useQueryClient();
+  const previousUidRef = useRef<string | null>(null);
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const nextUid = firebaseUser?.uid ?? null;
+      if (previousUidRef.current !== null && previousUidRef.current !== nextUid) {
+        queryClient.clear();
+      }
+      previousUidRef.current = nextUid;
+
       if (firebaseUser) {
         // Fetch additional user data from Firestore
         const userDocRef = doc(firestore, "users", firebaseUser.uid);
@@ -77,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const newUser: IUser = {
             ...firebaseUser,
             createdAt: new Date().toISOString(),
-            username: user?.displayName || "",
+            username: firebaseUser.displayName || "",
             followers: ["default"],
             following: ["default"],
             stories: [],
@@ -100,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const fetchUsersOrderedByLastLogin = async (
     userLimit: number,
@@ -240,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within an EditorProvider");
+    throw new Error("useAuthContext must be used within an AuthProvider");
   }
   return context;
 };

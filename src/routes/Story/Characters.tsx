@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Character, CharacterRelationship } from "@/types/ICharacter";
 import AddCharacterModal from "@/components/story/characters/AddCharacterModal";
-import { characterService } from "@/services/CharacterService";
 import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { SlideOverPanel } from "@/components/common";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import {
+  useAddCharacter,
+  useCharacters,
+  useDeleteCharacter,
+  useUpdateCharacter,
+} from "@/hooks/queries/useCharacterQueries";
 import {
   Users,
   UserPlus,
@@ -75,7 +80,17 @@ const Characters: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
   const { isDemo, requireAuth } = useDemoMode();
   const { isLgUp } = useBreakpoint();
-  const [characters, setCharacters] = useState<Character[]>([]);
+
+  const {
+    data: characters = [],
+    isPending: charactersLoading,
+    isError: charactersError,
+    error: charactersErrorValue,
+  } = useCharacters(storyId);
+  const addCharacter = useAddCharacter(storyId);
+  const deleteCharacter = useDeleteCharacter(storyId);
+  const updateCharacter = useUpdateCharacter(storyId);
+
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
     null,
   );
@@ -86,7 +101,7 @@ const Characters: React.FC = () => {
   const [draft, setDraft] = useState<Character | null>(null);
   const [artPreview, setArtPreview] = useState<string | null>(null);
   const [artFile, setArtFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
+  const saving = updateCharacter.isPending;
   const artInputRef = useRef<HTMLInputElement>(null);
 
   // Relationship builder state
@@ -96,16 +111,6 @@ const Characters: React.FC = () => {
     description: string;
   }>({ characterId: "", type: "ally", description: "" });
   const [isRosterOpen, setIsRosterOpen] = useState(false);
-
-  useEffect(() => {
-    loadCharacters();
-  }, [storyId]);
-
-  const loadCharacters = async () => {
-    if (!storyId) return;
-    const chars = await characterService.getCharacters(storyId);
-    setCharacters(chars);
-  };
 
   const handleCharacterClick = (character: Character) => {
     setSelectedCharacter(character);
@@ -124,21 +129,31 @@ const Characters: React.FC = () => {
     }
   }, [isLgUp]);
 
-  const handleAddCharacter = (newCharacter: Character) => {
-    setCharacters((prev) => [...prev, newCharacter]);
+  const handleAddCharacter = async (
+    characterData: Omit<Character, "id">,
+    artFile: File | null,
+  ) => {
+    let newCharacter = await addCharacter.mutateAsync(characterData);
+    if (artFile) {
+      const artUrl = await storageService.uploadCharacterArt(
+        artFile,
+        newCharacter.userId,
+        newCharacter.id,
+      );
+      const withArt = { ...newCharacter, artUrl };
+      await updateCharacter.mutateAsync(withArt);
+      newCharacter = withArt;
+    }
     setIsAddModalOpen(false);
     setSelectedCharacter(newCharacter);
   };
 
-  const handleDeleteCharacter = async (characterId: string) => {
-    if (!storyId) return;
-    try {
-      await characterService.deleteCharacter(storyId, characterId);
-      setCharacters((prev) => prev.filter((c) => c.id !== characterId));
-      if (selectedCharacter?.id === characterId) setSelectedCharacter(null);
-    } catch (error) {
-      console.error("Error deleting character:", error);
-    }
+  const handleDeleteCharacter = (characterId: string) => {
+    deleteCharacter.mutate(characterId, {
+      onSuccess: () => {
+        if (selectedCharacter?.id === characterId) setSelectedCharacter(null);
+      },
+    });
   };
 
   const startEditing = () => {
@@ -165,7 +180,6 @@ const Characters: React.FC = () => {
 
   const handleSave = async () => {
     if (!draft || !storyId) return;
-    setSaving(true);
     try {
       let updatedDraft = { ...draft };
 
@@ -178,10 +192,7 @@ const Characters: React.FC = () => {
         updatedDraft = { ...updatedDraft, artUrl: url };
       }
 
-      await characterService.updateCharacter(storyId, updatedDraft);
-      setCharacters((prev) =>
-        prev.map((c) => (c.id === updatedDraft.id ? updatedDraft : c)),
-      );
+      await updateCharacter.mutateAsync(updatedDraft);
       setSelectedCharacter(updatedDraft);
       setEditing(false);
       setDraft(null);
@@ -189,8 +200,6 @@ const Characters: React.FC = () => {
       setArtFile(null);
     } catch (error) {
       console.error("Error saving character:", error);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -279,13 +288,29 @@ const Characters: React.FC = () => {
           Roster
         </button>
       </div>
+      {charactersError && (
+        <div className="mx-4 mt-3 rounded-ns border border-ns-destructive/20 bg-ns-accent-subtle px-3 py-2 font-ui text-xs text-ns-destructive">
+          {charactersErrorValue instanceof Error
+            ? charactersErrorValue.message
+            : "Failed to load characters."}
+        </div>
+      )}
 
       {/* ── Two-Panel Content ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Roster */}
         <div className="hidden lg:flex w-64 flex-shrink-0 border-r border-ns-border flex-col bg-ns-surface">
           <div className="flex-1 overflow-y-auto py-3 px-3">
-            {characters.length === 0 ? (
+            {charactersLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-12 rounded-ns bg-ns-surface-hover animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : characters.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
                 <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
                   <Users className="w-5 h-5 text-ns-accent opacity-60" />
@@ -762,7 +787,16 @@ const Characters: React.FC = () => {
       >
         <div className="h-full bg-ns-surface">
           <div className="h-full overflow-y-auto py-3 px-3">
-            {characters.length === 0 ? (
+            {charactersLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-12 rounded-ns bg-ns-surface-hover animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : characters.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
                 <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
                   <Users className="w-5 h-5 text-ns-accent opacity-60" />

@@ -1,13 +1,14 @@
 import { Place } from "@/types/IPlace";
 import { useRef, useState } from "react";
-import { placeService } from "@/services/PlaceService";
-import { storageService } from "@/services/StorageService";
 import { ImagePlus, X } from "lucide-react";
 
 interface AddPlaceModalProps {
   storyId: string;
   onClose: () => void;
-  onAddPlace: (place: Place) => void;
+  onAddPlace: (
+    place: Omit<Place, "id">,
+    imageFile: File | null,
+  ) => Promise<void>;
 }
 
 const AddPlaceModal = ({
@@ -25,6 +26,7 @@ const AddPlaceModal = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,48 +40,27 @@ const AddPlaceModal = ({
     e.preventDefault();
     if (!name.trim()) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      const newId = await placeService.addPlace(storyId, {
-        name: name.trim(),
-        description: description || undefined,
-        atmosphere: atmosphere || undefined,
-        geography: geography || undefined,
-        history: history || undefined,
-        significance: significance || undefined,
-        notes: notes || undefined,
-        storyId,
-        userId: "",
-      });
-
-      let imageUrl: string | undefined;
-      if (imageFile) {
-        const places = await placeService.getPlaces(storyId);
-        const created = places.find((p) => p.id === newId);
-        if (created) {
-          imageUrl = await storageService.uploadPlaceImage(
-            imageFile,
-            created.userId,
-            newId,
-          );
-          await placeService.updatePlace(storyId, { ...created, imageUrl });
-        }
-      }
-
-      onAddPlace({
-        id: newId,
-        name: name.trim(),
-        description: description || undefined,
-        atmosphere: atmosphere || undefined,
-        geography: geography || undefined,
-        history: history || undefined,
-        significance: significance || undefined,
-        notes: notes || undefined,
-        imageUrl,
-        storyId,
-        userId: "",
-      });
+      await onAddPlace(
+        {
+          name: name.trim(),
+          description: description || undefined,
+          atmosphere: atmosphere || undefined,
+          geography: geography || undefined,
+          history: history || undefined,
+          significance: significance || undefined,
+          notes: notes || undefined,
+          storyId,
+          userId: "",
+        },
+        imageFile,
+      );
     } catch (error) {
       console.error("Error adding place:", error);
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to create place.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -238,6 +219,12 @@ const AddPlaceModal = ({
                 className="w-full font-body text-sm text-ns-ink bg-ns-bg border border-ns-border rounded-ns px-3 py-2 resize-none focus:outline-none focus:border-ns-accent transition-colors placeholder:text-ns-ink-muted"
               />
             </div>
+
+            {submitError && (
+              <p className="font-ui text-xs text-ns-destructive">
+                {submitError}
+              </p>
+            )}
           </div>
 
           {/* Footer */}

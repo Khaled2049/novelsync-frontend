@@ -1,23 +1,20 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Eye, BookOpen, PenLine } from "lucide-react";
 
 import { useAuthContext } from "../../contexts/AuthContext";
-import { storiesRepo } from "../../services/StoriesRepo";
-import { StoryMetadata } from "@/types/IStory";
 import { StoryRow } from "./components/StoryRow";
 import { StoryEditModal } from "./components/StoryEditModal";
 import StoryMetadataModal from "./StoryMetadataModal";
-import { useEarnings } from "@/hooks/useEarnings";
-import { readingProgressService } from "@/services/ReadingProgressService";
-import { IReadingProgress } from "@/types/IReadingProgress";
-
-interface StoryWithEarnings extends StoryMetadata {
-  earnings: {
-    eth: string;
-    usdc: string;
-  };
-}
+import {
+  type StoryWithEarnings,
+  useUserStoriesWithEarnings,
+  useDeleteStory,
+  useTogglePublishStory,
+  useUpdateStoryMetadata,
+  useUpdateStoryCover,
+} from "@/hooks/queries/useStoryQueries";
+import { useRecentlyRead, useClearReadingHistory } from "@/hooks/queries/useUserQueries";
 
 const RowSkeleton = () => (
   <div className="flex gap-4 py-6 border-b border-ns-border animate-pulse">
@@ -39,11 +36,27 @@ const RowSkeleton = () => (
 
 const UserStories = () => {
   const { user } = useAuthContext();
-  const { fetchStoryEarnings } = useEarnings();
-  const [stories, setStories] = useState<StoryWithEarnings[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [recentlyRead, setRecentlyRead] = useState<IReadingProgress[]>([]);
-  const [recentlyReadLoading, setRecentlyReadLoading] = useState(true);
+
+  const {
+    data: stories = [],
+    isLoading: loading,
+    isError: storiesError,
+    error: storiesErrorValue,
+  } = useUserStoriesWithEarnings(user?.uid);
+
+  const {
+    data: recentlyRead = [],
+    isLoading: recentlyReadLoading,
+    isError: recentlyReadError,
+    error: recentlyReadErrorValue,
+  } = useRecentlyRead(user?.uid, 5);
+
+  const deleteStory = useDeleteStory(user?.uid);
+  const togglePublish = useTogglePublishStory(user?.uid);
+  const updateMetadata = useUpdateStoryMetadata(user?.uid);
+  const updateCover = useUpdateStoryCover(user?.uid);
+  const clearHistory = useClearReadingHistory(user?.uid);
+
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [editingStory, setEditingStory] = useState<StoryWithEarnings | null>(
     null,
@@ -51,70 +64,20 @@ const UserStories = () => {
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
-  const loadStories = useCallback(async () => {
-    if (!user) return;
-    try {
-      const storyList = await storiesRepo.getUserStories(user.uid);
-      const storiesWithEarnings = await Promise.all(
-        storyList.map(async (story) => {
-          const earnings = await fetchStoryEarnings(story.id);
-          return { ...story, earnings };
-        }),
-      );
-      setStories(storiesWithEarnings);
-    } catch (error) {
-      console.error("Error loading stories:", error);
-    }
-  }, [user, fetchStoryEarnings]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-      setLoading(true);
-      setRecentlyReadLoading(true);
-      const [, recentItems] = await Promise.all([
-        loadStories(),
-        readingProgressService.getRecentlyRead(user.uid, 5),
-      ]);
-      setRecentlyRead(recentItems);
-      setLoading(false);
-      setRecentlyReadLoading(false);
-    };
-    fetchData();
-  }, [user, loadStories]);
-
   const editStory = (storyId: string) => navigate(`/create/${storyId}`);
 
-  const deleteStory = async (storyId: string) => {
-    if (!user) return;
+  const handleDeleteStory = (storyId: string) => {
     setOperationLoading(storyId);
-    try {
-      await storiesRepo.deleteStory(storyId);
-      await loadStories();
-    } catch (error) {
-      console.error("Error deleting story:", error);
-    } finally {
-      setOperationLoading(null);
-    }
+    deleteStory.mutate(storyId, {
+      onSettled: () => setOperationLoading(null),
+    });
   };
 
-  const unPublishStory = async (storyId: string) => {
-    if (!user) return;
+  const handleUnpublishStory = (storyId: string) => {
     setOperationLoading(storyId);
-    try {
-      await storiesRepo.handlePublish(storyId);
-      await loadStories();
-    } catch (error) {
-      console.error("Error unpublishing story:", error);
-    } finally {
-      setOperationLoading(null);
-    }
-  };
-
-  const handleClearReadingHistory = async () => {
-    if (!user) return;
-    await readingProgressService.clearAllProgress(user.uid);
-    setRecentlyRead([]);
+    togglePublish.mutate(storyId, {
+      onSettled: () => setOperationLoading(null),
+    });
   };
 
   const handleSaveMetadata = async (
@@ -126,25 +89,23 @@ const UserStories = () => {
       tags?: string[];
     },
   ) => {
-    await storiesRepo.updateStoryMetadata(storyId, data);
-    await loadStories();
+    await updateMetadata.mutateAsync({ storyId, data });
   };
 
-  const handleImageUpdate = async (
+  const handleImageUpdate = (
     storyId: string,
     imageFile: File | null,
     previewUrl: string | null,
   ) => {
-    if (!user) return;
     setOperationLoading(storyId);
-    try {
-      await storiesRepo.updateStoryCoverImage(storyId, imageFile, previewUrl);
-      await loadStories();
-    } catch (error) {
-      console.error("Error updating cover image:", error);
-    } finally {
-      setOperationLoading(null);
-    }
+    updateCover.mutate(
+      { storyId, imageFile, previewUrl },
+      { onSettled: () => setOperationLoading(null) },
+    );
+  };
+
+  const handleClearReadingHistory = () => {
+    clearHistory.mutate();
   };
 
   const sortedStories = useMemo(() => {
@@ -222,6 +183,18 @@ const UserStories = () => {
               New Story
             </button>
           </div>
+
+          {(storiesError || recentlyReadError) && (
+            <div className="mb-6 px-4 py-3 rounded-ns border border-ns-destructive/20 bg-ns-accent-subtle text-ns-destructive font-ui text-sm">
+              {storiesError
+                ? storiesErrorValue instanceof Error
+                  ? storiesErrorValue.message
+                  : "Failed to load your stories."
+                : recentlyReadErrorValue instanceof Error
+                  ? recentlyReadErrorValue.message
+                  : "Failed to load your recently read stories."}
+            </div>
+          )}
 
           {/* Continue Reading */}
           {!recentlyReadLoading && recentlyRead.length > 0 && (
@@ -395,8 +368,8 @@ const UserStories = () => {
                   key={story.id}
                   story={story}
                   onEdit={editStory}
-                  onDelete={deleteStory}
-                  onUnpublish={unPublishStory}
+                  onDelete={handleDeleteStory}
+                  onUnpublish={handleUnpublishStory}
                   onEditDetails={(id) =>
                     setEditingStory(stories.find((s) => s.id === id) ?? null)
                   }

@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Crown,
 } from "lucide-react";
-import { IClub } from "../../types/IClub";
 import { bookClubRepo } from "./bookClubRepo";
 import { useAuthContext } from "@/contexts/AuthContext";
 import BookClubChat from "./BookClubChat";
@@ -25,6 +24,7 @@ import PollsSection from "./components/PollsSection";
 import ReadingProgressTracker from "./components/ReadingProgressTracker";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
+import { useBookClub } from "@/hooks/queries/useBookClubQueries";
 
 interface MemberInfo {
   id: string;
@@ -34,8 +34,8 @@ interface MemberInfo {
 const BookClubDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user, loading } = useAuthContext();
-  const [club, setClub] = useState<IClub | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: clubData, isPending: isLoading } = useBookClub(id);
+  const club = clubData ?? undefined;
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [members, setMembers] = useState<MemberInfo[]>([]);
@@ -43,25 +43,6 @@ const BookClubDetails: React.FC = () => {
   const [userCurrentChapter, setUserCurrentChapter] = useState<number>(0);
   const previousMemberIdsRef = useRef<string>("");
 
-  // Real-time subscription to club data
-  useEffect(() => {
-    if (!id) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    const unsubscribe = bookClubRepo.subscribeToBookClub(id, (clubData) => {
-      if (clubData) {
-        setClub(clubData);
-      } else {
-        setClub(undefined);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [id]);
 
   // Fetch usernames for member IDs
   useEffect(() => {

@@ -39,7 +39,7 @@ class CharacterService {
   async addCharacter(
     storyId: string,
     character: Omit<Character, "id">,
-  ): Promise<string> {
+  ): Promise<Character> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
       const charactersCollection = collection(storyRef, "characters");
@@ -58,7 +58,7 @@ class CharacterService {
 
       await setDoc(newCharacterRef, omitUndefined(newCharacter));
 
-      return newCharacter.id;
+      return newCharacter;
     } catch (error) {
       console.error("Error adding character:", error);
       throw error;

@@ -1,17 +1,18 @@
 import { Character } from "@/types/ICharacter";
 import { useRef, useState } from "react";
-import { characterService } from "@/services/CharacterService";
-import { storageService } from "@/services/StorageService";
 import { ImagePlus, X } from "lucide-react";
 
 interface AddCharacterModalProps {
   storyId: string;
   onClose: () => void;
-  onAddCharacter: (character: Character) => void;
+  onAddCharacter: (
+    character: Omit<Character, "id">,
+    artFile: File | null,
+  ) => Promise<void>;
 }
 
 const AddCharacterModal = ({
-  storyId,
+  storyId: _storyId,
   onClose,
   onAddCharacter,
 }: AddCharacterModalProps) => {
@@ -26,6 +27,7 @@ const AddCharacterModal = ({
   const [artFile, setArtFile] = useState<File | null>(null);
   const [artPreview, setArtPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const artInputRef = useRef<HTMLInputElement>(null);
 
   const handleArtSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,52 +41,27 @@ const AddCharacterModal = ({
     e.preventDefault();
     if (!name.trim()) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      const newId = await characterService.addCharacter(storyId, {
-        name: name.trim(),
-        age: age ? parseInt(age) : undefined,
-        soul: soul || undefined,
-        personality: personality || undefined,
-        voice: voice || undefined,
-        backstory: backstory || undefined,
-        affiliations: affiliations || undefined,
-        notes: notes || undefined,
-        userId: "",
-      });
-
-      let artUrl: string | undefined;
-      if (artFile) {
-        // Fetch the created character to get the real userId
-        const chars = await characterService.getCharacters(storyId);
-        const created = chars.find((c) => c.id === newId);
-        if (created) {
-          artUrl = await storageService.uploadCharacterArt(
-            artFile,
-            created.userId,
-            newId,
-          );
-          await characterService.updateCharacter(storyId, {
-            ...created,
-            artUrl,
-          });
-        }
-      }
-
-      onAddCharacter({
-        id: newId,
-        name: name.trim(),
-        age: age ? parseInt(age) : undefined,
-        soul: soul || undefined,
-        personality: personality || undefined,
-        voice: voice || undefined,
-        backstory: backstory || undefined,
-        affiliations: affiliations || undefined,
-        notes: notes || undefined,
-        artUrl,
-        userId: "",
-      });
+      await onAddCharacter(
+        {
+          name: name.trim(),
+          age: age ? parseInt(age) : undefined,
+          soul: soul || undefined,
+          personality: personality || undefined,
+          voice: voice || undefined,
+          backstory: backstory || undefined,
+          affiliations: affiliations || undefined,
+          notes: notes || undefined,
+          userId: "",
+        },
+        artFile,
+      );
     } catch (error) {
       console.error("Error adding character:", error);
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to create character.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -259,6 +236,12 @@ const AddCharacterModal = ({
                 className="w-full font-body text-sm text-ns-ink bg-ns-bg border border-ns-border rounded-ns px-3 py-2 resize-none focus:outline-none focus:border-ns-accent transition-colors placeholder:text-ns-ink-muted"
               />
             </div>
+
+            {submitError && (
+              <p className="font-ui text-xs text-ns-destructive">
+                {submitError}
+              </p>
+            )}
           </div>
 
           {/* Footer */}
