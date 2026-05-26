@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Place } from "@/types/IPlace";
 import AddPlaceModal from "@/components/story/places/AddPlaceModal";
-import { placeService } from "@/services/PlaceService";
 import { storageService } from "@/services/StorageService";
 import { useParams } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { SlideOverPanel } from "@/components/common";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import {
+  useAddPlace,
+  usePlaces,
+  useDeletePlace,
+  useUpdatePlace,
+} from "@/hooks/queries/usePlaceQueries";
 import {
   Map,
   MapPin,
@@ -55,7 +60,17 @@ const Places: React.FC = () => {
   const { storyId } = useParams<{ storyId: string }>();
   const { isDemo, requireAuth } = useDemoMode();
   const { isLgUp } = useBreakpoint();
-  const [places, setPlaces] = useState<Place[]>([]);
+
+  const {
+    data: places = [],
+    isPending: placesLoading,
+    isError: placesError,
+    error: placesErrorValue,
+  } = usePlaces(storyId);
+  const addPlace = useAddPlace(storyId);
+  const deletePlace = useDeletePlace(storyId);
+  const updatePlace = useUpdatePlace(storyId);
+
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -64,19 +79,9 @@ const Places: React.FC = () => {
   const [draft, setDraft] = useState<Place | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
+  const saving = updatePlace.isPending;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
-
-  useEffect(() => {
-    loadPlaces();
-  }, [storyId]);
-
-  const loadPlaces = async () => {
-    if (!storyId) return;
-    const data = await placeService.getPlaces(storyId);
-    setPlaces(data);
-  };
 
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
@@ -95,21 +100,31 @@ const Places: React.FC = () => {
     }
   }, [isLgUp]);
 
-  const handleAddPlace = (newPlace: Place) => {
-    setPlaces((prev) => [...prev, newPlace]);
+  const handleAddPlace = async (
+    placeData: Omit<Place, "id">,
+    imageFile: File | null,
+  ) => {
+    let newPlace = await addPlace.mutateAsync(placeData);
+    if (imageFile) {
+      const imageUrl = await storageService.uploadPlaceImage(
+        imageFile,
+        newPlace.userId,
+        newPlace.id,
+      );
+      const withImage = { ...newPlace, imageUrl };
+      await updatePlace.mutateAsync(withImage);
+      newPlace = withImage;
+    }
     setIsAddModalOpen(false);
     setSelectedPlace(newPlace);
   };
 
-  const handleDeletePlace = async (placeId: string) => {
-    if (!storyId) return;
-    try {
-      await placeService.deletePlace(storyId, placeId);
-      setPlaces((prev) => prev.filter((p) => p.id !== placeId));
-      if (selectedPlace?.id === placeId) setSelectedPlace(null);
-    } catch (error) {
-      console.error("Error deleting place:", error);
-    }
+  const handleDeletePlace = (placeId: string) => {
+    deletePlace.mutate(placeId, {
+      onSuccess: () => {
+        if (selectedPlace?.id === placeId) setSelectedPlace(null);
+      },
+    });
   };
 
   const startEditing = () => {
@@ -136,7 +151,6 @@ const Places: React.FC = () => {
 
   const handleSave = async () => {
     if (!draft || !storyId) return;
-    setSaving(true);
     try {
       let updatedDraft = { ...draft };
 
@@ -149,10 +163,7 @@ const Places: React.FC = () => {
         updatedDraft = { ...updatedDraft, imageUrl: url };
       }
 
-      await placeService.updatePlace(storyId, updatedDraft);
-      setPlaces((prev) =>
-        prev.map((p) => (p.id === updatedDraft.id ? updatedDraft : p)),
-      );
+      await updatePlace.mutateAsync(updatedDraft);
       setSelectedPlace(updatedDraft);
       setEditing(false);
       setDraft(null);
@@ -160,8 +171,6 @@ const Places: React.FC = () => {
       setImageFile(null);
     } catch (error) {
       console.error("Error saving place:", error);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -207,13 +216,29 @@ const Places: React.FC = () => {
           Places
         </button>
       </div>
+      {placesError && (
+        <div className="mx-4 mt-3 rounded-ns border border-ns-destructive/20 bg-ns-accent-subtle px-3 py-2 font-ui text-xs text-ns-destructive">
+          {placesErrorValue instanceof Error
+            ? placesErrorValue.message
+            : "Failed to load places."}
+        </div>
+      )}
 
       {/* ── Two-Panel Content ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Roster */}
         <div className="hidden lg:flex w-64 flex-shrink-0 border-r border-ns-border flex-col bg-ns-surface">
           <div className="flex-1 overflow-y-auto py-3 px-3">
-            {places.length === 0 ? (
+            {placesLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-12 rounded-ns bg-ns-surface-hover animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : places.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
                 <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
                   <Map className="w-5 h-5 text-ns-accent opacity-60" />
@@ -534,7 +559,16 @@ const Places: React.FC = () => {
       >
         <div className="h-full bg-ns-surface">
           <div className="h-full overflow-y-auto py-3 px-3">
-            {places.length === 0 ? (
+            {placesLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-12 rounded-ns bg-ns-surface-hover animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : places.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
                 <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
                   <Map className="w-5 h-5 text-ns-accent opacity-60" />

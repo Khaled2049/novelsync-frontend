@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 
 const AiSettings = lazy(() => import("@/routes/Settings/AiSettings"));
 import { Link } from "react-router-dom";
@@ -6,10 +6,9 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { useEarnings } from "@/hooks/useEarnings";
+import { useUserStoriesWithEarnings } from "@/hooks/queries/useStoryQueries";
 import { useAccount, useChainId } from "wagmi";
-import { storiesRepo } from "@/services/StoriesRepo";
 import { userService } from "@/services/UserService";
-import { StoryMetadata } from "@/types/IStory";
 import { EditableField } from "@/components/ui/editable-field";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import {
@@ -41,10 +40,6 @@ const TARGET_CHAIN_NAME =
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Section = "profile" | "wallet" | "ai" | "appearance";
-
-interface StoryEarnings extends StoryMetadata {
-  earnings: { eth: string; usdc: string };
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -106,15 +101,17 @@ const UserProfile: React.FC = () => {
   const {
     lifetimeEarnings,
     fetchLifetimeEarnings,
-    fetchStoryEarnings,
     loading: earningsLoading,
     error: earningsError,
   } = useEarnings();
 
   const [activeSection, setActiveSection] = useState<Section>("profile");
-  const [stories, setStories] = useState<StoryEarnings[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: stories = [],
+    isLoading: storiesLoading,
+    isError: storiesError,
+    error: storiesErrorValue,
+  } = useUserStoriesWithEarnings(user?.uid);
 
   // Live wallet state
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
@@ -132,30 +129,6 @@ const UserProfile: React.FC = () => {
   useEffect(() => {
     if (savedWalletAddress) fetchLifetimeEarnings(savedWalletAddress);
   }, [savedWalletAddress, fetchLifetimeEarnings]);
-
-  const loadStories = useCallback(async () => {
-    if (!user?.uid) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const userStories = await storiesRepo.getUserStories(user.uid);
-      const withEarnings = await Promise.all(
-        userStories.map(async (story) => ({
-          ...story,
-          earnings: await fetchStoryEarnings(story.id),
-        })),
-      );
-      setStories(withEarnings);
-    } catch {
-      setError("Failed to load profile data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.uid, fetchStoryEarnings]);
-
-  useEffect(() => {
-    if (user?.uid) loadStories();
-  }, [user?.uid, loadStories]);
 
   const followersCount =
     user?.followers?.filter((f) => f !== "default").length ?? 0;
@@ -228,7 +201,7 @@ const UserProfile: React.FC = () => {
 
   // ── Loading / error states ──────────────────────────────────────────────────
 
-  if (loading || walletLoading || earningsLoading) {
+  if (storiesLoading || walletLoading || earningsLoading) {
     return (
       <div className="min-h-screen bg-ns-bg flex items-center justify-center">
         <div className="text-center">
@@ -239,12 +212,18 @@ const UserProfile: React.FC = () => {
     );
   }
 
-  if (error || earningsError) {
+  if (storiesError || earningsError) {
     return (
       <div className="min-h-screen bg-ns-bg flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-ns-destructive mx-auto mb-3" />
-          <p className="font-ui text-ns-ink mb-4">{error || earningsError}</p>
+          <p className="font-ui text-ns-ink mb-4">
+            {storiesError
+              ? storiesErrorValue instanceof Error
+                ? storiesErrorValue.message
+                : "Failed to load profile data."
+              : earningsError}
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-ns-accent hover:bg-ns-accent-hover text-white text-sm font-ui rounded-ns transition-colors"
@@ -370,7 +349,7 @@ const UserProfile: React.FC = () => {
                   <EditableField
                     label="Bio"
                     value={user?.bio || ""}
-                    onSave={(v) => updateProfile(user!.uid, { bio: v })}
+                    onSave={(v) => updateProfile({ bio: v })}
                     placeholder="Write something about yourself…"
                     multiline
                     maxLength={300}
@@ -378,14 +357,14 @@ const UserProfile: React.FC = () => {
                   <EditableField
                     label="Occupation"
                     value={user?.occupation || ""}
-                    onSave={(v) => updateProfile(user!.uid, { occupation: v })}
+                    onSave={(v) => updateProfile({ occupation: v })}
                     placeholder="What do you do?"
                     maxLength={50}
                   />
                   <EditableField
                     label="Location"
                     value={user?.location || ""}
-                    onSave={(v) => updateProfile(user!.uid, { location: v })}
+                    onSave={(v) => updateProfile({ location: v })}
                     placeholder="Where are you based?"
                     maxLength={50}
                   />

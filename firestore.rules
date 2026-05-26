@@ -66,11 +66,11 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
 
       match /reports/{reportId} {
-        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+        allow read: if request.auth != null && reportId == request.auth.uid;
         allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        // Reports immutable after create — prevents ownership hijack.
+        // Reports immutable after create
         allow update: if false;
-        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null && reportId == request.auth.uid;
       }
 
       match /votes/{voteId} {

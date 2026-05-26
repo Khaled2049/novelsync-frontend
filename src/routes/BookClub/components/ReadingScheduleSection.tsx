@@ -138,26 +138,28 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
       return null;
     }
     return (
-      <section className="mb-10">
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-                <Calendar size={28} />
+      <section className="mb-4 sm:mb-8">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
+                <Calendar size={16} className="sm:w-5 sm:h-5" />
               </div>
-              <h2 className="text-3xl font-serif font-bold text-neutral-900 dark:text-white">
+              <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
                 Reading Schedule
               </h2>
             </div>
             <Button
+              size="sm"
               onClick={() => setIsEditing(true)}
-              className="bg-dark-green dark:bg-light-green text-white hover:opacity-90"
+              className="bg-dark-green dark:bg-light-green text-white hover:opacity-90 shrink-0 text-xs sm:text-sm"
             >
-              <Plus size={18} className="mr-2" />
-              Create Schedule
+              <Plus size={14} className="mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Create Schedule</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           </div>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
             No reading schedule has been set up yet.
           </p>
         </div>
@@ -167,24 +169,25 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
 
   if (isEditing && isCreator) {
     return (
-      <section className="mb-10">
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-3">
+      <section className="mb-4 sm:mb-8">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-2">
               <Calendar
-                className="text-dark-green dark:text-light-green"
-                size={28}
+                className="text-dark-green dark:text-light-green shrink-0"
+                size={16}
               />
               Reading Schedule
             </h2>
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => {
                 setIsEditing(false);
                 setError(null);
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </Button>
           </div>
 
@@ -311,24 +314,25 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
   if (!schedule) return null;
 
   return (
-    <section className="mb-10">
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-2xl shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-              <Calendar size={28} />
+    <section className="mb-4 sm:mb-8">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
+              <Calendar size={16} className="sm:w-5 sm:h-5" />
             </div>
-            <h2 className="text-3xl font-serif font-bold text-neutral-900 dark:text-white">
+            <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
               Reading Schedule
             </h2>
           </div>
           {isCreator && (
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => setIsEditing(true)}
-              className="text-neutral-600 dark:text-neutral-400"
+              className="text-neutral-600 dark:text-neutral-400 shrink-0"
             >
-              <Edit size={18} />
+              <Edit size={16} />
             </Button>
           )}
         </div>
@@ -344,13 +348,13 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
           </p>
         </div>
 
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-1.5 max-h-80 overflow-y-auto">
           {schedule.chapters.map((chapter, index) => {
             const status = getStatusForChapter(chapter.scheduledDate);
             return (
               <div
                 key={index}
-                className={`p-4 rounded-lg border transition-colors ${
+                className={`px-3 py-2.5 rounded-lg border transition-colors ${
                   status === "current"
                     ? "bg-dark-green/10 dark:bg-light-green/20 border-dark-green dark:border-light-green"
                     : status === "past"
@@ -358,10 +362,10 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
                       : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                         status === "current"
                           ? "bg-dark-green dark:bg-light-green text-white"
                           : status === "past"
@@ -371,19 +375,19 @@ const ReadingScheduleSection: React.FC<ReadingScheduleSectionProps> = ({
                     >
                       {chapter.chapterNumber}
                     </div>
-                    <div>
-                      <p className="font-semibold text-neutral-900 dark:text-white">
-                        Chapter {chapter.chapterNumber}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">
+                        Ch. {chapter.chapterNumber}
                         {chapter.chapterTitle && `: ${chapter.chapterTitle}`}
                       </p>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
                         {formatDate(chapter.scheduledDate)}
                       </p>
                     </div>
                   </div>
                   {status === "current" && (
-                    <span className="px-2 py-1 bg-dark-green dark:bg-light-green text-white text-xs font-semibold rounded">
-                      Current
+                    <span className="px-1.5 py-0.5 bg-dark-green dark:bg-light-green text-white text-[10px] font-semibold rounded shrink-0">
+                      Now
                     </span>
                   )}
                 </div>

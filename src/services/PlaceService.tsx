@@ -34,7 +34,7 @@ class PlaceService {
     }
   }
 
-  async addPlace(storyId: string, place: Omit<Place, "id">): Promise<string> {
+  async addPlace(storyId: string, place: Omit<Place, "id">): Promise<Place> {
     try {
       const storyRef = doc(this.storiesCollection, storyId);
       const placesCollection = collection(storyRef, "places");
@@ -53,7 +53,7 @@ class PlaceService {
 
       await setDoc(newplaceRef, omitUndefined(newplace));
 
-      return newplace.id;
+      return newplace;
     } catch (error) {
       console.error("Error adding place:", error);
       throw error;

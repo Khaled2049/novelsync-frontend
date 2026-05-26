@@ -1,12 +1,16 @@
 import { useAuthContext } from "../../contexts/AuthContext";
 import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
+import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
-import { StoryMetadata } from "@/types/IStory";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
+import { SearchField } from "@/components/common";
 import StoriesHeader from "@/components/story/StoriesHeader";
+import { StoryMetadata } from "@/types/IStory";
+import { usePublishedStories } from "@/hooks/queries/useStoryQueries";
+import { filterBySearchQuery } from "@/lib/filterBySearchQuery";
 
 const CATEGORIES = [
   { id: "all", name: "All", value: "all", symbol: "◆" },
@@ -68,24 +72,41 @@ const AllStories: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [stories, setStories] = useState<StoryMetadata[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const {
+    data: stories = [],
+    isLoading: loading,
+    isError,
+    error,
+  } = usePublishedStories(selectedCategory);
+
+  const filteredStories = useMemo(
+    () => filterBySearchQuery(stories, searchQuery),
+    [stories, searchQuery],
+  );
 
   const storiesPerPage = 24;
   const indexOfLastNovel = currentPage * storiesPerPage;
   const indexOfFirstNovel = indexOfLastNovel - storiesPerPage;
-  const currentStories = stories.slice(indexOfFirstNovel, indexOfLastNovel);
-  const totalPages = Math.ceil(stories.length / storiesPerPage);
+  const currentStories = filteredStories.slice(indexOfFirstNovel, indexOfLastNovel);
+  const totalPages = Math.ceil(filteredStories.length / storiesPerPage);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadStories();
-  }, [selectedCategory]);
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
   };
 
   const handleNewStory = () => {
@@ -93,26 +114,6 @@ const AllStories: React.FC = () => {
       setIsModalOpen(true);
     } else {
       console.error("User not authenticated");
-    }
-  };
-
-  const loadStories = async () => {
-    setLoading(true);
-    try {
-      let storyList: StoryMetadata[];
-      if (selectedCategory === "all") {
-        storyList = await storiesRepo.getPublishedStories();
-      } else {
-        storyList =
-          await storiesRepo.getPublishedStoriesByCategory(selectedCategory);
-      }
-      setStories(storyList);
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Error loading stories:", error);
-      setStories([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -143,14 +144,22 @@ const AllStories: React.FC = () => {
       />
 
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex gap-8 items-start border-t border-ns-border pt-4">
+        <div className="flex gap-8 items-start">
           {/* Left: header + mobile strip + grid */}
-          <div className="flex-1 min-w-0 border-r border-ns-border pr-8">
+          <div className="flex-1 min-w-0">
             <StoriesHeader
               user={user}
               onNewStory={handleNewStory}
               isModalOpen={isModalOpen}
               onCloseModal={() => setIsModalOpen(false)}
+            />
+
+            <SearchField
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onClear={() => handleSearchChange("")}
+              placeholder="Search by title, author, or description..."
+              className="mb-6 max-w-md"
             />
 
             {/* Mobile genre strip */}
@@ -161,7 +170,7 @@ const AllStories: React.FC = () => {
                   return (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.value)}
+                      onClick={() => handleCategoryChange(category.value)}
                       className={`
                         flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
                         rounded-full border text-xs font-ui font-medium tracking-wide
@@ -187,6 +196,19 @@ const AllStories: React.FC = () => {
             </div>
 
             {/* Story grid */}
+            {isError && (
+              <div className="mb-6 px-4 py-3 rounded-ns border border-ns-destructive/20 bg-ns-accent-subtle text-ns-destructive font-ui text-sm">
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load stories. Please try again."}
+              </div>
+            )}
+            {!loading && searchQuery.trim() && (
+              <p className="mb-4 text-sm text-ns-ink-secondary font-ui">
+                {filteredStories.length}{" "}
+                {filteredStories.length === 1 ? "story" : "stories"} found
+              </p>
+            )}
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <span className="text-ns-ink-muted font-ui text-sm">
@@ -200,14 +222,72 @@ const AllStories: React.FC = () => {
                   No stories found
                 </h3>
                 <p className="text-ns-ink-secondary font-ui text-sm">
-                  {selectedCategory === "all"
+                  {searchQuery.trim()
+                    ? "No stories match your search."
+                    : selectedCategory === "all"
                     ? "No stories have been published yet."
                     : "No stories found in this category yet."}
                 </p>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
+                {/* Mobile: list layout */}
+                <div className="sm:hidden divide-y divide-ns-border border-t border-ns-border">
+                  {currentStories.map((story) => (
+                    <div
+                      key={story.id}
+                      onClick={() => handleStoryClick(story)}
+                      className="group flex items-center gap-3 py-3 cursor-pointer active:bg-ns-surface-hover transition-colors"
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative w-10 h-[60px] rounded shrink-0 overflow-hidden bg-ns-surface">
+                        {story.coverImageUrl ? (
+                          <img
+                            src={story.coverImageUrl}
+                            alt={story.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FaBook className="text-ns-ink-muted opacity-30 text-sm" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Text */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-ui font-medium text-sm truncate text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
+                          {story.title}
+                        </h3>
+                        <p className="text-xs text-ns-ink-muted font-ui truncate mt-0.5">
+                          {story.author}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="flex items-center gap-1 text-[11px] text-ns-ink-muted font-ui">
+                            <FaEye className="opacity-60" />
+                            {story.views >= 1000
+                              ? `${(story.views / 1000).toFixed(1)}K`
+                              : story.views}
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px] text-ns-ink-muted font-ui">
+                            <FaThumbsUp className="opacity-60" />
+                            {story.likes}
+                          </span>
+                          {story.category && (
+                            <span className="text-[10px] font-ui text-ns-ink-muted bg-ns-surface px-1.5 py-0.5 rounded capitalize truncate">
+                              {story.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <ChevronRight className="w-4 h-4 text-ns-ink-muted shrink-0 opacity-40" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: grid layout */}
+                <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
                   {currentStories.map((story) => (
                     <div
                       key={story.id}
@@ -293,7 +373,7 @@ const AllStories: React.FC = () => {
                 return (
                   <button
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.value)}
+                    onClick={() => handleCategoryChange(category.value)}
                     className={`
                       group flex items-center gap-2.5 px-3 py-2 text-left
                       border-l-2 transition-all duration-200 text-sm font-ui

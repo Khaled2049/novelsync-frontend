@@ -229,46 +229,42 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
   );
 
   return (
-    <section className="mb-10">
+    <section className="mb-4 sm:mb-8">
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full p-6 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+          className="w-full p-4 sm:p-6 flex items-center justify-between gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-              <MessageSquare size={28} />
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
+              <MessageSquare size={16} className="sm:w-5 sm:h-5" />
             </div>
-            <h2 className="text-3xl font-serif font-bold text-neutral-900 dark:text-white">
+            <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
               Discussion Prompts
             </h2>
-            <span className="text-sm text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+            <span className="text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded shrink-0">
               {prompts.length}
             </span>
           </div>
           {isExpanded ? (
-            <ChevronUp
-              className="text-dark-green dark:text-light-green"
-              size={24}
-            />
+            <ChevronUp className="text-dark-green dark:text-light-green shrink-0 w-4 h-4" size={16} />
           ) : (
-            <ChevronDown
-              className="text-dark-green dark:text-light-green"
-              size={24}
-            />
+            <ChevronDown className="text-dark-green dark:text-light-green shrink-0 w-4 h-4" size={16} />
           )}
         </button>
 
         {isExpanded && (
-          <div className="p-6 pt-0">
+          <div className="p-4 sm:p-6 pt-0">
             {isCreator && (
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <Button
+                  size="sm"
                   onClick={() => setIsCreatingPrompt(true)}
-                  className="bg-dark-green dark:bg-light-green text-white hover:opacity-90"
+                  className="bg-dark-green dark:bg-light-green text-white hover:opacity-90 text-xs sm:text-sm"
                 >
-                  <Plus size={18} className="mr-2" />
-                  Create Prompt
+                  <Plus size={14} className="mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Create Prompt</span>
+                  <span className="sm:hidden">Add Prompt</span>
                 </Button>
               </div>
             )}
@@ -329,7 +325,7 @@ const DiscussionPromptsSection: React.FC<DiscussionPromptsSectionProps> = ({
                               </span>
                             )}
                           </div>
-                          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-1">
+                          <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-white mb-1">
                             {prompt.question}
                           </h3>
                           {prompt.description && (

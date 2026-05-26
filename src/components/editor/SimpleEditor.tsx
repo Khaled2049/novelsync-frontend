@@ -53,6 +53,8 @@ import { FloatingChatButton } from "../chat/FloatingChatButton";
 import { useCoWrite } from "@/hooks/useCoWrite";
 import { InteractiveStoryPanel } from "@/components/editor/InteractiveStoryPanel";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { useTogglePublishStory } from "@/hooks/queries/useStoryQueries";
+import { toast } from "sonner";
 
 const DEMO_STORY: Story = {
   id: "demo",
@@ -88,6 +90,7 @@ export function SimpleEditor() {
   // Use the new consolidated state hook
   const { state, actions } = useEditorState();
   const { isLgUp } = useBreakpoint();
+  const togglePublish = useTogglePublishStory(user?.uid);
 
   // Network status
   const { isOnline } = useNetworkStatus();
@@ -253,8 +256,23 @@ export function SimpleEditor() {
       await forceSave(state.currentChapter.content);
     }
 
-    await storiesRepo.handlePublish(state.story.id);
-    navigate("/stories");
+    const wasPublished = state.story.isPublished;
+
+    try {
+      await togglePublish.mutateAsync(state.story.id);
+      actions.setStoryPublished(!wasPublished);
+
+      if (!wasPublished) {
+        // Just published — take author to public reader page
+        toast.success("Story published! Your readers can now find it.");
+        navigate(`/story/${state.story.id}`);
+      } else {
+        // Just unpublished — stay in editor
+        toast.success("Story unpublished.");
+      }
+    } catch {
+      toast.error("Failed to update publish status. Please try again.");
+    }
   };
 
   // Handle chapter selection with unsaved changes check
@@ -954,13 +972,18 @@ export function SimpleEditor() {
                   <div className="flex items-center justify-end">
                     <button
                       onClick={handlePublish}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 ${
+                      disabled={togglePublish.isPending}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${
                         state.story?.isPublished
                           ? "bg-ns-destructive text-white hover:bg-ns-destructive-hover"
                           : "bg-ns-accent text-white hover:bg-ns-accent-hover"
                       }`}
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      {togglePublish.isPending ? (
+                        <Loader className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
                       <span className="hidden sm:inline">
                         {state.story?.isPublished ? "Unpublish" : "Publish"}
                       </span>
@@ -1016,7 +1039,8 @@ export function SimpleEditor() {
                     </button>
                     <button
                       onClick={handlePublish}
-                      className={`inline-flex justify-center rounded-ns px-2 py-1.5 text-white transition-colors ${
+                      disabled={togglePublish.isPending}
+                      className={`inline-flex justify-center rounded-ns px-2 py-1.5 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                         state.story?.isPublished
                           ? "bg-ns-destructive hover:bg-ns-destructive-hover"
                           : "bg-ns-accent hover:bg-ns-accent-hover"
@@ -1025,7 +1049,11 @@ export function SimpleEditor() {
                         state.story?.isPublished ? "Unpublish story" : "Publish story"
                       }
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      {togglePublish.isPending ? (
+                        <Loader className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>

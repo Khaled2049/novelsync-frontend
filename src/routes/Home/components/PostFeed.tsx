@@ -1,16 +1,18 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { IPost } from "@/types/IPost";
 import { IUser } from "@/types/IUser";
-import { IClub } from "@/types/IClub";
 import { postsService } from "@/services/PostService";
-import { voteService } from "@/services/VoteService";
-import { bookClubRepo } from "@/routes/BookClub/bookClubRepo";
 import PostCard from "./PostCard";
 import PostCreationForm from "./PostCreationForm";
 import { FeedType } from "./FeedNavigation";
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { useBookClubs } from "@/hooks/queries/useBookClubQueries";
+import {
+  usePostFeed,
+  useRemovePostFromCache,
+  useAddPostToCache,
+} from "@/hooks/queries/usePostQueries";
 
 interface PostFeedProps {
   currentUser: IUser | null;
@@ -21,100 +23,30 @@ const PostFeed: React.FC<PostFeedProps> = ({
   currentUser,
   feedType = "home",
 }) => {
-  const [posts, setPosts] = useState<IPost[]>([]);
-  const [bookClubs, setBookClubs] = useState<IClub[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastDoc, setLastDoc] =
-    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const loadingRef = useRef(false);
 
-  const POSTS_PER_PAGE = 10;
+  const userId = currentUser?.uid ?? null;
 
-  useEffect(() => {
-    const fetchBookClubs = async () => {
-      try {
-        const clubs = await bookClubRepo.getBookClubs();
-        setBookClubs(clubs || []);
-      } catch (error) {
-        console.error("Error fetching book clubs:", error);
-      }
-    };
-    if (currentUser) fetchBookClubs();
-  }, [currentUser]);
+  const {
+    data,
+    isLoading,
+    isError,
+    error: feedError,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = usePostFeed(feedType, userId);
 
-  const handlePostDeleted = (postId: string) => {
-    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
-  };
+  const removePost = useRemovePostFromCache(feedType, userId);
+  const addPost = useAddPostToCache(feedType, userId);
+  const {
+    data: bookClubs = [],
+    isError: bookClubsError,
+    error: bookClubsErrorValue,
+  } = useBookClubs(!!currentUser);
 
-  const loadPosts = useCallback(
-    async (isInitialLoad: boolean = false) => {
-      if (loadingRef.current) return;
-
-      try {
-        if (isInitialLoad) {
-          setIsLoading(true);
-          setLastDoc(null);
-          setHasMore(true);
-        } else {
-          setIsLoadingMore(true);
-        }
-        setError(null);
-        loadingRef.current = true;
-
-        let result;
-        switch (feedType) {
-          case "popular":
-            result = await postsService.getPopularPosts(
-              POSTS_PER_PAGE,
-              isInitialLoad ? undefined : lastDoc || undefined,
-            );
-            break;
-          case "home":
-          default:
-            result = await postsService.getTrendingPosts(
-              POSTS_PER_PAGE,
-              isInitialLoad ? undefined : lastDoc || undefined,
-            );
-            break;
-        }
-
-        const { posts: fetchedPosts, lastDoc: newLastDoc } = result;
-
-        if (fetchedPosts.length < POSTS_PER_PAGE) setHasMore(false);
-
-        if (currentUser && fetchedPosts.length > 0) {
-          const postIds = fetchedPosts.map((p) => p.id);
-          const userVotes = await voteService.getUserVotesForPosts(
-            postIds,
-            currentUser.uid,
-          );
-          fetchedPosts.forEach((post) => {
-            post.userVote = userVotes.get(post.id) || null;
-          });
-        }
-
-        if (isInitialLoad) {
-          setPosts(fetchedPosts);
-        } else {
-          setPosts((prevPosts) => [...prevPosts, ...fetchedPosts]);
-        }
-
-        setLastDoc(newLastDoc);
-      } catch (err) {
-        console.error("Error loading posts:", err);
-        setError("Failed to load posts. Please try again.");
-      } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
-        loadingRef.current = false;
-      }
-    },
-    [feedType, currentUser, lastDoc],
-  );
+  const posts = data?.pages.flatMap((p) => p.posts) ?? [];
 
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0,
@@ -122,26 +54,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
   });
 
   useEffect(() => {
-    setPosts([]);
-    setLastDoc(null);
-    setHasMore(true);
-    loadPosts(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedType, currentUser?.uid]);
-
-  useEffect(() => {
-    if (
-      inView &&
-      hasMore &&
-      !isLoading &&
-      !isLoadingMore &&
-      !loadingRef.current &&
-      posts.length > 0
-    ) {
-      loadPosts(false);
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasMore, isLoading, isLoadingMore]);
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handlePostDeleted = (postId: string) => {
+    removePost(postId);
+  };
 
   const handlePostSubmit = async (content: string, bookClubId?: string) => {
     if (!currentUser) return;
@@ -163,7 +83,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       userVote: null,
     };
 
-    setPosts((prevPosts) => [optimisticPost, ...prevPosts]);
+    addPost(optimisticPost);
 
     try {
       const postId = await postsService.addPost(currentUser.uid, {
@@ -172,14 +92,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
         upvoteCount: 0,
         downvoteCount: 0,
       });
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === tempId ? { ...post, id: postId } : post,
-        ),
-      );
+      // Replace temp post with real ID
+      removePost(tempId);
+      addPost({ ...optimisticPost, id: postId });
     } catch (err: any) {
       console.error("Error creating post:", err);
-      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== tempId));
+      removePost(tempId);
       if (
         err?.code === "RATE_LIMIT_EXCEEDED" ||
         err?.message?.includes("daily limit")
@@ -224,6 +142,20 @@ const PostFeed: React.FC<PostFeedProps> = ({
           {error}
         </div>
       )}
+      {isError && (
+        <div className="mb-4 px-4 py-3 bg-ns-accent-subtle border border-ns-destructive/20 rounded-ns font-ui text-sm text-ns-destructive">
+          {feedError instanceof Error
+            ? feedError.message
+            : "Failed to load posts. Please refresh and try again."}
+        </div>
+      )}
+      {bookClubsError && (
+        <div className="mb-4 px-4 py-3 bg-ns-accent-subtle border border-ns-destructive/20 rounded-ns font-ui text-sm text-ns-destructive">
+          {bookClubsErrorValue instanceof Error
+            ? bookClubsErrorValue.message
+            : "Failed to load book clubs."}
+        </div>
+      )}
 
       {posts.length === 0 && !isLoading ? (
         <div className="text-center py-16">
@@ -250,12 +182,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
             ref={loadMoreRef}
             className="h-10 flex items-center justify-center"
           >
-            {isLoadingMore && (
+            {isFetchingNextPage && (
               <Loader className="animate-spin text-ns-accent" size={20} />
             )}
           </div>
 
-          {!hasMore && posts.length > 0 && (
+          {!hasNextPage && posts.length > 0 && (
             <div className="text-center py-8">
               <p className="font-ui text-xs text-ns-ink-muted tracking-wide">
                 · · ·

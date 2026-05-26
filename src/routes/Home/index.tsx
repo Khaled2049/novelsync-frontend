@@ -3,7 +3,6 @@ import { Loader } from "lucide-react";
 
 import { useAuthContext } from "../../contexts/AuthContext";
 import PostFeed from "./components/PostFeed";
-import BookClubs from "../BookClub";
 import FeedNavigation, { FeedType } from "./components/FeedNavigation";
 const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -27,11 +26,7 @@ const Home: React.FC = () => {
     <div className="max-w-2xl mx-auto px-4 pb-12">
       <FeedNavigation activeFeed={activeFeed} onFeedChange={setActiveFeed} />
 
-      {activeFeed === "book-clubs" ? (
-        <BookClubs />
-      ) : (
-        <PostFeed currentUser={user} feedType={activeFeed} />
-      )}
+      <PostFeed currentUser={user} feedType={activeFeed} />
     </div>
   );
 };
