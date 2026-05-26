@@ -13,7 +13,7 @@ import {
   writeBatch,
   serverTimestamp,
 } from "firebase/firestore";
-import { firestore } from "../config/firebase";
+import { auth, firestore } from "../config/firebase";
 import { Chapter, Story, StoryMetadata } from "@/types/IStory";
 import { getDownloadURL, ref } from "firebase/storage";
 import { storage } from "../config/firebase";
@@ -624,9 +624,17 @@ class StoriesRepo {
     previewUrl: string | null,
   ): Promise<void> {
     try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        throw new Error("You must be signed in to update the cover image.");
+      }
+
       const storyRef = doc(this.storiesCollection, storyId);
       const story = await this.getStory(storyId);
       if (!story) throw new Error("Story not found");
+      if (story.userId !== uid) {
+        throw new Error("You do not have permission to update this cover.");
+      }
 
       // Delete the old image from Storage before replacing it
       if (story.coverImageUrl) {
@@ -639,7 +647,7 @@ class StoriesRepo {
         // User-selected file or AI-generated File object
         coverImageUrl = await storageService.uploadCoverImage(
           imageFile,
-          story.userId,
+          uid,
           storyId,
         );
       } else if (previewUrl?.startsWith("data:")) {
@@ -647,7 +655,7 @@ class StoriesRepo {
         const file = storageService.dataUrlToFile(previewUrl);
         coverImageUrl = await storageService.uploadCoverImage(
           file,
-          story.userId,
+          uid,
           storyId,
         );
       }
@@ -655,6 +663,16 @@ class StoriesRepo {
       await updateDoc(storyRef, { coverImageUrl, updatedAt: new Date() });
     } catch (error) {
       console.error("Error updating cover image:", error);
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "storage/unauthorized"
+      ) {
+        throw new Error(
+          "Cover upload was denied. Use a JPEG, PNG, or WebP under 2 MB, then try again. If this persists, storage rules may need redeploying (`firebase deploy --only storage`).",
+        );
+      }
       throw error;
     }
   }

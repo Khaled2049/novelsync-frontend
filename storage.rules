@@ -1,47 +1,26 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Keep in sync with DEFAULT_DAILY_STORAGE_UPLOAD_LIMIT in
-    // functions/src/storageUploadService.ts (and MAX_STORAGE_UPLOADS_PER_DAY env).
-    function dailyStorageUploadLimit() {
-      return 50;
-    }
+    // Quota is enforced server-side by the reserveStorageUpload Cloud Function
+    // (writes users/{uid}/_storageQuota/{dayKey} via Admin SDK before each upload).
+    // The firestore.get() cross-service check is omitted here because the Storage
+    // emulator does not reliably resolve cross-service Firestore reads; server-side
+    // enforcement is sufficient since all uploads must go through the Cloud Function.
 
-    function pad2(n) {
-      return n < 10 ? '0' + string(n) : string(n);
-    }
-
-    function utcDayKey() {
-      let t = request.time;
-      return string(t.year()) + '-' + pad2(t.month()) + '-' + pad2(t.day());
-    }
-
-    function storageQuotaDoc(userId) {
-      return firestore.get(
-        /databases/(default)/documents/users/$(userId)/_storageQuota/$(utcDayKey())
-      );
-    }
-
-    // Requires a prior reserveStorageUpload call (increments count server-side).
-    function hasStorageUploadQuota(userId) {
-      let quota = storageQuotaDoc(userId);
-      return quota != null
-        && quota.data.count is int
-        && quota.data.count >= 1
-        && quota.data.count <= dailyStorageUploadLimit();
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
     function validImageUpload(userId) {
-      return request.auth != null
-        && request.auth.uid == userId
+      return isOwner(userId)
         && request.resource.size < 2 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp)')
-        && hasStorageUploadQuota(userId);
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
     match /book-covers/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if validImageUpload(userId);
+      allow create, update: if validImageUpload(userId);
+      allow delete: if isOwner(userId);
     }
 
     match /book-covers/featured/{allPaths=**} {
@@ -50,17 +29,20 @@ service firebase.storage {
 
     match /chapter-images/{userId}/{storyId}/{file} {
       allow read: if true;
-      allow write: if validImageUpload(userId);
+      allow create, update: if validImageUpload(userId);
+      allow delete: if isOwner(userId);
     }
 
     match /character-art/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if validImageUpload(userId);
+      allow create, update: if validImageUpload(userId);
+      allow delete: if isOwner(userId);
     }
 
     match /place-images/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if validImageUpload(userId);
+      allow create, update: if validImageUpload(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }

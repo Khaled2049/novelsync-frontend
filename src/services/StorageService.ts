@@ -1,5 +1,6 @@
 import { storage } from "@/config/firebase";
 import { reserveStorageUpload } from "@/api/storage";
+import { prepareImageForUpload } from "@/utils/imageUpload";
 import {
   ref,
   uploadBytes,
@@ -27,12 +28,18 @@ class StorageService {
     userId: string,
     storyId: string,
   ): Promise<string> {
-    const ext = file.type === "image/png" ? "png" : "jpg";
+    const prepared = await prepareImageForUpload(file);
+    const ext =
+      prepared.type === "image/png"
+        ? "png"
+        : prepared.type === "image/webp"
+          ? "webp"
+          : "jpg";
     const path = `${COVERS_PATH}/${userId}/${storyId}-${Date.now()}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file, {
-      contentType: file.type,
+    const snapshot = await uploadBytes(storageRef, prepared, {
+      contentType: prepared.type,
       cacheControl: "public, max-age=31536000",
     });
     return getDownloadURL(snapshot.ref);
@@ -48,12 +55,13 @@ class StorageService {
     userId: string,
     characterId: string,
   ): Promise<string> {
-    const ext = file.type === "image/png" ? "png" : "jpg";
+    const prepared = await prepareImageForUpload(file);
+    const ext = prepared.type === "image/png" ? "png" : "jpg";
     const path = `${CHARACTER_ART_PATH}/${userId}/${characterId}-${Date.now()}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file, {
-      contentType: file.type,
+    const snapshot = await uploadBytes(storageRef, prepared, {
+      contentType: prepared.type,
       cacheControl: "public, max-age=31536000",
     });
     return getDownloadURL(snapshot.ref);
@@ -69,12 +77,13 @@ class StorageService {
     userId: string,
     placeId: string,
   ): Promise<string> {
-    const ext = file.type === "image/png" ? "png" : "jpg";
+    const prepared = await prepareImageForUpload(file);
+    const ext = prepared.type === "image/png" ? "png" : "jpg";
     const path = `${PLACE_IMAGE_PATH}/${userId}/${placeId}-${Date.now()}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file, {
-      contentType: file.type,
+    const snapshot = await uploadBytes(storageRef, prepared, {
+      contentType: prepared.type,
       cacheControl: "public, max-age=31536000",
     });
     return getDownloadURL(snapshot.ref);
@@ -91,12 +100,13 @@ class StorageService {
     storyId: string,
     chapterId: string,
   ): Promise<string> {
-    const ext = file.type.split("/")[1] || "png";
+    const prepared = await prepareImageForUpload(file);
+    const ext = prepared.type === "image/png" ? "png" : "jpg";
     const path = `${CHAPTER_IMAGE_PATH}/${userId}/${storyId}/${chapterId}-${Date.now()}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file, {
-      contentType: file.type,
+    const snapshot = await uploadBytes(storageRef, prepared, {
+      contentType: prepared.type,
       cacheControl: "public, max-age=31536000",
     });
     return getDownloadURL(snapshot.ref);

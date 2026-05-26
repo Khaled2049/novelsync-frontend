@@ -4,8 +4,8 @@ import { generateCover } from "@/services/imageGenerationService";
 import { storageService } from "@/services/StorageService";
 
 export const MAX_CHAPTER_IMAGES = 5;
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+export { validateImageFile } from "@/utils/imageUpload";
 
 export function countEditorImages(editor: Editor): number {
   let count = 0;
@@ -13,14 +13,6 @@ export function countEditorImages(editor: Editor): number {
     if (node.type.name === "image") count++;
   });
   return count;
-}
-
-export function validateImageFile(file: File): string | null {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type))
-    return "Unsupported format. Use JPEG, PNG, or WebP.";
-  if (file.size > MAX_IMAGE_BYTES)
-    return "Image too large. Maximum size is 2 MB.";
-  return null;
 }
 
 interface UploadContext {
