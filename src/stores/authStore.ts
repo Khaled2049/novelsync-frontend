@@ -19,6 +19,7 @@ export interface ProfileUpdateData {
   bio?: string;
   occupation?: string;
   location?: string;
+  writingInterests?: string;
 }
 
 export interface AuthStore {
@@ -80,6 +81,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           bio: userData.bio,
           occupation: userData.occupation,
           location: userData.location,
+          writingInterests: userData.writingInterests,
           walletAddress: userData.walletAddress,
           hasCustomAiProvider: userData.hasCustomAiProvider === true,
           isAdmin: tokenResult.claims["admin"] === true,

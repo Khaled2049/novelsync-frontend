@@ -28,7 +28,7 @@ service cloud.firestore {
                     && request.auth.token.email == email
                     && request.resource.data.status == "completed"
                     && (resource.data.status == "sent" || resource.data.status == "approved")
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt']);
 
       allow delete: if false;
     }

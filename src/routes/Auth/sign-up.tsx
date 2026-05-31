@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -15,19 +17,26 @@ const Signup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) {
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage(null);
 
-    const result = await requestInvite(email);
+    const result = await requestInvite(trimmed);
 
     setIsLoading(false);
 
     if (result.success) {
       // Save email to localStorage for use when completing signup
-      localStorage.setItem("emailForSignIn", email);
+      localStorage.setItem("emailForSignIn", trimmed);
       setIsSuccess(true);
     } else {
-      setErrorMessage(result.message || "Failed to request invite.");
+      setErrorMessage(result.message || "Failed to submit your application.");
     }
   };
 
@@ -37,29 +46,32 @@ const Signup: React.FC = () => {
     }
   };
 
-  // Success state - invite request submitted
+  // Success state - application submitted
   if (isSuccess) {
     return (
       <>
         <SEOHead
-          title={`Invite Requested - ${APP_NAME}`}
-          description="Your invite request has been submitted."
+          title={`Application Submitted - ${APP_NAME}`}
+          description="Your author application has been submitted."
           url="/sign-up"
           noindex={true}
           nofollow={true}
         />
-        <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
-          <div className="relative z-10 flex items-center text-center mb-8 -ml-6 animate-fade-in-down">
-            <h1 className="text-5xl font-serif font-bold text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
+        <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-ns-bg transition-colors duration-300">
+          <div className="relative z-10 flex items-center text-center mb-8 animate-ns-fade-in">
+            <h1 className="text-5xl font-heading font-medium text-ns-ink tracking-tight transition-colors duration-300">
               {APP_NAME}
             </h1>
           </div>
 
-          <div className="relative z-10 w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 transition-all duration-300 animate-fade-in-up">
+          <div
+            className="relative z-10 w-full max-w-md p-8 bg-ns-elevated rounded-ns-2xl shadow-ns border border-ns-border transition-all duration-300 opacity-0 animate-ns-slide-up"
+            style={{ animationDelay: "0.1s" }}
+          >
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center animate-fade-in">
+              <div className="w-16 h-16 mx-auto mb-4 bg-ns-accent-subtle rounded-full flex items-center justify-center opacity-0 animate-ns-fade-in">
                 <svg
-                  className="w-8 h-8 text-green-600 dark:text-green-400"
+                  className="w-8 h-8 text-ns-accent"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -74,34 +86,31 @@ const Signup: React.FC = () => {
               </div>
 
               <h2
-                className="text-2xl font-serif font-semibold text-neutral-900 dark:text-white mb-2 animate-fade-in"
+                className="text-2xl font-heading font-medium text-ns-ink mb-2 opacity-0 animate-ns-fade-in"
                 style={{ animationDelay: "0.1s" }}
               >
-                Request Submitted
+                Application Submitted
               </h2>
 
               <p
-                className="text-neutral-600 dark:text-neutral-400 mb-6 animate-fade-in"
+                className="text-ns-ink-secondary font-body mb-6 opacity-0 animate-ns-fade-in"
                 style={{ animationDelay: "0.2s" }}
               >
-                We've received your invite request for{" "}
-                <span className="font-semibold text-dark-green dark:text-light-green">
-                  {email}
-                </span>
-                .
+                We've received your author application for{" "}
+                <span className="font-semibold text-ns-accent">{email}</span>.
               </p>
 
               <p
-                className="text-sm text-neutral-500 dark:text-neutral-500 mb-6 animate-fade-in"
+                className="text-sm text-ns-ink-muted font-body mb-6 opacity-0 animate-ns-fade-in"
                 style={{ animationDelay: "0.3s" }}
               >
-                When your invite is approved, you'll receive an email with a
-                magic link to complete your registration. Keep an eye on your
+                When you're welcomed into the tribe, you'll receive an email with
+                a magic link to set up your author profile. Keep an eye on your
                 inbox!
               </p>
 
               <div
-                className="space-y-3 animate-fade-in"
+                className="space-y-3 opacity-0 animate-ns-fade-in"
                 style={{ animationDelay: "0.4s" }}
               >
                 <button
@@ -109,38 +118,20 @@ const Signup: React.FC = () => {
                     setIsSuccess(false);
                     setEmail("");
                   }}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  className="w-full bg-ns-surface text-ns-ink-secondary font-ui font-semibold py-3 px-6 rounded-ns-lg border border-ns-border transition-all duration-300 hover:bg-ns-surface-hover hover:text-ns-ink"
                 >
-                  Request Another Invite
+                  Apply with another email
                 </button>
 
                 <button
                   onClick={() => navigate("/sign-in")}
-                  className="w-full text-dark-green dark:text-light-green font-semibold py-3 px-6 rounded-xl border border-neutral-200 dark:border-neutral-700 transition-all duration-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  className="w-full text-ns-accent font-ui font-semibold py-3 px-6 rounded-ns-lg border border-ns-border transition-all duration-300 hover:bg-ns-surface"
                 >
                   Already have an account? Sign In
                 </button>
               </div>
             </div>
           </div>
-
-          <style>{`
-            @keyframes fade-in-down {
-              from { opacity: 0; transform: translateY(-20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fade-in-up {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fade-in {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            .animate-fade-in-down { animation: fade-in-down 0.6s ease-out; }
-            .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
-            .animate-fade-in { animation: fade-in 0.6s ease-out; animation-fill-mode: both; }
-          `}</style>
         </div>
       </>
     );
@@ -149,37 +140,40 @@ const Signup: React.FC = () => {
   return (
     <>
       <SEOHead
-        title={`Request Invite - ${APP_NAME}`}
-        description={`Request an invite to join ${APP_NAME} and start writing stories with AI assistance.`}
+        title={`Apply to be an Author - ${APP_NAME}`}
+        description={`Apply to become an author on ${APP_NAME} and start writing stories with AI assistance.`}
         url="/sign-up"
         noindex={true}
         nofollow={true}
       />
-      <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
-        {/* Logo with animation */}
-        <div className="relative z-10 flex items-center text-center mb-8 -ml-6 animate-fade-in-down">
-          <h1 className="text-5xl font-serif font-bold text-dark-green dark:text-light-green ml-4 transition-colors duration-300">
+      <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-ns-bg transition-colors duration-300">
+        {/* Logo */}
+        <div className="relative z-10 flex items-center text-center mb-8 animate-ns-fade-in">
+          <h1 className="text-5xl font-heading font-medium text-ns-ink tracking-tight transition-colors duration-300">
             {APP_NAME}
           </h1>
         </div>
 
-        {/* Invite Request Form Container */}
-        <div className="relative z-10 w-full max-w-md p-8 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 transition-all duration-300 animate-fade-in-up">
-          <h2 className="text-3xl font-serif font-semibold text-neutral-900 dark:text-white mb-2 transition-colors duration-300 animate-fade-in">
-            Request an Invite
+        {/* Application Form Container */}
+        <div
+          className="relative z-10 w-full max-w-md p-8 bg-ns-elevated rounded-ns-2xl shadow-ns border border-ns-border transition-all duration-300 opacity-0 animate-ns-slide-up"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <h2 className="text-3xl font-heading font-medium text-ns-ink mb-2 transition-colors duration-300">
+            Apply to be an Author
           </h2>
-          <p
-            className="text-sm text-neutral-600 dark:text-neutral-400 mb-6 animate-fade-in"
-            style={{ animationDelay: "0.1s" }}
-          >
-            Join the {APP_NAME} community
+          <p className="text-sm text-ns-ink-secondary font-body mb-6">
+            Join the {APP_NAME} community of storytellers
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div
+              className="opacity-0 animate-ns-fade-in"
+              style={{ animationDelay: "0.2s" }}
+            >
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-neutral-900 dark:text-white mb-1 transition-colors duration-300"
+                className="block text-sm font-medium font-ui text-ns-ink mb-1 transition-colors duration-300"
               >
                 Email Address
               </label>
@@ -193,24 +187,24 @@ const Signup: React.FC = () => {
                 onKeyPress={handleKeyPress}
                 required
                 className="w-full px-4 py-3
-                 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white
-                 border border-neutral-200 dark:border-neutral-700
-                 rounded-xl
-                 focus:outline-none focus:border-dark-green dark:focus:border-light-green
-                 focus:ring-2 focus:ring-dark-green/20 dark:focus:ring-light-green/20
-                 transition-all duration-300
-                 placeholder:text-neutral-400 dark:placeholder:text-neutral-500
-                 hover:border-neutral-300 dark:hover:border-neutral-600"
+                 bg-ns-surface text-ns-ink
+                 border border-ns-border
+                 rounded-ns-lg
+                 focus:outline-none focus:border-ns-accent
+                 focus:ring-2 focus:ring-[var(--ns-ring)]
+                 transition-all duration-200
+                 placeholder:text-ns-ink-muted
+                 hover:border-ns-border-strong"
                 placeholder="your@email.com"
               />
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                You'll receive a magic link to this email when your invite is
-                approved.
+              <p className="text-xs text-ns-ink-muted font-ui mt-2">
+                You'll receive a magic link to this email once you're welcomed
+                into the tribe.
               </p>
             </div>
 
             {errorMessage && (
-              <div className="text-red-600 dark:text-red-400 text-sm mt-2 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800/30 animate-shake">
+              <div className="text-ns-destructive text-sm font-ui mt-2 p-3 bg-ns-destructive/5 rounded-ns-lg border border-ns-destructive/20 animate-shake">
                 {errorMessage}
               </div>
             )}
@@ -218,10 +212,10 @@ const Signup: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full bg-dark-green dark:bg-light-green text-white dark:text-neutral-900 font-semibold py-3 px-6 rounded-xl shadow-sm transition-all duration-300 animate-fade-in ${
+              className={`w-full bg-ns-accent text-white font-ui font-semibold py-3 px-6 rounded-ns-lg shadow-ns-sm transition-all duration-300 opacity-0 animate-ns-fade-in ${
                 isLoading
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:opacity-90 hover:shadow-md active:scale-[0.98]"
+                  : "hover:bg-ns-accent-hover hover:shadow-ns active:scale-[0.98]"
               }`}
               style={{ animationDelay: "0.3s" }}
             >
@@ -246,115 +240,61 @@ const Signup: React.FC = () => {
                   Submitting...
                 </span>
               ) : (
-                "Request Invite"
+                "Apply"
               )}
             </button>
           </form>
 
           {/* Info box */}
           <div
-            className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 animate-fade-in"
+            className="mt-6 p-4 bg-ns-surface rounded-ns-lg border border-ns-border opacity-0 animate-ns-fade-in"
             style={{ animationDelay: "0.4s" }}
           >
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-2">
+            <h3 className="text-sm font-semibold font-ui text-ns-ink mb-2">
               How it works
             </h3>
-            <ol className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1.5 list-decimal list-inside">
+            <ol className="text-xs text-ns-ink-secondary font-ui space-y-1.5 list-decimal list-inside">
               <li>Submit your email address above</li>
-              <li>Wait for your invite to be approved</li>
+              <li>Wait to be welcomed into the tribe</li>
               <li>Click the magic link in your email</li>
-              <li>Choose a username and start writing!</li>
+              <li>Set up your author profile and start writing!</li>
             </ol>
           </div>
 
           <div
-            className="text-center mt-6 animate-fade-in"
+            className="text-center mt-6 opacity-0 animate-ns-fade-in"
             style={{ animationDelay: "0.5s" }}
           >
-            <span className="text-neutral-600 dark:text-neutral-400 text-sm">
+            <span className="text-ns-ink-secondary text-sm font-ui">
               Already have an account?{" "}
             </span>
             <button
               onClick={() => navigate("/sign-in")}
-              className="text-dark-green dark:text-light-green hover:opacity-80 transition-colors duration-200 font-semibold hover:underline bg-transparent border-none cursor-pointer"
+              className="text-ns-accent hover:text-ns-accent-hover transition-colors duration-200 font-ui font-semibold hover:underline bg-transparent border-none cursor-pointer"
             >
               Sign In
             </button>
           </div>
         </div>
 
-        {/* Subtle writing-themed decoration */}
+        {/* Decorative quote */}
         <div
-          className="relative z-10 mt-6 text-center text-xs text-neutral-500 dark:text-neutral-500 animate-fade-in"
+          className="relative z-10 mt-8 text-center text-xs text-ns-ink-muted opacity-0 animate-ns-fade-in"
           style={{ animationDelay: "0.6s" }}
         >
-          <p className="italic">
+          <p className="italic font-body">
             "Every great story begins with a single word"
           </p>
         </div>
 
         <style>{`
-        @keyframes fade-in-down {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
-        }
-
-        .animate-fade-in-down {
-          animation: fade-in-down 0.6s ease-out;
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-          animation-fill-mode: both;
-        }
-
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-      `}</style>
+          .animate-shake { animation: shake 0.4s ease-in-out; }
+        `}</style>
       </div>
     </>
   );

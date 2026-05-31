@@ -368,6 +368,14 @@ const UserProfile: React.FC = () => {
                     placeholder="Where are you based?"
                     maxLength={50}
                   />
+                  <EditableField
+                    label="What I write about"
+                    value={user?.writingInterests || ""}
+                    onSave={(v) => updateProfile({ writingInterests: v })}
+                    placeholder="What do you want to write about?"
+                    multiline
+                    maxLength={200}
+                  />
                 </div>
               </Card>
 

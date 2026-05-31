@@ -12,6 +12,7 @@ const COVERS_PATH = "book-covers";
 const CHARACTER_ART_PATH = "character-art";
 const PLACE_IMAGE_PATH = "place-images";
 const CHAPTER_IMAGE_PATH = "chapter-images";
+const PROFILE_IMAGE_PATH = "profile-images";
 
 class StorageService {
   private async reserveUploadSlot(): Promise<void> {
@@ -103,6 +104,24 @@ class StorageService {
     const prepared = await prepareImageForUpload(file);
     const ext = prepared.type === "image/png" ? "png" : "jpg";
     const path = `${CHAPTER_IMAGE_PATH}/${userId}/${storyId}/${chapterId}-${Date.now()}.${ext}`;
+    await this.reserveUploadSlot();
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, prepared, {
+      contentType: prepared.type,
+      cacheControl: "public, max-age=31536000",
+    });
+    return getDownloadURL(snapshot.ref);
+  }
+
+  /**
+   * Upload a user's profile image to Firebase Storage.
+   * Path: profile-images/{userId}/{timestamp}.{ext}
+   * Returns the permanent public download URL.
+   */
+  async uploadProfileImage(file: File, userId: string): Promise<string> {
+    const prepared = await prepareImageForUpload(file);
+    const ext = prepared.type === "image/png" ? "png" : "jpg";
+    const path = `${PROFILE_IMAGE_PATH}/${userId}/${Date.now()}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, prepared, {
