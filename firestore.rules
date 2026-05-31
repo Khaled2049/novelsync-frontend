@@ -264,7 +264,9 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if true;
         // require membership or creator status — prevents non-members from posting.
+        // senderId must match the caller — prevents impersonating another user.
         allow create: if request.auth != null &&
+          request.resource.data.senderId == request.auth.uid &&
           request.resource.data.content.size() <= 10000 && (
           get(/databases/$(database)/documents/bookClubs/$(clubId)).data.creatorId == request.auth.uid ||
           clubMembers(get(/databases/$(database)/documents/bookClubs/$(clubId)).data).hasAny([request.auth.uid])

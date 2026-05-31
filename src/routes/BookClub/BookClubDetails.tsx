@@ -8,7 +8,6 @@ import {
   ChevronUp,
   Users,
   User,
-  PanelRightOpen,
   ChevronLeft,
   ChevronRight,
   Crown,
@@ -331,17 +330,6 @@ const BookClubDetails: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {/* Chat toggle — desktop only floating button */}
-            {!isChatOpen && (
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className="hidden md:flex absolute top-6 right-6 z-10 p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:text-dark-green dark:hover:text-light-green transition-all hover:scale-110 rounded-lg shadow-sm"
-                title="Open Discussion"
-              >
-                <PanelRightOpen size={18} />
-              </button>
-            )}
-
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 lg:px-12">
               {/* Club Hero */}
               <div className="bg-white dark:bg-neutral-900 p-4 sm:p-6 md:p-8 mb-4 sm:mb-8 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm transition-colors duration-300">

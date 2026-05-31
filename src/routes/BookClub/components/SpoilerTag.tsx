@@ -37,7 +37,7 @@ const SpoilerTag: React.FC<SpoilerTagProps> = ({
   if (isRevealed) {
     return (
       <div
-        className={`inline-block p-2 bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded ${className}`}
+        className={`inline-block p-2 bg-ns-surface border border-ns-border rounded-ns ${className}`}
       >
         <div className="flex items-start gap-2">
           <AlertTriangle
@@ -48,13 +48,11 @@ const SpoilerTag: React.FC<SpoilerTagProps> = ({
             <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-1 font-medium">
               Spoiler: {chapterRangeText}
             </p>
-            <p className="text-sm text-neutral-900 dark:text-white">
-              {spoiler.content}
-            </p>
+            <p className="text-sm text-ns-ink">{spoiler.content}</p>
           </div>
           <button
             onClick={() => setIsRevealed(false)}
-            className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            className="text-ns-ink-secondary hover:text-ns-ink"
             title="Hide spoiler"
           >
             <EyeOff size={16} />
@@ -95,7 +93,7 @@ const SpoilerTag: React.FC<SpoilerTagProps> = ({
                   setHasWarned(false);
                   setIsRevealed(false);
                 }}
-                className="px-3 py-1.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-sm font-medium hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
+                className="px-3 py-1.5 bg-ns-surface-hover text-ns-ink rounded-ns text-sm font-medium hover:bg-ns-elevated transition-colors"
               >
                 Keep Hidden
               </button>
@@ -109,15 +107,13 @@ const SpoilerTag: React.FC<SpoilerTagProps> = ({
   return (
     <button
       onClick={handleReveal}
-      className={`inline-flex items-center gap-2 px-3 py-2 bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 px-3 py-2 bg-ns-surface-hover border border-ns-border rounded-ns hover:bg-ns-elevated transition-colors ${className}`}
     >
-      <Eye size={16} className="text-neutral-600 dark:text-neutral-400" />
-      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+      <Eye size={16} className="text-ns-ink-secondary" />
+      <span className="text-sm font-medium text-ns-ink">
         Spoiler: {chapterRangeText}
       </span>
-      <span className="text-xs text-neutral-500 dark:text-neutral-500">
-        (Click to reveal)
-      </span>
+      <span className="text-xs text-ns-ink-muted">(Click to reveal)</span>
     </button>
   );
 };

@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RATE_LIMITS } from "@/config/rateLimits";
 import { rateLimitService } from "@/services/RateLimitService";
+import { publicProfileService } from "@/services/PublicProfileService";
 
 interface BookClubChatProps {
   clubId: string;
@@ -39,6 +40,10 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
     number | undefined
   >();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  const [currentUsername, setCurrentUsername] = useState<string>(
+    user.username || user.displayName || "Anonymous",
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { displayName } = user;
   const maxMessageLength = RATE_LIMITS.MAX_MESSAGE_SIZE_CHARS;
@@ -58,98 +63,139 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateCurrentUsername = async () => {
+      try {
+        const profile = await publicProfileService.getPublicProfile(user.uid);
+        if (!isMounted) return;
+
+        const resolvedUsername =
+          profile?.username ||
+          profile?.displayName ||
+          user.username ||
+          displayName ||
+          "Anonymous";
+        setCurrentUsername(resolvedUsername);
+      } catch {
+        if (isMounted) {
+          setCurrentUsername(user.username || displayName || "Anonymous");
+        }
+      }
+    };
+
+    hydrateCurrentUsername();
+    return () => {
+      isMounted = false;
+    };
+  }, [displayName, user.uid, user.username]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateSenderNames = async () => {
+      const senderIds = [...new Set(messages.map((m) => m.senderId).filter(Boolean))];
+      if (senderIds.length === 0) return;
+
+      try {
+        const profileMap = await publicProfileService.getPublicProfiles(senderIds);
+        if (!isMounted) return;
+
+        setSenderNames((prev) => {
+          const next = { ...prev };
+          senderIds.forEach((senderId) => {
+            const profile = profileMap.get(senderId);
+            if (profile?.username || profile?.displayName) {
+              next[senderId] = profile.username || profile.displayName || next[senderId];
+            }
+          });
+          return next;
+        });
+      } catch (error) {
+        console.error("Error hydrating sender usernames:", error);
+      }
+    };
+
+    hydrateSenderNames();
+    return () => {
+      isMounted = false;
+    };
+  }, [messages]);
+
+  const getMessageSender = (message: IMessage) =>
+    senderNames[message.senderId] || message.sender || "Anonymous";
+
+  // Shared send pipeline: length check → rate limit → write → increment count.
+  // Membership is enforced by Firestore rules; a denied write surfaces via catch.
+  const submitMessage = async (message: IMessage): Promise<boolean> => {
+    if (message.content.length > maxMessageLength) {
+      setErrorMessage(
+        `Message is too long. Maximum ${maxMessageLength} characters allowed.`,
+      );
+      return false;
+    }
+
+    const rateLimitCheck = await rateLimitService.canSendMessage(user.uid);
+    if (!rateLimitCheck.allowed) {
+      setErrorMessage(rateLimitCheck.message || "Rate limit exceeded");
+      return false;
+    }
+
+    try {
+      await bookClubRepo.sendMessage(clubId, message);
+      await rateLimitService.incrementMessageCount(user.uid);
+      setErrorMessage(null);
+      return true;
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to send message",
+      );
+      return false;
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
     if (!newMessage.trim()) return;
 
-    // Validate message length
-    if (newMessage.length > maxMessageLength) {
-      setErrorMessage(
-        `Message is too long. Maximum ${maxMessageLength} characters allowed.`,
-      );
-      return;
-    }
+    const sent = await submitMessage({
+      content: newMessage.trim(),
+      sender: currentUsername,
+      senderId: user.uid,
+    });
 
-    // Check rate limits
-    const rateLimitCheck = await rateLimitService.canSendMessage(user.uid);
-    if (!rateLimitCheck.allowed) {
-      setErrorMessage(rateLimitCheck.message || "Rate limit exceeded");
-      return;
-    }
-
-    // Check if user is member of the club
-    const isMember = await bookClubRepo.checkMembership(clubId, user.uid);
-    if (!isMember) {
-      setErrorMessage("You must be a member to send messages");
-      return;
-    }
-
-    try {
-      const message: IMessage = {
-        content: newMessage.trim(),
-        sender: displayName || "Anonymous",
-        senderId: user.uid,
-      };
-
-      await bookClubRepo.sendMessage(clubId, message);
-      await rateLimitService.incrementMessageCount(user.uid);
-      setNewMessage("");
-      setErrorMessage(null);
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      setErrorMessage(error.message || "Failed to send message");
-    }
+    if (sent) setNewMessage("");
   };
 
   const handleSendSpoiler = async () => {
     if (!spoilerContent.trim()) return;
 
-    // Validate message length
-    if (spoilerContent.length > maxMessageLength) {
-      setErrorMessage(
-        `Message is too long. Maximum ${maxMessageLength} characters allowed.`,
-      );
+    // Validate chapter range
+    if (spoilerEndChapter !== undefined && spoilerEndChapter < spoilerStartChapter) {
+      setErrorMessage("End chapter cannot be before start chapter.");
       return;
     }
 
-    // Check rate limits
-    const rateLimitCheck = await rateLimitService.canSendMessage(user.uid);
-    if (!rateLimitCheck.allowed) {
-      setErrorMessage(rateLimitCheck.message || "Rate limit exceeded");
-      return;
-    }
+    const sent = await submitMessage({
+      content: spoilerContent.trim(),
+      sender: currentUsername,
+      senderId: user.uid,
+      hasSpoiler: true,
+      spoilerChapterRange: {
+        start: spoilerStartChapter,
+        ...(spoilerEndChapter !== undefined && { end: spoilerEndChapter }),
+      },
+    });
 
-    // Check if user is member of the club
-    const isMember = await bookClubRepo.checkMembership(clubId, user.uid);
-    if (!isMember) {
-      setErrorMessage("You must be a member to send messages");
-      return;
-    }
-
-    try {
-      const message: IMessage = {
-        content: spoilerContent.trim(),
-        sender: displayName || "Anonymous",
-        senderId: user.uid,
-        hasSpoiler: true,
-        spoilerChapterRange: {
-          start: spoilerStartChapter,
-          ...(spoilerEndChapter !== undefined && { end: spoilerEndChapter }),
-        },
-      };
-
-      await bookClubRepo.sendMessage(clubId, message);
-      await rateLimitService.incrementMessageCount(user.uid);
+    if (sent) {
       setSpoilerContent("");
       setSpoilerStartChapter(1);
       setSpoilerEndChapter(undefined);
       setIsSpoilerDialogOpen(false);
-      setErrorMessage(null);
-    } catch (error: any) {
-      console.error("Error sending spoiler message:", error);
-      setErrorMessage(error.message || "Failed to send spoiler message");
     }
   };
 
@@ -173,9 +219,9 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
   return (
     <div className="space-y-4">
       {/* Messages Container */}
-      <div className="h-96 overflow-y-auto rounded-xl border border-neutral-200/50 dark:border-neutral-800/50 bg-gradient-to-br from-neutral-50/30 to-neutral-100/30 dark:from-neutral-900/30 dark:to-neutral-800/30 p-4 space-y-3 scrollbar-thin scrollbar-thumb-dark-green/30 dark:scrollbar-thumb-light-green/30 scrollbar-track-transparent">
+      <div className="h-96 overflow-y-auto rounded-ns-lg border border-ns-border bg-ns-bg p-4 space-y-3 scrollbar-thin scrollbar-thumb-ns-accent/30 scrollbar-track-transparent">
         {messages.length === 0 ? (
-          <p className="text-center text-neutral-400 dark:text-neutral-500 italic py-8">
+          <p className="text-center text-ns-ink-muted italic py-8">
             No messages yet. Start the conversation!
           </p>
         ) : (
@@ -187,20 +233,20 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
               } animate-in slide-in-from-bottom-2 duration-300`}
             >
               <div
-                className={`max-w-[75%] sm:max-w-[65%] p-3 rounded-2xl shadow-md ${
+                className={`max-w-[75%] sm:max-w-[65%] p-3 rounded-ns-xl shadow-ns ${
                   message.senderId === user?.uid
-                    ? "bg-gradient-to-r from-dark-green to-emerald-600 dark:from-light-green dark:to-emerald-500 text-white rounded-br-sm"
-                    : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-bl-sm"
+                    ? "bg-ns-gradient text-white rounded-br-sm"
+                    : "bg-ns-elevated text-ns-ink rounded-bl-sm"
                 }`}
               >
                 <p
                   className={`text-xs font-semibold mb-1 ${
                     message.senderId === user?.uid
                       ? "text-white/90"
-                      : "text-dark-green dark:text-light-green"
+                      : "text-ns-accent"
                   }`}
                 >
-                  {message.sender}
+                  {getMessageSender(message)}
                   {message.hasSpoiler && (
                     <span className="ml-2 text-yellow-500 dark:text-yellow-400">
                       <AlertTriangle size={12} className="inline" />
@@ -212,7 +258,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                   className={`text-xs mt-1 ${
                     message.senderId === user?.uid
                       ? "text-white/70"
-                      : "text-neutral-500 dark:text-neutral-400"
+                      : "text-ns-ink-secondary"
                   }`}
                 >
                   {message.timestamp?.toDate().toLocaleTimeString([], {
@@ -230,7 +276,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
       {/* Message Input */}
       <div className="space-y-2">
         {errorMessage && (
-          <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
+          <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-ns text-sm">
             {errorMessage}
           </div>
         )}
@@ -245,16 +291,16 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
               }}
               placeholder="Type your message..."
               maxLength={maxMessageLength}
-              className="w-full p-3 sm:p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:border-transparent transition-all duration-200"
+              className="w-full p-3 sm:p-4 border border-ns-border rounded-ns-lg bg-ns-surface text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-2 focus:ring-ns-accent focus:border-transparent transition-all duration-200"
             />
-            <div className="absolute right-2 bottom-1 text-xs text-neutral-400 dark:text-neutral-500">
+            <div className="absolute right-2 bottom-1 text-xs text-ns-ink-muted">
               {newMessage.length}/{maxMessageLength}
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsSpoilerDialogOpen(true)}
-            className="px-3 sm:px-4 py-3 sm:py-4 border border-dark-green/30 dark:border-light-green/30 rounded-xl bg-dark-green/10 dark:bg-light-green/10 text-dark-green dark:text-light-green hover:bg-dark-green/20 dark:hover:bg-light-green/20 transition-colors"
+            className="px-3 sm:px-4 py-3 sm:py-4 border border-ns-accent/30 rounded-ns-lg bg-ns-accent/10 text-ns-accent hover:bg-ns-accent/20 transition-colors"
             title="Add spoiler"
           >
             <AlertTriangle size={18} />
@@ -264,7 +310,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
             disabled={
               !newMessage.trim() || newMessage.length > maxMessageLength
             }
-            className="bg-gradient-to-r from-dark-green to-emerald-600 dark:from-light-green dark:to-emerald-500 hover:from-dark-green/90 hover:to-emerald-600/90 dark:hover:from-light-green/90 dark:hover:to-emerald-500/90 disabled:from-neutral-300 disabled:to-neutral-400 dark:disabled:from-neutral-600 dark:disabled:to-neutral-700 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
+            className="bg-ns-gradient hover:opacity-90 disabled:bg-none disabled:bg-ns-surface-hover text-white px-4 sm:px-6 py-3 sm:py-4 rounded-ns-lg font-medium transition-all duration-200 shadow-ns-lg hover:shadow-ns-xl disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
           >
             <span className="hidden sm:inline">Send</span>
             <Send size={18} />
@@ -276,14 +322,11 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
       <Dialog open={isSpoilerDialogOpen} onOpenChange={setIsSpoilerDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-black dark:text-white">
-              <AlertTriangle
-                className="text-dark-green dark:text-light-green"
-                size={20}
-              />
+            <DialogTitle className="flex items-center gap-2 text-ns-ink">
+              <AlertTriangle className="text-ns-accent" size={20} />
               Add Spoiler Message
             </DialogTitle>
-            <DialogDescription className="text-neutral-600 dark:text-neutral-400">
+            <DialogDescription className="text-ns-ink-secondary">
               Tag your message with a chapter range to prevent spoilers for
               members who haven't reached that point yet
             </DialogDescription>
@@ -291,15 +334,12 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
 
           <div className="space-y-4 py-4">
             {errorMessage && (
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-ns text-sm">
                 {errorMessage}
               </div>
             )}
             <div className="space-y-2">
-              <Label
-                htmlFor="spoilerContent"
-                className="text-black dark:text-white"
-              >
+              <Label htmlFor="spoilerContent" className="text-ns-ink">
                 Message *
               </Label>
               <div className="relative">
@@ -311,10 +351,10 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                     setErrorMessage(null);
                   }}
                   maxLength={maxMessageLength}
-                  className="w-full p-3 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-black dark:text-white min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green"
+                  className="w-full p-3 border border-ns-border rounded-ns bg-ns-surface text-ns-ink min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-ns-accent"
                   placeholder="Enter your spoiler message..."
                 />
-                <div className="absolute right-2 bottom-2 text-xs text-neutral-400 dark:text-neutral-500">
+                <div className="absolute right-2 bottom-2 text-xs text-ns-ink-muted">
                   {spoilerContent.length}/{maxMessageLength}
                 </div>
               </div>
@@ -322,10 +362,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label
-                  htmlFor="startChapter"
-                  className="text-black dark:text-white"
-                >
+                <Label htmlFor="startChapter" className="text-ns-ink">
                   Start Chapter *
                 </Label>
                 <Input
@@ -338,15 +375,12 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                       Math.max(1, parseInt(e.target.value) || 1),
                     )
                   }
-                  className="bg-white dark:bg-neutral-900 text-black dark:text-white"
+                  className="bg-ns-surface text-ns-ink"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="endChapter"
-                  className="text-black dark:text-white"
-                >
+                <Label htmlFor="endChapter" className="text-ns-ink">
                   End Chapter (Optional)
                 </Label>
                 <Input
@@ -361,7 +395,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                         : undefined,
                     )
                   }
-                  className="bg-white dark:bg-neutral-900 text-black dark:text-white"
+                  className="bg-ns-surface text-ns-ink"
                   placeholder="Leave empty for single chapter"
                 />
               </div>
@@ -386,7 +420,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
                 !spoilerContent.trim() ||
                 spoilerContent.length > maxMessageLength
               }
-              className="bg-dark-green dark:bg-light-green text-white hover:opacity-90"
+              className="bg-ns-accent text-white hover:opacity-90"
             >
               <AlertTriangle size={16} className="mr-2" />
               Send Spoiler
