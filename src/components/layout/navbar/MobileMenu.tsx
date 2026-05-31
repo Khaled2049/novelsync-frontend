@@ -1,9 +1,18 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useFirebaseAuth } from "../../../hooks/useFirebaseAuth";
-import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../../contexts/AuthContext";
 import { useState } from "react";
-import { Shield, HelpCircle, BookOpen, LogOut, X, Loader2 } from "lucide-react";
+import {
+  Shield,
+  HelpCircle,
+  BookOpen,
+  LogOut,
+  X,
+  Loader2,
+  Compass,
+  Users,
+  ChevronRight,
+} from "lucide-react";
 import { useWalletState } from "@/hooks/useWalletState";
 import { toast } from "sonner";
 // import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -13,10 +22,39 @@ interface MobileMenuProps {
   onClose: () => void;
 }
 
+const discoverItems = [
+  { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/book-clubs", label: "Book Clubs", icon: Users },
+] as const;
+
+const accountItems = [
+  { icon: Shield, label: "Privacy Policy", to: "/privacy-policy" },
+  { icon: HelpCircle, label: "Help & Support", to: "/help" },
+  { icon: BookOpen, label: "My Shelf", to: "/user-stories" },
+] as const;
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="px-4 pt-2 pb-1 text-xs font-ui font-medium uppercase tracking-wider text-ns-ink-muted">
+      {children}
+    </p>
+  );
+}
+
+function navLinkClass(isActive: boolean) {
+  return [
+    "flex items-center gap-3 px-4 py-3 rounded-ns font-ui transition-colors",
+    isActive
+      ? "bg-ns-accent-subtle text-ns-accent"
+      : "text-ns-ink hover:bg-ns-surface",
+  ].join(" ");
+}
+
 const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const { signout } = useFirebaseAuth();
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { address, disconnectWallet } = useWalletState();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -25,7 +63,6 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
     setIsSigningOut(true);
     try {
-      // Best effort: disconnect wallet before Firebase sign-out.
       if (address) {
         try {
           await disconnectWallet();
@@ -55,32 +92,22 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
     onClose();
   };
 
-  const menuItems = [
-    { to: "/explore", label: "Explore" },
-    { to: "/book-clubs", label: "Book Clubs" },
-  ];
-
-  const userMenuItems = [
-    { icon: Shield, label: "Privacy Policy", to: "/privacy-policy" },
-    { icon: HelpCircle, label: "Help & Support", to: "/help" },
-    { icon: BookOpen, label: "My Shelf", to: "/user-stories" },
-  ];
-
   return (
     <div
       className={`lg:hidden fixed inset-0 z-50 bg-ns-bg transition-transform duration-300 ease-ns-spring ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
+      aria-hidden={!isOpen}
     >
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-ns-border">
+        <div className="flex items-center justify-between p-4 border-b border-ns-border shrink-0">
           <h2 className="text-xl font-heading font-semibold text-ns-accent">
             Menu
           </h2>
           <div className="flex items-center gap-2">
             {/* <ThemeToggle /> */}
             <button
+              type="button"
               onClick={onClose}
               className="p-2 text-ns-ink-secondary hover:text-ns-ink hover:bg-ns-surface rounded-ns transition-colors"
               aria-label="Close menu"
@@ -90,76 +117,143 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {/* Navigation Links */}
-          <div className="space-y-1 mb-6">
-            {menuItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={onClose}
-                className="block px-4 py-3 text-lg font-body text-ns-ink hover:bg-ns-surface rounded-ns transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* User Section */}
-          {user ? (
-            <>
-              <div className="mb-4 pb-4 border-b border-ns-border">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-4">
+            {user ? (
+              <>
                 <Link
                   to="/profile"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-2 rounded-ns hover:bg-ns-surface transition-colors"
+                  className="flex items-center gap-3 p-4 mb-2 rounded-ns-lg bg-ns-surface border border-ns-border hover:border-ns-border-strong hover:bg-ns-surface-hover transition-colors group"
                 >
                   {user.photoURL && user.photoURL.trim() !== "" ? (
                     <img
                       src={user.photoURL}
-                      alt="User Avatar"
-                      className="w-10 h-10 rounded-full border-2 border-ns-border"
+                      alt=""
+                      className="w-12 h-12 rounded-full border-2 border-ns-border object-cover"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-ns-accent flex items-center justify-center">
-                      <span className="text-white font-semibold font-ui">
+                    <div className="w-12 h-12 rounded-full bg-ns-accent flex items-center justify-center shrink-0">
+                      <span className="text-white text-lg font-semibold font-ui">
                         {user.displayName?.[0]?.toUpperCase() || "U"}
                       </span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate text-ns-ink">
+                    <p className="text-base font-semibold font-ui truncate text-ns-ink">
                       {user.displayName || "User"}
                     </p>
-                    <p className="text-xs text-ns-ink-muted truncate">
+                    <p className="text-sm text-ns-ink-muted truncate">
                       {user.email}
                     </p>
+                    <p className="text-xs text-ns-accent mt-0.5 font-ui group-hover:underline">
+                      View profile
+                    </p>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-ns-ink-muted shrink-0" />
                 </Link>
-              </div>
 
-              <div className="space-y-1 mb-6">
-                {userMenuItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={onClose}
-                      className="flex items-center gap-3 px-4 py-3 text-ns-ink hover:bg-ns-surface rounded-ns transition-colors"
-                    >
-                      <Icon className="w-5 h-5 text-ns-ink-muted" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+                <nav aria-label="Discover" className="mb-4">
+                  <SectionLabel>Discover</SectionLabel>
+                  <div className="space-y-0.5">
+                    {discoverItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname.startsWith(item.to);
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={onClose}
+                          className={navLinkClass(isActive)}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          <Icon
+                            className={`w-5 h-5 shrink-0 ${isActive ? "text-ns-accent" : "text-ns-ink-muted"}`}
+                          />
+                          <span className="flex-1">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </nav>
 
+                <nav aria-label="Account" className="mb-2">
+                  <SectionLabel>Account</SectionLabel>
+                  <div className="space-y-0.5">
+                    {accountItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname.startsWith(item.to);
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={onClose}
+                          className={navLinkClass(isActive)}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          <Icon
+                            className={`w-5 h-5 shrink-0 ${isActive ? "text-ns-accent" : "text-ns-ink-muted"}`}
+                          />
+                          <span className="flex-1">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </nav>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2 mb-6">
+                  <Link
+                    to="/try"
+                    onClick={onClose}
+                    className="block w-full px-4 py-3 border border-ns-border hover:border-ns-border-strong text-ns-ink text-center font-ui rounded-ns transition-colors"
+                  >
+                    Try Editor
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignIn}
+                    className="w-full px-4 py-3 bg-ns-accent hover:bg-ns-accent-hover text-white font-semibold font-ui rounded-ns transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </div>
+
+                <nav aria-label="Discover">
+                  <SectionLabel>Discover</SectionLabel>
+                  <div className="space-y-0.5">
+                    {discoverItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname.startsWith(item.to);
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={onClose}
+                          className={navLinkClass(isActive)}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          <Icon
+                            className={`w-5 h-5 shrink-0 ${isActive ? "text-ns-accent" : "text-ns-ink-muted"}`}
+                          />
+                          <span className="flex-1">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </nav>
+              </>
+            )}
+          </div>
+
+          {user && (
+            <div className="shrink-0 p-4 pt-0 border-t border-ns-border bg-ns-bg">
               <button
+                type="button"
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="flex items-center gap-3 w-full px-4 py-3 text-ns-destructive hover:bg-ns-destructive/5 rounded-ns transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-3 w-full px-4 py-3 text-ns-destructive hover:bg-ns-destructive/5 rounded-ns transition-colors disabled:opacity-60 disabled:cursor-not-allowed font-ui"
               >
                 {isSigningOut ? (
                   <>
@@ -172,22 +266,6 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
                     <span>Sign Out</span>
                   </>
                 )}
-              </button>
-            </>
-          ) : (
-            <div className="space-y-2">
-              <Link
-                to="/try"
-                onClick={onClose}
-                className="block w-full px-4 py-3 border border-ns-border hover:border-ns-border-strong text-ns-ink text-center font-ui rounded-ns transition-colors"
-              >
-                Try Editor
-              </Link>
-              <button
-                onClick={handleSignIn}
-                className="w-full px-4 py-3 bg-ns-accent hover:bg-ns-accent-hover text-white font-semibold font-ui rounded-ns transition-colors"
-              >
-                Sign In
               </button>
             </div>
           )}
