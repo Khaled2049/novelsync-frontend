@@ -113,7 +113,7 @@ class BookClubRepo {
     }
   };
 
-  joinBookClub = async (clubId: string, userName: string) => {
+  joinBookClub = async (clubId: string, userId: string) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
       const clubDoc = await getDoc(clubRef);
@@ -129,7 +129,7 @@ class BookClubRepo {
       }
 
       await updateDoc(clubRef, {
-        members: arrayUnion(userName),
+        members: arrayUnion(userId),
       });
     } catch (error) {
       console.error("Error joining book club:", error);

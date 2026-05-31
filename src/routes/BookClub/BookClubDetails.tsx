@@ -19,8 +19,6 @@ import {
 import { bookClubRepo } from "./bookClubRepo";
 import { useAuthContext } from "@/contexts/AuthContext";
 import BookClubChat from "./BookClubChat";
-import { doc, getDoc } from "firebase/firestore";
-import { firestore } from "@/config/firebase";
 import ReadingScheduleSection from "./components/ReadingScheduleSection";
 import DiscussionPromptsSection from "./components/DiscussionPromptsSection";
 import PollsSection from "./components/PollsSection";
@@ -28,6 +26,7 @@ import ReadingProgressTracker from "./components/ReadingProgressTracker";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 import { useBookClub } from "@/hooks/queries/useBookClubQueries";
+import { publicProfileService } from "@/services/PublicProfileService";
 
 interface MemberInfo {
   id: string;
@@ -48,6 +47,7 @@ const BookClubDetails: React.FC = () => {
   const [isEditingMeetup, setIsEditingMeetup] = useState(false);
   const [meetupDraft, setMeetupDraft] = useState("");
   const [isSavingMeetup, setIsSavingMeetup] = useState(false);
+  const [isUpdatingMembership, setIsUpdatingMembership] = useState(false);
 
 
   // Fetch usernames for member IDs
@@ -69,25 +69,14 @@ const BookClubDetails: React.FC = () => {
 
       if (isMounted) setLoadingMembers(true);
       try {
-        const memberPromises = club.members.map(async (memberId) => {
-          try {
-            const userRef = doc(firestore, "users", memberId);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-              const userData = userSnap.data();
-              return {
-                id: memberId,
-                username: userData.username || userData.displayName || "Unknown User",
-              };
-            }
-            return { id: memberId, username: "Unknown User" };
-          } catch {
-            console.error("Error fetching member data");
-            return { id: memberId, username: "Unknown User" };
-          }
+        const profileMap = await publicProfileService.getPublicProfiles(club.members);
+        const memberInfos = club.members.map((memberId) => {
+          const profile = profileMap.get(memberId);
+          return {
+            id: memberId,
+            username: profile?.username || profile?.displayName || "Unknown User",
+          };
         });
-
-        const memberInfos = await Promise.all(memberPromises);
         if (isMounted) setMembers(memberInfos);
       } catch {
         console.error("Error fetching member usernames");
@@ -98,7 +87,6 @@ const BookClubDetails: React.FC = () => {
 
     fetchMemberUsernames();
     return () => { isMounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [club?.members?.length, club?.members]);
 
   // Fetch user's reading progress
@@ -125,6 +113,23 @@ const BookClubDetails: React.FC = () => {
   }, [id, user, club?.id]); // Update when club changes
 
   const isCreator = user ? club?.creatorId === user.uid : false;
+  const isMember = user ? club?.members?.includes(user.uid) : false;
+
+  const handleMembershipToggle = async () => {
+    if (!club || !user || isUpdatingMembership) return;
+    setIsUpdatingMembership(true);
+    try {
+      if (isMember) {
+        await bookClubRepo.leaveBookClub(club.id, user.uid);
+      } else {
+        await bookClubRepo.joinBookClub(club.id, user.uid);
+      }
+    } catch (error) {
+      console.error("Failed to update membership:", error);
+    } finally {
+      setIsUpdatingMembership(false);
+    }
+  };
 
   if (loading || isLoading) {
     return (
@@ -340,9 +345,24 @@ const BookClubDetails: React.FC = () => {
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 lg:px-12">
               {/* Club Hero */}
               <div className="bg-white dark:bg-neutral-900 p-4 sm:p-6 md:p-8 mb-4 sm:mb-8 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm transition-colors duration-300">
-                <h1 className="text-lg sm:text-3xl md:text-4xl font-serif font-bold mb-2 sm:mb-3 text-neutral-900 dark:text-white">
-                  {club.name}
-                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2 sm:mb-3">
+                  <h1 className="text-lg sm:text-3xl md:text-4xl font-serif font-bold text-neutral-900 dark:text-white">
+                    {club.name}
+                  </h1>
+                  {user && !isCreator && (
+                    <button
+                      onClick={handleMembershipToggle}
+                      disabled={isUpdatingMembership}
+                      className={`text-[11px] font-ui font-semibold tracking-[0.12em] uppercase px-4 py-2 border transition-colors duration-200 disabled:opacity-50 ${
+                        isMember
+                          ? "text-dark-green dark:text-light-green border-dark-green dark:border-light-green hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-700"
+                          : "text-neutral-900 dark:text-white border-neutral-900 dark:border-white hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900"
+                      }`}
+                    >
+                      {isUpdatingMembership ? "Working..." : isMember ? "Leave" : "Join"}
+                    </button>
+                  )}
+                </div>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed max-w-2xl">
                   {club.description}
                 </p>

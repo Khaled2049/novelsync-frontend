@@ -64,9 +64,20 @@ const BookClubs = () => {
     }
   };
 
-  const handleJoinClub = (clubId: string) => {
+  const handleJoinClub = async (clubId: string) => {
     if (user) {
-      bookClubRepo.joinBookClub(clubId, user.uid);
+      try {
+        await bookClubRepo.joinBookClub(clubId, user.uid);
+        setBookClubs((prevClubs) =>
+          prevClubs.map((club) =>
+            club.id === clubId && !club.members.includes(user.uid)
+              ? { ...club, members: [...club.members, user.uid] }
+              : club,
+          ),
+        );
+      } catch (error) {
+        console.error("Failed to join club:", error);
+      }
     } else {
       alert("You must be logged in to join a club.");
     }
@@ -90,9 +101,20 @@ const BookClubs = () => {
     }
   };
 
-  const handleLeaveClub = (clubId: string) => {
+  const handleLeaveClub = async (clubId: string) => {
     if (user) {
-      bookClubRepo.leaveBookClub(clubId, user.uid);
+      try {
+        await bookClubRepo.leaveBookClub(clubId, user.uid);
+        setBookClubs((prevClubs) =>
+          prevClubs.map((club) =>
+            club.id === clubId
+              ? { ...club, members: club.members.filter((id) => id !== user.uid) }
+              : club,
+          ),
+        );
+      } catch (error) {
+        console.error("Failed to leave club:", error);
+      }
     }
   };
 

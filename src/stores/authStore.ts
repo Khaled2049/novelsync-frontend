@@ -14,8 +14,12 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { IUser } from "@/types/IUser";
+import { publicProfileService } from "@/services/PublicProfileService";
 
 export interface ProfileUpdateData {
+  username?: string;
+  displayName?: string;
+  photoURL?: string;
   bio?: string;
   occupation?: string;
   location?: string;
@@ -91,6 +95,31 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               ? userData.lastAiUsageDate
               : "",
         };
+
+        const profileUsername =
+          typeof userData.username === "string" && userData.username.trim().length > 0
+            ? userData.username
+            : firebaseUser.displayName || "";
+        if (profileUsername) {
+          try {
+            const existingPublicProfile =
+              await publicProfileService.getPublicProfile(firebaseUser.uid);
+            if (!existingPublicProfile) {
+              await publicProfileService.upsertPublicProfile(firebaseUser.uid, {
+                username: profileUsername,
+                ...(firebaseUser.displayName
+                  ? { displayName: firebaseUser.displayName }
+                  : {}),
+                ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
+              });
+            }
+          } catch (publicProfileError) {
+            console.warn(
+              "Error syncing public profile during hydration:",
+              publicProfileError,
+            );
+          }
+        }
         set({ user: newUser, loading: false });
         return;
       }
@@ -217,6 +246,35 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const userDocRef = doc(firestore, "users", currentUser.uid);
       await updateDoc(userDocRef, filteredData);
+
+      const publicProfileData: {
+        username?: string;
+        displayName?: string;
+        photoURL?: string;
+      } = {};
+      if (typeof filteredData.username === "string") {
+        publicProfileData.username = filteredData.username;
+      }
+      if (typeof filteredData.displayName === "string") {
+        publicProfileData.displayName = filteredData.displayName;
+      }
+      if (typeof filteredData.photoURL === "string") {
+        publicProfileData.photoURL = filteredData.photoURL;
+      }
+      if (Object.keys(publicProfileData).length > 0) {
+        const usernameToSync = publicProfileData.username ?? currentUser.username;
+        if (usernameToSync) {
+          await publicProfileService.upsertPublicProfile(currentUser.uid, {
+            username: usernameToSync,
+            ...(publicProfileData.displayName
+              ? { displayName: publicProfileData.displayName }
+              : {}),
+            ...(publicProfileData.photoURL
+              ? { photoURL: publicProfileData.photoURL }
+              : {}),
+          });
+        }
+      }
 
       set((state) => {
         if (!state.user) return state;

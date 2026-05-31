@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { auth, firestore } from "../config/firebase";
 import { storageService } from "@/services/StorageService";
+import { publicProfileService } from "@/services/PublicProfileService";
 
 /** Optional profile details collected during the signup wizard. */
 export interface SignupProfile {
@@ -41,6 +42,8 @@ export const useFirebaseAuth = () => {
       occupation?: string;
       location?: string;
       writingInterests?: string;
+      displayName?: string;
+      photoURL?: string;
     },
   ) => {
     const dbUser = {
@@ -67,6 +70,11 @@ export const useFirebaseAuth = () => {
     };
 
     await setDoc(doc(firestore, "users", userId), dbUser);
+    await publicProfileService.upsertPublicProfile(userId, {
+      username: userData.username,
+      ...(userData.displayName ? { displayName: userData.displayName } : {}),
+      ...(userData.photoURL ? { photoURL: userData.photoURL } : {}),
+    });
   };
 
   /**
@@ -185,6 +193,8 @@ export const useFirebaseAuth = () => {
         occupation: profile?.occupation,
         location: profile?.location,
         writingInterests: profile?.writingInterests,
+        displayName: username,
+        ...(photoURL ? { photoURL } : {}),
       });
 
       // Mark invite as completed
