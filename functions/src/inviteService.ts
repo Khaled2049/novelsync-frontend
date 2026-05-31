@@ -6,8 +6,8 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 
 // Define configuration parameters
-const smtpHost = "email-smtp.us-east-1.amazonaws.com"
-const smtpPort = "587"
+const smtpHost = "email-smtp.us-east-1.amazonaws.com";
+const smtpPort = "587";
 const smtpUser = defineSecret("SMTP_USER");
 const smtpPass = defineSecret("SMTP_PASS");
 const emailFrom = defineSecret("EMAIL_FROM");
@@ -70,10 +70,9 @@ export const onInviteApproved = onDocumentUpdated(
         handleCodeInApp: true,
       };
 
-      const magicLink = await admin.auth().generateSignInWithEmailLink(
-        email,
-        actionCodeSettings
-      );
+      const magicLink = await admin
+        .auth()
+        .generateSignInWithEmailLink(email, actionCodeSettings);
 
       if (isEmulator) {
         logger.info(`[EMULATOR] Magic link for ${email}: ${magicLink}`);
@@ -85,11 +84,11 @@ export const onInviteApproved = onDocumentUpdated(
           // Create email transporter
           const transporter = nodemailer.createTransport({
             host: smtpHost,
-            port: parseInt(smtpPort, 10), 
-            secure: false, 
+            port: parseInt(smtpPort, 10),
+            secure: false,
             auth: {
-              user: smtpUser.value(), 
-              pass: smtpPass.value(), 
+              user: smtpUser.value(),
+              pass: smtpPass.value(),
             },
             tls: {
               rejectUnauthorized: true,
@@ -100,50 +99,54 @@ export const onInviteApproved = onDocumentUpdated(
           await transporter.sendMail({
             from: emailFrom.value(),
             to: email,
-            subject: "Your NovelSync Invite",
+            subject: "You're in! Welcome to TheTaleTribe",
             html: `
-              <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h1 style="color: #15284f; font-size: 28px; margin-bottom: 20px;">Welcome to NovelSync!</h1>
+              <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #FDFCF9; color: #1a1a1a;">
+                <p style="color: #B91C1C; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 8px; font-weight: bold;">TheTaleTribe</p>
+                <h1 style="color: #1a1a1a; font-size: 30px; margin: 0 0 20px; line-height: 1.2;">A pen, a page, and you.</h1>
 
-                <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                  Your invite request has been approved. Click the button below to complete your registration
-                  and start your storytelling journey.
+                <p style="color: #333; font-size: 16px; line-height: 1.7;">
+                  Great news — your application to join the tribe has been <strong>approved</strong>!
+                  Every storyteller needs a beginning, and yours is one click away. Tap the button below
+                  to set up your author profile and start spinning tales.
                 </p>
 
-                <div style="text-align: center; margin: 30px 0;">
+                <div style="text-align: center; margin: 36px 0;">
                   <a href="${magicLink}"
-                     style="display: inline-block; background-color: #15284f; color: white;
-                            padding: 14px 28px; text-decoration: none; border-radius: 8px;
-                            font-size: 16px; font-weight: bold;">
-                    Complete Registration
+                     style="display: inline-block; background-color: #B91C1C; color: #ffffff;
+                            padding: 15px 36px; text-decoration: none; border-radius: 10px;
+                            font-size: 16px; font-weight: bold; font-family: Helvetica, Arial, sans-serif;">
+                    Begin your tale
                   </a>
                 </div>
 
-                <p style="color: #666; font-size: 14px; line-height: 1.6;">
-                  This link will expire in 24 hours. If the button doesn't work, copy and paste this URL
-                  into your browser:
+                <p style="color: #666; font-size: 14px; line-height: 1.7;">
+                  This magic link expires in 24 hours (even fairy tales have deadlines).
+                  If the button doesn't work, copy and paste this URL into your browser:
                 </p>
-                <p style="color: #24b8a5; font-size: 12px; word-break: break-all;">
+                <p style="color: #B91C1C; font-size: 12px; word-break: break-all;">
                   ${magicLink}
                 </p>
 
-                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                <hr style="border: none; border-top: 1px solid #e7e2d8; margin: 32px 0;">
 
-                <p style="color: #999; font-size: 12px;">
-                  If you didn't request this invite, you can safely ignore this email.
+                <p style="color: #999; font-size: 12px; line-height: 1.6;">
+                  Didn't apply to The Tale Tribe? No worries — you can safely ignore this email,
+                  and this chapter will close on its own.
                 </p>
               </div>
             `,
             text: `
-Welcome to NovelSync!
+The Tale Tribe — A pen, a page, and you.
 
-Your invite request has been approved. Click the link below to complete your registration:
+Great news — your application to join the tribe has been approved!
+Tap the link below to set up your author profile and start spinning tales:
 
 ${magicLink}
 
-This link will expire in 24 hours.
+This magic link expires in 24 hours.
 
-If you didn't request this invite, you can safely ignore this email.
+Didn't apply to The Tale Tribe? You can safely ignore this email.
             `,
           });
 
@@ -177,5 +180,5 @@ If you didn't request this invite, you can safely ignore this email.
       //   lastErrorAt: FieldValue.serverTimestamp(),
       // });
     }
-  }
+  },
 );

@@ -113,7 +113,7 @@ class BookClubRepo {
     }
   };
 
-  joinBookClub = async (clubId: string, userName: string) => {
+  joinBookClub = async (clubId: string, userId: string) => {
     try {
       const clubRef = doc(firestore, "bookClubs", clubId);
       const clubDoc = await getDoc(clubRef);
@@ -129,7 +129,7 @@ class BookClubRepo {
       }
 
       await updateDoc(clubRef, {
-        members: arrayUnion(userName),
+        members: arrayUnion(userId),
       });
     } catch (error) {
       console.error("Error joining book club:", error);
@@ -159,13 +159,6 @@ class BookClubRepo {
 
       const messagesRef = collection(firestore, `bookClubs/${clubId}/messages`);
 
-      // Get current message count
-      const messageCount = (await getDocs(messagesRef)).size;
-
-      if (messageCount >= 100) {
-        throw new Error("Message limit reached");
-      }
-
       // Add new message
       const messageRef = doc(messagesRef);
 
@@ -194,22 +187,16 @@ class BookClubRepo {
 
   getMessages = (clubId: string, callback: (messages: IMessage[]) => void) => {
     const messagesRef = collection(firestore, `bookClubs/${clubId}/messages`);
-    const q = query(messagesRef, orderBy("timestamp", "asc"), limit(50));
+    // Fetch the newest 50 (desc) then reverse to chronological order. Using asc
+    // would cap at the OLDEST 50 and never surface new messages past that.
+    const q = query(messagesRef, orderBy("timestamp", "desc"), limit(50));
 
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((doc) => doc.data() as IMessage);
+      const messages = snapshot.docs
+        .map((doc) => doc.data() as IMessage)
+        .reverse();
       callback(messages);
     });
-  };
-
-  checkMembership = async (clubId: string, userId: string) => {
-    const clubRef = doc(firestore, "bookClubs", clubId);
-    const clubDoc = await getDoc(clubRef);
-    if (clubDoc.exists()) {
-      const clubData = clubDoc.data() as IClub;
-      return clubData.members.includes(userId);
-    }
-    return false;
   };
 
   // Reading Schedule Methods

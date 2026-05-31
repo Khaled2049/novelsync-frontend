@@ -199,7 +199,7 @@ const Signin: React.FC = () => {
                 onClick={() => navigate("/sign-up")}
                 className="text-ns-accent hover:text-ns-accent-hover transition-colors duration-200 font-ui font-semibold hover:underline bg-transparent border-none cursor-pointer"
               >
-                Request an Invite
+                Apply to be an Author
               </button>
             </div>
           </div>

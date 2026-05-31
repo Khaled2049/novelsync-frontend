@@ -16,6 +16,17 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, firestore } from "../config/firebase";
+import { storageService } from "@/services/StorageService";
+import { publicProfileService } from "@/services/PublicProfileService";
+
+/** Optional profile details collected during the signup wizard. */
+export interface SignupProfile {
+  bio?: string;
+  occupation?: string;
+  location?: string;
+  writingInterests?: string;
+  photoFile?: File;
+}
 
 export const useFirebaseAuth = () => {
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +38,12 @@ export const useFirebaseAuth = () => {
       email: string;
       isAnonymous?: boolean;
       walletAddress?: string;
+      bio?: string;
+      occupation?: string;
+      location?: string;
+      writingInterests?: string;
+      displayName?: string;
+      photoURL?: string;
     },
   ) => {
     const dbUser = {
@@ -41,15 +58,23 @@ export const useFirebaseAuth = () => {
       savedPosts: [],
       lastLogin: new Date().toISOString(),
       isAnonymous: userData.isAnonymous || false,
-      bio: "Write an about me section here...",
-      occupation: "Occupation",
-      location: "Location",
+      bio: userData.bio?.trim() || "",
+      occupation: userData.occupation?.trim() || "",
+      location: userData.location?.trim() || "",
+      ...(userData.writingInterests?.trim()
+        ? { writingInterests: userData.writingInterests.trim() }
+        : {}),
       ...(userData.walletAddress
         ? { walletAddress: userData.walletAddress }
         : {}),
     };
 
     await setDoc(doc(firestore, "users", userId), dbUser);
+    await publicProfileService.upsertPublicProfile(userId, {
+      username: userData.username,
+      ...(userData.displayName ? { displayName: userData.displayName } : {}),
+      ...(userData.photoURL ? { photoURL: userData.photoURL } : {}),
+    });
   };
 
   /**
@@ -121,6 +146,7 @@ export const useFirebaseAuth = () => {
     email: string,
     username: string,
     password: string,
+    profile?: SignupProfile,
     walletAddress?: string,
   ): Promise<{ success: boolean; message?: string }> => {
     try {
@@ -135,8 +161,24 @@ export const useFirebaseAuth = () => {
       const result = await signInWithEmailLink(auth, email, link);
       const user = result.user;
 
-      // Update profile with username
-      await updateProfile(user, { displayName: username });
+      // Upload the profile image if one was chosen. Optional — never block signup.
+      let photoURL: string | undefined;
+      if (profile?.photoFile) {
+        try {
+          photoURL = await storageService.uploadProfileImage(
+            profile.photoFile,
+            user.uid,
+          );
+        } catch (uploadErr) {
+          console.warn("Profile image upload failed, continuing:", uploadErr);
+        }
+      }
+
+      // Update Firebase Auth profile (username + optional avatar)
+      await updateProfile(user, {
+        displayName: username,
+        ...(photoURL ? { photoURL } : {}),
+      });
 
       // Set the password for future sign-ins
       await updatePassword(user, password);
@@ -147,6 +189,12 @@ export const useFirebaseAuth = () => {
         email,
         isAnonymous: false,
         walletAddress,
+        bio: profile?.bio,
+        occupation: profile?.occupation,
+        location: profile?.location,
+        writingInterests: profile?.writingInterests,
+        displayName: username,
+        ...(photoURL ? { photoURL } : {}),
       });
 
       // Mark invite as completed

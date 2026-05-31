@@ -186,10 +186,11 @@ class StoriesRepo {
 
   async getUserInfo(userId: string): Promise<string> {
     try {
-      const userRef = doc(firestore, "users", userId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        return userSnap.data().username;
+      const publicProfileRef = doc(firestore, "publicProfiles", userId);
+      const profileSnap = await getDoc(publicProfileRef);
+      if (profileSnap.exists()) {
+        const profile = profileSnap.data();
+        return profile.username || profile.displayName || "";
       }
     } catch (error) {
       console.error("Error getting user info:", error);
