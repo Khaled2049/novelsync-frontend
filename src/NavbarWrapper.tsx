@@ -13,7 +13,9 @@ export const NavbarWrapper = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-ns-bg">
-      <Navbar />
+      {/* Editor is a focused, full-height workspace — hide the navbar there and
+          let users navigate away with the browser back button. */}
+      {!isEditorPage && <Navbar />}
 
       <main
         className={`w-full h-full bg-ns-bg ${

@@ -20,6 +20,8 @@ export function useAiSuggestions({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestionMenu, setShowSuggestionMenu] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  // 0–100 progress for chapter generation, pushed from the job's Firestore doc.
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const fetchNextLineSuggestions = useCallback(
     async (editor: Editor) => {
@@ -58,31 +60,41 @@ export function useAiSuggestions({
   );
 
   const generateChapter = useCallback(
-    async (editor: Editor) => {
+    async (): Promise<{ chapterId: string; content: string } | undefined> => {
       if (!chapterId) {
         toast.error("Please select a chapter first.");
         return;
       }
       setIsGenerating(true);
+      setGenerationProgress(0);
       try {
         const chapter = await storiesRepo.getChapter(storyId, chapterId);
         if (!chapter) throw new Error("Current chapter not found.");
 
-        const chapterNumber = (chapter.order ?? 0) + 1;
+        // Generate INTO the selected chapter: pass its float order (so the
+        // backend uses the real neighbors on both sides for continuity) and its
+        // id (so the chapter is updated in place — no duplicate / collision).
+        const order = chapter.order ?? 0;
+        const chapterNumber = order + 1;
         console.debug("[generateChapter] starting chapter generation", {
           storyId,
           chapterId,
           chapterNumber,
+          order,
           currentChapterTitle: chapter.title,
         });
 
         const startResponse = await generateChapterApi({
           storyId,
           chapterNumber,
+          order,
+          chapterId,
         });
         console.debug("[generateChapter] job queued", startResponse);
 
-        const completedJob = await waitForJobCompletion(startResponse.jobId);
+        const completedJob = await waitForJobCompletion(startResponse.jobId, {
+          onProgress: setGenerationProgress,
+        });
         console.debug("[generateChapter] job completed", completedJob);
 
         const generatedChapterId =
@@ -106,10 +118,18 @@ export function useAiSuggestions({
         if (!generatedChapter?.content?.trim())
           throw new Error("Generated chapter content was empty.");
 
-        editor.chain().focus().setContent(generatedChapter.content).run();
+        // Return the result instead of mutating the editor here. The worker
+        // already persisted the content to Firestore; the caller refreshes the
+        // in-memory cache and editor display (no re-save, no wrong-chapter
+        // clobber if the user navigated away during the job).
+        return {
+          chapterId: generatedChapterId,
+          content: generatedChapter.content,
+        };
       } catch (error) {
         console.error("Error generating chapter:", error);
         toast.error(error instanceof Error ? error.message : "Failed to generate chapter.");
+        return;
       } finally {
         setIsGenerating(false);
       }
@@ -123,6 +143,7 @@ export function useAiSuggestions({
     showSuggestionMenu,
     setShowSuggestionMenu,
     isGenerating,
+    generationProgress,
     fetchNextLineSuggestions,
     generateChapter,
   };

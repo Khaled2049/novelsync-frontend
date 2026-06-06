@@ -8,6 +8,7 @@ import {
   BookPlus,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Eraser,
   Heading1,
   Heading2,
@@ -23,6 +24,7 @@ import {
   Redo2,
   RemoveFormatting,
   Save,
+  ScrollText,
   Sparkles,
   Undo2,
   Upload,
@@ -33,6 +35,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { storiesRepo } from "../../services/StoriesRepo";
+import { summarizeChapter as summarizeChapterApi } from "@/api/ai";
 import { Chapter, Story } from "@/types/IStory";
 
 // Import components
@@ -48,6 +51,7 @@ import { Editor } from "@tiptap/react";
 // Import hooks
 import { useEditorState } from "@/hooks/useEditorState";
 import { useAutosave } from "@/hooks/useAutosave";
+import { SaveStatusIndicator } from "@/components/editor/SaveStatusIndicator";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { FloatingChatButton } from "../chat/FloatingChatButton";
 import { useCoWrite } from "@/hooks/useCoWrite";
@@ -113,6 +117,8 @@ export function SimpleEditor() {
   const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] =
     useState(false);
   const [pendingChapter, setPendingChapter] = useState<Chapter | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryResult, setSummaryResult] = useState<string | null>(null);
   const [fontSize, setFontSize] = useState("16px");
   const [fontColor, setFontColor] = useState("#1f2937");
   const [highlightColor, setHighlightColor] = useState("#fef3c7");
@@ -154,10 +160,14 @@ export function SimpleEditor() {
           content,
         );
 
-        // Update chapter in list with new content and word count
+        // Update chapter in list with new content and word count. `content`
+        // MUST be included — otherwise the in-memory chapters cache keeps the
+        // old text and switching back to this chapter shows stale content
+        // (Firestore is correct, only the cache is stale).
         const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
         actions.updateChapterInList(state.currentChapter.id, {
           title: state.chapterTitle,
+          content,
           wordCount,
         });
       }
@@ -184,12 +194,19 @@ export function SimpleEditor() {
   );
 
   // Initialize autosave hook
-  const { triggerSave, forceSave, saveState, isDirty, resetSaveState } =
-    useAutosave({
-      onSave: performSave,
-      debounceMs: 3000,
-      enabled: !!state.story && !!state.currentChapter,
-    });
+  const {
+    triggerSave,
+    forceSave,
+    flushSave,
+    saveState,
+    isDirty,
+    cancelPendingSave,
+    resetSaveState,
+  } = useAutosave({
+    onSave: performSave,
+    debounceMs: 3000,
+    enabled: !!state.story && !!state.currentChapter,
+  });
 
   // Load story and chapters
   const loadStory = useCallback(
@@ -229,7 +246,7 @@ export function SimpleEditor() {
 
     // Save current content first if dirty
     if (isDirty && state.currentChapter?.content) {
-      await forceSave(state.currentChapter.content);
+      await forceSave();
     }
 
     const newChapterId = await storiesRepo.addChapter(
@@ -246,6 +263,44 @@ export function SimpleEditor() {
     }
   };
 
+  // Summarize the current chapter and persist the summary.
+  const handleSummarizeChapter = async () => {
+    if (!requireAuth()) return;
+    if (!state.story || !state.currentChapter) return;
+
+    // Save any pending edits first so the summary reflects the latest text
+    // (the endpoint reads chapter content from Firestore).
+    if (isDirty && state.currentChapter?.content) {
+      await forceSave();
+    }
+
+    setIsSummarizing(true);
+    try {
+      const { summary } = await summarizeChapterApi({
+        storyId: state.story.id,
+        chapterId: state.currentChapter.id,
+      });
+      setSummaryResult(summary);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to summarize chapter.",
+      );
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  // Copy the generated summary to the clipboard.
+  const handleCopySummary = async () => {
+    if (!summaryResult) return;
+    try {
+      await navigator.clipboard.writeText(summaryResult);
+      toast.success("Summary copied to clipboard.");
+    } catch {
+      toast.error("Couldn't copy summary.");
+    }
+  };
+
   // Handle publishing
   const handlePublish = async () => {
     if (!requireAuth()) return;
@@ -253,7 +308,7 @@ export function SimpleEditor() {
 
     // Save before publishing if dirty
     if (isDirty && state.currentChapter?.content) {
-      await forceSave(state.currentChapter.content);
+      await forceSave();
     }
 
     const wasPublished = state.story.isPublished;
@@ -292,7 +347,7 @@ export function SimpleEditor() {
   // Handle save and continue for unsaved changes dialog
   const handleSaveAndContinue = async () => {
     if (state.currentChapter?.content) {
-      await forceSave(state.currentChapter.content);
+      await forceSave();
     }
     if (pendingChapter) {
       actions.selectChapter(pendingChapter);
@@ -331,6 +386,17 @@ export function SimpleEditor() {
   // Handle save from editor (autosave trigger)
   const handleEditorSave = (content: string) => {
     triggerSave(content);
+  };
+
+  // Apply AI-generated chapter content. The worker already persisted it to
+  const handleChapterGenerated = (genChapterId: string, content: string) => {
+    cancelPendingSave();
+    const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+    actions.updateChapterInList(genChapterId, { content, wordCount });
+    if (state.currentChapter?.id === genChapterId) {
+      actions.updateChapterContent(content);
+    }
+    resetSaveState();
   };
 
   // Handle chapter delete request
@@ -446,7 +512,11 @@ export function SimpleEditor() {
                 <select
                   defaultValue={fontFamilies[0]}
                   onChange={(event) => {
-                    editor.chain().focus().setFontFamily(event.target.value).run();
+                    editor
+                      .chain()
+                      .focus()
+                      .setFontFamily(event.target.value)
+                      .run();
                   }}
                   className="rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui"
                 >
@@ -478,14 +548,18 @@ export function SimpleEditor() {
                   <Redo2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                  onClick={() =>
+                    editor.chain().focus().setHorizontalRule().run()
+                  }
                   className="p-2 rounded-ns border border-ns-border hover:bg-white"
                   title="Divider"
                 >
                   <RemoveFormatting className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().clearTextFormatting().run()}
+                  onClick={() =>
+                    editor.chain().focus().clearTextFormatting().run()
+                  }
                   className="p-2 rounded-ns border border-ns-border hover:bg-white"
                   title="Clear formatting"
                 >
@@ -544,35 +618,45 @@ export function SimpleEditor() {
                   <Pilcrow className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  onClick={() =>
+                    editor.chain().focus().toggleHeading({ level: 1 }).run()
+                  }
                   className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 1 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Heading 1"
                 >
                   <Heading1 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  onClick={() =>
+                    editor.chain().focus().toggleHeading({ level: 2 }).run()
+                  }
                   className={`p-2 rounded-ns border ${editor.isActive("heading", { level: 2 }) ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Heading 2"
                 >
                   <Heading2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  onClick={() =>
+                    editor.chain().focus().toggleBulletList().run()
+                  }
                   className={`p-2 rounded-ns border ${editor.isActive("bulletList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Bullet list"
                 >
                   <List className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  onClick={() =>
+                    editor.chain().focus().toggleOrderedList().run()
+                  }
                   className={`p-2 rounded-ns border ${editor.isActive("orderedList") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Numbered list"
                 >
                   <ListOrdered className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                  onClick={() =>
+                    editor.chain().focus().toggleBlockquote().run()
+                  }
                   className={`p-2 rounded-ns border ${editor.isActive("blockquote") ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Quote"
                 >
@@ -587,28 +671,36 @@ export function SimpleEditor() {
               </p>
               <div className="flex items-center gap-1 flex-wrap mb-2">
                 <button
-                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                  onClick={() =>
+                    editor.chain().focus().setTextAlign("left").run()
+                  }
                   className={`p-2 rounded-ns border ${activeTextAlign === "left" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Align left"
                 >
                   <AlignLeft className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                  onClick={() =>
+                    editor.chain().focus().setTextAlign("center").run()
+                  }
                   className={`p-2 rounded-ns border ${activeTextAlign === "center" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Align center"
                 >
                   <AlignCenter className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                  onClick={() =>
+                    editor.chain().focus().setTextAlign("right").run()
+                  }
                   className={`p-2 rounded-ns border ${activeTextAlign === "right" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Align right"
                 >
                   <AlignRight className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+                  onClick={() =>
+                    editor.chain().focus().setTextAlign("justify").run()
+                  }
                   className={`p-2 rounded-ns border ${activeTextAlign === "justify" ? "bg-ns-accent-subtle border-ns-accent" : "border-ns-border hover:bg-white"}`}
                   title="Justify"
                 >
@@ -696,7 +788,9 @@ export function SimpleEditor() {
                 </label>
               </div>
               <button
-                onClick={() => editor.chain().focus().unsetHighlightColor().run()}
+                onClick={() =>
+                  editor.chain().focus().unsetHighlightColor().run()
+                }
                 className="mt-2 w-full rounded-ns border border-ns-border bg-white px-2 py-1.5 text-xs font-ui hover:bg-ns-surface-hover"
               >
                 Clear highlight
@@ -724,7 +818,8 @@ export function SimpleEditor() {
                 </span>
               </p>
               <p className="text-xs font-ui text-ns-ink-secondary">
-                Chapters: <span className="text-ns-ink">{state.chapters.length}</span>
+                Chapters:{" "}
+                <span className="text-ns-ink">{state.chapters.length}</span>
               </p>
             </div>
             <div className="rounded-ns border border-ns-border bg-white p-3">
@@ -855,18 +950,18 @@ export function SimpleEditor() {
             {/* Writing Canvas */}
             {state.currentChapter ? (
               <div className="flex-1 overflow-y-auto bg-ns-bg">
-                <div className="mx-auto">
+                <div className="mx-auto min-h-full flex flex-col">
                   <TipTapEditor
                     initialContent={state.currentChapter.content}
                     onContentChange={handleContentChange}
                     onSave={handleEditorSave}
-                    saveState={saveState}
-                    isOnline={isOnline}
+                    onBlur={flushSave}
                     storyId={state.story?.id || ""}
                     chapterId={state.currentChapter?.id || ""}
                     userId={user?.uid}
                     onEditorReady={setEditor}
                     onOpenCoWrite={openCoWrite}
+                    onChapterGenerated={handleChapterGenerated}
                   />
                 </div>
               </div>
@@ -921,59 +1016,72 @@ export function SimpleEditor() {
                   </div>
                 )}
 
-                <div className="hidden sm:grid sm:grid-cols-3 items-center px-4 py-2">
-                  <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-3 px-4 py-2">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
                       onClick={() => {
                         if (requireAuth()) openCoWrite();
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"
+                      title="Co-Write with AI"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150 whitespace-nowrap"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Co-Write</span>
-                      <span className="sm:hidden">AI</span>
+                      <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">Co-Write</span>
+                      <span className="lg:hidden">AI</span>
                     </button>
                     <button
                       onClick={handleNewChapter}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"
+                      title="New chapter"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150 whitespace-nowrap"
                     >
-                      <BookPlus className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">New Chapter</span>
-                      <span className="sm:hidden">New</span>
+                      <BookPlus className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">New Chapter</span>
+                      <span className="lg:hidden">New</span>
                     </button>
                     <button
                       onClick={() => {
                         if (state.currentChapter?.content) {
-                          forceSave(state.currentChapter.content);
+                          forceSave();
                         }
                       }}
                       disabled={!isDirty || saveState.status === "saving"}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border font-ui text-xs active:scale-[0.97] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong"
+                      title="Save chapter"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border font-ui text-xs active:scale-[0.97] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong whitespace-nowrap"
                     >
-                      <Save className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Save</span>
+                      <Save className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">Save</span>
+                    </button>
+                    <button
+                      onClick={handleSummarizeChapter}
+                      disabled={isSummarizing}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns border border-ns-border font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                      title="Summarize this chapter and save the summary"
+                    >
+                      {isSummarizing ? (
+                        <Loader className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                      ) : (
+                        <ScrollText className="w-3.5 h-3.5 flex-shrink-0" />
+                      )}
+                      <span className="hidden lg:inline">
+                        {isSummarizing ? "Summarizing…" : "Summarize"}
+                      </span>
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-center gap-1.5 font-ui text-xs text-ns-ink-muted select-none">
-                    {saveState.status === "saving" && (
-                      <>
-                        <Loader className="w-3 h-3 animate-spin text-ns-accent flex-shrink-0" />
-                        <span>Saving…</span>
-                      </>
-                    )}
-                    {saveState.status === "saved" && <span>Saved</span>}
-                    {saveState.status === "error" && (
-                      <span className="text-ns-destructive">Save failed</span>
-                    )}
-                    {!isOnline && <span className="text-ns-gold">Offline</span>}
+                  <div className="flex-1 flex items-center justify-center min-w-0">
+                    <SaveStatusIndicator
+                      status={saveState.status}
+                      lastSaved={saveState.lastSaved}
+                      errorMessage={saveState.errorMessage}
+                      isOnline={isOnline}
+                    />
                   </div>
 
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-center justify-end flex-shrink-0">
                     <button
                       onClick={handlePublish}
                       disabled={togglePublish.isPending}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap ${
                         state.story?.isPublished
                           ? "bg-ns-destructive text-white hover:bg-ns-destructive-hover"
                           : "bg-ns-accent text-white hover:bg-ns-accent-hover"
@@ -995,20 +1103,15 @@ export function SimpleEditor() {
                 </div>
 
                 <div className="sm:hidden border-t border-ns-border px-3 py-2 space-y-2">
-                  <div className="flex items-center justify-center gap-1.5 font-ui text-xs text-ns-ink-muted select-none">
-                    {saveState.status === "saving" && (
-                      <>
-                        <Loader className="w-3 h-3 animate-spin text-ns-accent flex-shrink-0" />
-                        <span>Saving…</span>
-                      </>
-                    )}
-                    {saveState.status === "saved" && <span>Saved</span>}
-                    {saveState.status === "error" && (
-                      <span className="text-ns-destructive">Save failed</span>
-                    )}
-                    {!isOnline && <span className="text-ns-gold">Offline</span>}
+                  <div className="flex items-center justify-center">
+                    <SaveStatusIndicator
+                      status={saveState.status}
+                      lastSaved={saveState.lastSaved}
+                      errorMessage={saveState.errorMessage}
+                      isOnline={isOnline}
+                    />
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-5 gap-2">
                     <button
                       onClick={() => {
                         if (requireAuth()) openCoWrite();
@@ -1028,7 +1131,7 @@ export function SimpleEditor() {
                     <button
                       onClick={() => {
                         if (state.currentChapter?.content) {
-                          forceSave(state.currentChapter.content);
+                          forceSave();
                         }
                       }}
                       disabled={!isDirty || saveState.status === "saving"}
@@ -1036,6 +1139,18 @@ export function SimpleEditor() {
                       aria-label="Save chapter"
                     >
                       <Save className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleSummarizeChapter}
+                      disabled={isSummarizing}
+                      className="inline-flex justify-center rounded-ns border border-ns-border px-2 py-1.5 text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Summarize chapter"
+                    >
+                      {isSummarizing ? (
+                        <Loader className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ScrollText className="w-3.5 h-3.5" />
+                      )}
                     </button>
                     <button
                       onClick={handlePublish}
@@ -1046,7 +1161,9 @@ export function SimpleEditor() {
                           : "bg-ns-accent hover:bg-ns-accent-hover"
                       }`}
                       aria-label={
-                        state.story?.isPublished ? "Unpublish story" : "Publish story"
+                        state.story?.isPublished
+                          ? "Unpublish story"
+                          : "Publish story"
                       }
                     >
                       {togglePublish.isPending ? (
@@ -1154,6 +1271,70 @@ export function SimpleEditor() {
             onDiscardAndContinue={handleDiscardAndContinue}
             isSaving={saveState.status === "saving"}
           />
+
+          {/* ── Chapter Summary Dialog ── */}
+          {summaryResult !== null && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 animate-ns-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Chapter summary"
+              onClick={() => setSummaryResult(null)}
+            >
+              <div
+                className="w-full max-w-lg rounded-ns-lg border border-ns-border bg-ns-elevated shadow-ns-lg"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-ns-border px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <ScrollText className="w-4 h-4 text-ns-accent" />
+                    <h2 className="font-heading text-lg text-ns-ink">
+                      Chapter Summary
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSummaryResult(null)}
+                    aria-label="Close"
+                    className="rounded-ns p-1.5 text-ns-ink-muted hover:bg-ns-surface-hover hover:text-ns-ink transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="max-h-[50vh] overflow-y-auto px-5 py-4">
+                  {summaryResult.trim() ? (
+                    <p className="font-body text-sm leading-relaxed text-ns-ink-secondary whitespace-pre-wrap">
+                      {summaryResult}
+                    </p>
+                  ) : (
+                    <p className="font-ui text-sm italic text-ns-ink-muted">
+                      No summary was returned.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 border-t border-ns-border px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setSummaryResult(null)}
+                    className="inline-flex items-center gap-1.5 rounded-ns border border-ns-border px-3 py-1.5 font-ui text-xs text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink hover:border-ns-border-strong active:scale-[0.97] transition-all duration-150"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopySummary}
+                    disabled={!summaryResult.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-ns bg-ns-accent px-3 py-1.5 font-ui text-xs font-medium text-white hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

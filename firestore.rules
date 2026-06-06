@@ -240,6 +240,17 @@ service cloud.firestore {
     }
 
 
+    // Async generation jobs (chapter/story/brainstorm). Created and updated
+    // ONLY by Cloud Functions via the Admin SDK. Owners may read their own job
+    // to observe progress/completion in realtime (replaces HTTP polling). The
+    // owner uid is denormalized onto the job doc so this is a cheap field
+    // compare — no cross-doc story lookup.
+    match /jobs/{jobId} {
+      allow read: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
     match /bookClubs/{clubId} {
       allow read: if true;
       allow create: if request.auth != null &&

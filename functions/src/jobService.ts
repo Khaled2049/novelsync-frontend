@@ -8,7 +8,10 @@ export type JobStatus = "queued" | "processing" | "completed" | "failed";
 export interface Job {
   id: string;
   storyId: string;
-  type: "generateStory" | "generateChapter" | "brainstorm";
+  /** Owner uid — lets Firestore rules authorize the client's realtime read
+   *  without a cross-doc story lookup. */
+  userId?: string;
+  type: "generateChapter" | "brainstorm";
   status: JobStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -27,7 +30,8 @@ export async function createJob(
   db: admin.firestore.Firestore,
   storyId: string,
   type: Job["type"],
-  parameters: Record<string, unknown>
+  parameters: Record<string, unknown>,
+  userId?: string
 ): Promise<string> {
   const now = Timestamp.now();
   const jobData: Omit<Job, "id"> = {
@@ -37,6 +41,7 @@ export async function createJob(
     createdAt: now,
     updatedAt: now,
     parameters,
+    ...(userId ? { userId } : {}),
   };
 
   const jobRef = await db.collection("jobs").add(jobData);

@@ -74,7 +74,13 @@ const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) => {
                 : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
-            <span className="text-lg mt-0.5">{item.icon || "•"}</span>
+            <span className="mt-0.5 flex-shrink-0">
+              {item.icon ? (
+                <item.icon className="w-5 h-5" />
+              ) : (
+                <span className="text-lg leading-none">•</span>
+              )}
+            </span>
             <div className="flex flex-col">
               <span className="font-medium">{item.title}</span>
               <span

@@ -16,7 +16,14 @@ interface UseAutosaveOptions {
 
 interface UseAutosaveReturn {
   triggerSave: (content: string) => void;
-  forceSave: (content: string) => Promise<void>;
+  /**
+   * Save immediately. Omit `content` to save the latest content the editor has
+   * pushed (the single source of truth); pass an explicit string only when the
+   * caller genuinely has fresher content than the editor.
+   */
+  forceSave: (content?: string) => Promise<void>;
+  /** Flush a pending debounced save now (e.g. on blur / tab hide). No-op if none. */
+  flushSave: () => void;
   saveState: SaveState;
   isDirty: boolean;
   cancelPendingSave: () => void;
@@ -34,10 +41,17 @@ export function useAutosave({
   });
   const [isDirty, setIsDirty] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The freshest content the editor has handed us — the single source of truth
+  // for what gets persisted. Updated on every triggerSave/forceSave call.
   const latestContentRef = useRef<string>("");
   const isSavingRef = useRef(false);
   const hasQueuedSaveRef = useRef(false);
   const lastSavedRef = useRef<Date | null>(null);
+  // Bumped on every reset (e.g. chapter switch). A save started under one
+  // generation must not requeue or stamp state under a later one — otherwise an
+  // in-flight save could write the new chapter's text via the old chapter's
+  // save closure.
+  const saveGenerationRef = useRef(0);
 
   const cancelPendingSave = useCallback(() => {
     if (timerRef.current) {
@@ -47,6 +61,15 @@ export function useAutosave({
   }, []);
 
   const resetSaveState = useCallback(() => {
+    // Cancel any pending debounce here too — a discard-and-switch path may reset
+    // without otherwise cancelling, and a stale timer firing post-switch would
+    // save the wrong chapter.
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    saveGenerationRef.current += 1;
+    hasQueuedSaveRef.current = false;
     setSaveState({ status: "idle", lastSaved: null });
     setIsDirty(false);
     lastSavedRef.current = null;
@@ -55,6 +78,7 @@ export function useAutosave({
   const runSave = useCallback(
     async (initialContent: string) => {
       let contentToSave = initialContent;
+      const myGeneration = saveGenerationRef.current;
 
       while (enabled) {
         isSavingRef.current = true;
@@ -62,6 +86,12 @@ export function useAutosave({
 
         try {
           await onSave(contentToSave);
+
+          // A reset (chapter switch) happened while this save was in flight: the
+          // hook now belongs to a different chapter. Don't requeue with the new
+          // chapter's content and don't stamp state that no longer applies.
+          if (saveGenerationRef.current !== myGeneration) return;
+
           const now = new Date();
           lastSavedRef.current = now;
 
@@ -75,6 +105,7 @@ export function useAutosave({
           setIsDirty(false);
           return;
         } catch (error) {
+          if (saveGenerationRef.current !== myGeneration) return;
           setSaveState({
             status: "error",
             lastSaved: lastSavedRef.current,
@@ -91,11 +122,14 @@ export function useAutosave({
   );
 
   const forceSave = useCallback(
-    async (content: string) => {
+    async (content?: string) => {
       cancelPendingSave();
       if (!enabled) return;
 
-      latestContentRef.current = content;
+      // Default to the latest editor content (single source of truth). Only an
+      // explicit argument overrides it.
+      const contentToSave = content ?? latestContentRef.current;
+      latestContentRef.current = contentToSave;
 
       if (isSavingRef.current) {
         hasQueuedSaveRef.current = true;
@@ -104,7 +138,7 @@ export function useAutosave({
         return;
       }
 
-      await runSave(content);
+      await runSave(contentToSave);
     },
     [runSave, enabled, cancelPendingSave],
   );
@@ -129,6 +163,42 @@ export function useAutosave({
     [enabled, debounceMs, forceSave, cancelPendingSave],
   );
 
+  // Flush a *pending* debounced save immediately. Only acts when a debounce
+  // timer is armed, so it's safe to call liberally (blur, tab hide). forceSave
+  // handles the "already saving" case by queueing.
+  const flushSave = useCallback(() => {
+    if (!enabled) return;
+    if (timerRef.current) {
+      void forceSave();
+    }
+  }, [enabled, forceSave]);
+
+  // Flush when the tab is hidden (switching tabs, minimizing, mobile background)
+  // so the user doesn't lose work sitting in the debounce window.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushSave();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [flushSave]);
+
+  // Warn before the tab is closed/reloaded while there are unsaved or in-flight
+  // changes. Covers the cases the in-app "unsaved changes" dialog can't (tab
+  // close, refresh, browser-back out of the SPA).
+  useEffect(() => {
+    if (!enabled) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isDirty || isSavingRef.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [enabled, isDirty]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -139,6 +209,7 @@ export function useAutosave({
   return {
     triggerSave,
     forceSave,
+    flushSave,
     saveState,
     isDirty,
     cancelPendingSave,

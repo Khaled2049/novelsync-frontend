@@ -3,12 +3,24 @@ import { ReactRenderer } from "@tiptap/react";
 import tippy, { Instance as TippyInstance } from "tippy.js";
 import { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
 import { PluginKey } from "@tiptap/pm/state";
+import {
+  type LucideIcon,
+  MessageSquare,
+  PenLine,
+  BookOpen,
+  Image,
+  Heading1,
+  Heading2,
+  List,
+  Code,
+  ListChecks,
+} from "lucide-react";
 import SlashCommandMenu from "./SlashCommandMenu";
 
 export interface SlashCommand {
   title: string;
   description: string;
-  icon?: string;
+  icon?: LucideIcon;
   command: (props: any) => void;
 }
 
@@ -61,7 +73,7 @@ export const slashCommandSuggestion = (
       {
         title: "Co-Write",
         description: "Open interactive storytelling panel",
-        icon: "💬",
+        icon: MessageSquare,
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           onCoWrite();
@@ -70,7 +82,7 @@ export const slashCommandSuggestion = (
       {
         title: "Generate Next Line",
         description: "AI generates suggestions for the next line",
-        icon: "✍️",
+        icon: PenLine,
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateNextLine();
@@ -79,7 +91,7 @@ export const slashCommandSuggestion = (
       {
         title: "Generate Chapter",
         description: "AI generates current chapter",
-        icon: "📖",
+        icon: BookOpen,
         command: async ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           await onGenerateChapter();
@@ -88,7 +100,7 @@ export const slashCommandSuggestion = (
       {
         title: "Generate Image",
         description: "AI generates an image from your description",
-        icon: "🖼️",
+        icon: Image,
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).run();
           onGenerateImage();
@@ -97,7 +109,7 @@ export const slashCommandSuggestion = (
       {
         title: "Heading 1",
         description: "Large section heading",
-        icon: "H1",
+        icon: Heading1,
         command: ({ editor, range }: any) => {
           editor
             .chain()
@@ -110,7 +122,7 @@ export const slashCommandSuggestion = (
       {
         title: "Heading 2",
         description: "Medium section heading",
-        icon: "H2",
+        icon: Heading2,
         command: ({ editor, range }: any) => {
           editor
             .chain()
@@ -123,7 +135,7 @@ export const slashCommandSuggestion = (
       {
         title: "Bullet List",
         description: "Create a bullet list",
-        icon: "•",
+        icon: List,
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).toggleBulletList().run();
         },
@@ -131,7 +143,7 @@ export const slashCommandSuggestion = (
       {
         title: "Code Block",
         description: "Insert a code block with syntax highlighting",
-        icon: "</>",
+        icon: Code,
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
         },
@@ -139,7 +151,7 @@ export const slashCommandSuggestion = (
       {
         title: "Task List",
         description: "Create a checklist with checkboxes",
-        icon: "☑",
+        icon: ListChecks,
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).toggleTaskList().run();
         },

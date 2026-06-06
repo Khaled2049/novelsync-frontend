@@ -1,22 +1,22 @@
-/** Chapter generation endpoint (asynchronous). */
+/** Chapter generation endpoint (asynchronous, Cloud Tasks backed). */
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { Timestamp } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
+import { getFunctions } from "firebase-admin/functions";
 import { requireStoryOwnership } from "./authService";
-import { createJob, updateJobStatus } from "./jobService";
-import { callAgentWithRetry } from "./agentService";
-import { getStoryContext } from "./contextService";
-import {
-  checkAiAccess,
-  ProviderConfig,
-  corsWithEncryption,
-} from "./aiSettings";
+import { createJob } from "./jobService";
+import { checkAiAccess, corsWithEncryption } from "./aiSettings";
+import { ChapterTaskPayload } from "./generateChapterTask";
 
 const db = admin.firestore();
 
+const isLocalDevelopment = process.env.FUNCTIONS_EMULATOR === "true";
+
 /**
- * POST /generateChapter - Start asynchronous chapter generation.
+ * POST /generateChapter - Validate, create a job, and enqueue a Cloud Task.
+ *
+ * The actual generation runs in `generateChapterTask` (onTaskDispatched) so the
+ * work survives the HTTP response and is retried by Cloud Tasks on failure.
  */
 export const generateChapter = onRequest(
   corsWithEncryption,
@@ -30,7 +30,7 @@ export const generateChapter = onRequest(
         return;
       }
 
-      const { chapterNumber } = request.body;
+      const { chapterNumber, order, chapterId } = request.body;
 
       if (!chapterNumber || typeof chapterNumber !== "number") {
         response
@@ -39,19 +39,38 @@ export const generateChapter = onRequest(
         return;
       }
 
-      // Create job
-      const jobId = await createJob(db, storyId, "generateChapter", {
-        chapterNumber,
-      });
+      // Float ordering key is the source of truth for chapter position. A
+      // mid-story insert passes a fractional order (e.g. 2.5) so it never
+      // collides with neighboring chapters. Fall back to chapterNumber for
+      // older clients.
+      const resolvedOrder =
+        typeof order === "number" ? order : chapterNumber;
 
-      const providerConfig = access.providerConfig ?? undefined;
-      // Start processing asynchronously
-      processChapterGeneration(jobId, storyId, chapterNumber, userId, providerConfig, idToken).catch((error) => {
-        logger.error(
-          `Error in background chapter generation for job ${jobId}`,
-          error,
-        );
-      });
+      const jobId = await createJob(
+        db,
+        storyId,
+        "generateChapter",
+        {
+          chapterNumber,
+          order: resolvedOrder,
+        },
+        userId,
+      );
+
+      const payload: ChapterTaskPayload = {
+        jobId,
+        storyId,
+        chapterNumber,
+        order: resolvedOrder,
+        ...(typeof chapterId === "string" && chapterId
+          ? { chapterId }
+          : {}),
+        userId,
+        providerConfig: access.providerConfig ?? undefined,
+        firebaseToken: idToken,
+      };
+
+      await enqueueChapterTask(payload);
 
       response.status(202).json({
         jobId,
@@ -69,116 +88,18 @@ export const generateChapter = onRequest(
 );
 
 /**
- * Background processing for chapter generation.
+ * Enqueue the chapter generation task. Uses the Cloud Tasks queue managed by
+ * the `generateChapterTask` onTaskDispatched function (also emulated by the
+ * Firebase emulator in local development).
  */
-async function processChapterGeneration(
-  jobId: string,
-  storyId: string,
-  chapterNumber: number,
-  userId?: string,
-  providerConfig?: ProviderConfig,
-  firebaseToken?: string,
-): Promise<void> {
-  try {
-    await updateJobStatus(db, jobId, "processing", 0);
-
-    // Get story context to fetch previous chapters
-    const context = await getStoryContext(db, storyId);
-    const previousChapters = context.chapters
-      .filter((ch) => (ch.chapterNumber || 0) < chapterNumber)
-      .map((ch) => ({
-        chapterNumber: ch.chapterNumber,
-        title: ch.title,
-        content: ch.content,
-      }));
-
-    await updateJobStatus(db, jobId, "processing", 25);
-
-    // Call agent to generate chapter
-    const agentResponse = await callAgentWithRetry("generateChapter", {
-      storyId,
-      chapterNumber,
-      previousChapters,
-    }, 3, 1000, userId, providerConfig, firebaseToken);
-
-    if (!agentResponse.success || !agentResponse.data) {
-      throw new Error(agentResponse.error || "Agent generation failed");
-    }
-
-    await updateJobStatus(db, jobId, "processing", 75);
-
-    // Unwrap envelope if the agent returned { success, data: { content, ... } }
-    const rawData = agentResponse.data as Record<string, unknown>;
-    const generatedContent = (
-      rawData.data != null ? rawData.data : rawData
-    ) as {
-      content?: string;
-      chapterNumber?: number;
-    };
-
-    if (
-      !generatedContent.content ||
-      typeof generatedContent.content !== "string"
-    ) {
-      logger.error("Agent response missing content field", {
-        agentResponseData: agentResponse.data,
-      });
-      throw new Error("Agent returned no content");
-    }
-
-    // Parse chapter content (simple extraction - could be enhanced)
-    // Extract title if present
-    const contentLines = generatedContent.content.split("\n");
-    let title = `Chapter ${chapterNumber}`;
-    let content = generatedContent.content;
-
-    // Try to extract title from format "Title: [title]"
-    const titleMatch = contentLines.find((line) =>
-      line.toLowerCase().startsWith("title:"),
-    );
-    if (titleMatch) {
-      title = titleMatch.split(":")[1]?.trim() || title;
-      const titleIndex = contentLines.indexOf(titleMatch);
-      content = contentLines
-        .slice(titleIndex + 1)
-        .join("\n")
-        .trim();
-    }
-
-    // Save chapter to Firestore
-    const chapterRef = db
-      .collection("stories")
-      .doc(storyId)
-      .collection("chapters")
-      .doc();
-
-    await chapterRef.set({
-      chapterNumber,
-      title,
-      content,
-      generatedAt: Timestamp.now(),
-      createdAt: Timestamp.now(),
-    });
-
-    await updateJobStatus(db, jobId, "completed", 100, {
-      storyId,
-      chapterId: chapterRef.id,
-      chapterNumber,
-      title,
-    });
-
-    logger.info(
-      `Chapter generation completed for job ${jobId}, chapter ${chapterNumber}`,
-    );
-  } catch (error) {
-    logger.error(`Chapter generation failed for job ${jobId}`, error);
-    await updateJobStatus(
-      db,
-      jobId,
-      "failed",
-      undefined,
-      undefined,
-      error instanceof Error ? error.message : String(error),
-    );
-  }
+async function enqueueChapterTask(payload: ChapterTaskPayload): Promise<void> {
+  const queue = getFunctions().taskQueue("generateChapterTask");
+  await queue.enqueue(payload, {
+    // Keep the task short-lived; the worker itself runs up to 540s once dispatched.
+    dispatchDeadlineSeconds: 600,
+  });
+  logger.info(
+    `Enqueued chapter task for job ${payload.jobId}` +
+      (isLocalDevelopment ? " (emulator)" : ""),
+  );
 }

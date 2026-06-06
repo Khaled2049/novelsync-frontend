@@ -40,6 +40,7 @@ import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 import { slashCommandSuggestion } from "./SlashCommandExtension";
 import { SuggestionMenu } from "./SuggestionMenu";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   ImageIcon,
   Loader,
@@ -47,8 +48,6 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react";
-import { SaveStatusIndicator } from "@/components/editor/SaveStatusIndicator";
-import { SaveState } from "@/hooks/useAutosave";
 import {
   FontFamilyExtension,
   FontSizeExtension,
@@ -83,39 +82,44 @@ interface TipTapEditorProps {
   initialContent: string;
   onContentChange: (content: string) => void;
   onSave: (content: string) => void;
-  saveState: SaveState;
-  isOnline?: boolean;
+  /** Called when the editor loses focus, so the parent can flush a pending save. */
+  onBlur?: () => void;
   storyId: string;
   chapterId?: string;
   userId?: string;
   onEditorReady?: (editor: Editor | null) => void;
   onOpenCoWrite?: () => void;
+  onChapterGenerated?: (chapterId: string, content: string) => void;
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   initialContent,
   onContentChange,
   onSave,
-  saveState,
-  isOnline = true,
+  onBlur,
   storyId,
   chapterId,
   userId,
   onEditorReady,
   onOpenCoWrite,
+  onChapterGenerated,
 }) => {
   const { requireAuth } = useDemoMode();
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a ref so plugins always read the current ids without stale closure
   const uploadContextRef = useRef({ userId, storyId, chapterId });
   const editorRef = useRef<Editor | null>(null);
   const onContentChangeRef = useRef(onContentChange);
-  const debouncedSaveRef = useRef<(content: string) => void>(() => {});
+  // Single debounce lives in useAutosave (via onSave); the editor just forwards
+  // every change through a ref to avoid a stale closure in onUpdate.
+  const onSaveRef = useRef(onSave);
+  const onBlurRef = useRef(onBlur);
   // Ref so the paste plugin (created once) can surface errors via React state
   const pasteErrorRef = useRef<((msg: string) => void) | null>(null);
 
   uploadContextRef.current = { userId, storyId, chapterId };
   onContentChangeRef.current = onContentChange;
+  onSaveRef.current = onSave;
+  onBlurRef.current = onBlur;
 
   // Timed error banner shared by all AI features and the paste plugin
   const [editorError, setEditorError] = useState("");
@@ -126,6 +130,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   pasteErrorRef.current = showError;
 
+  // Confirm dialog shown before generating into a chapter that already has prose
+  const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+
   // ── Feature hooks ──────────────────────────────────────────────────────────
 
   const {
@@ -134,9 +141,36 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     showSuggestionMenu,
     setShowSuggestionMenu,
     isGenerating,
+    generationProgress,
     fetchNextLineSuggestions,
     generateChapter,
   } = useAiSuggestions({ storyId, chapterId });
+
+  // Run generation, then hand the result to the parent for cache/editor sync.
+  // We deliberately do NOT write to the editor or trigger a save here: the
+  // worker already persisted the content to Firestore, and the parent refreshes
+  // the in-memory cache (by chapter id) so a re-save can't clobber the wrong
+  // chapter or throw on the word limit.
+  const runGenerateChapter = useCallback(async () => {
+    const result = await generateChapter();
+    if (!result) return;
+    // The parent (handleChapterGenerated) cancels any pending autosave of the
+    // pre-generation text — which the user accepted overwriting via the dialog —
+    // before applying the generated content.
+    onChapterGenerated?.(result.chapterId, result.content);
+  }, [generateChapter, onChapterGenerated]);
+
+  // Confirm before overwriting a chapter that already has prose; empty chapters
+  // generate straight away.
+  const requestGenerateChapter = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (editor.getText().trim()) {
+      setGenerateConfirmOpen(true);
+      return;
+    }
+    await runGenerateChapter();
+  }, [runGenerateChapter]);
 
   const { isEnhancing, handleTextEnhancement } = useTextEnhancement({
     editor: editorRef.current,
@@ -178,9 +212,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                   if (item.type.startsWith("image/")) {
                     event.preventDefault();
                     if (!uploadContextRef.current.userId) {
-                      pasteErrorRef.current?.(
-                        "Sign in to upload images.",
-                      );
+                      pasteErrorRef.current?.("Sign in to upload images.");
                       return true;
                     }
                     const file = item.getAsFile();
@@ -245,10 +277,11 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             editor: editorInstance,
             ...slashCommandSuggestion(
               async () => {
-                if (requireAuth()) await fetchNextLineSuggestions(editorInstance);
+                if (requireAuth())
+                  await fetchNextLineSuggestions(editorInstance);
               },
               async () => {
-                if (requireAuth()) await generateChapter(editorInstance);
+                if (requireAuth()) await requestGenerateChapter();
               },
               () => {
                 if (requireAuth()) openImagePrompt();
@@ -263,7 +296,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     });
   }, [
     fetchNextLineSuggestions,
-    generateChapter,
+    requestGenerateChapter,
     openImagePrompt,
     onOpenCoWrite,
     requireAuth,
@@ -324,7 +357,12 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     onUpdate: ({ editor }) => {
       const content = editor.getHTML();
       onContentChangeRef.current(content);
-      debouncedSaveRef.current(content);
+      // Forward straight to the autosave hook, which owns the (single) debounce.
+      onSaveRef.current(content);
+    },
+    onBlur: () => {
+      // Flush a pending debounced save the moment the user clicks away.
+      onBlurRef.current?.();
     },
   });
 
@@ -332,40 +370,30 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   // ── Effects ────────────────────────────────────────────────────────────────
 
+  // Re-seed the editor only when the *chapter* changes — never on content prop
+  // changes. initialContent updates on every keystroke (via onContentChange →
+  // chapter state), and TipTap's serialized getHTML() rarely matches the stored
+  // string byte-for-byte, so reacting to initialContent would call setContent
+  // mid-typing and reset the caret. Keying on chapterId avoids that. The
+  // `false` arg keeps the swap out of the undo history.
+  const loadedChapterIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (editor && editor.getHTML() !== initialContent) {
-      editor.commands.setContent(initialContent);
+    if (editor && chapterId !== loadedChapterIdRef.current) {
+      editor.commands.setContent(initialContent, { emitUpdate: false });
+      loadedChapterIdRef.current = chapterId;
     }
-  }, [editor, initialContent]);
+  }, [editor, chapterId, initialContent]);
 
   useEffect(() => {
     if (onEditorReady) onEditorReady(editor);
   }, [editor, onEditorReady]);
-
-  const debouncedSave = useCallback(
-    (content: string) => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = setTimeout(() => {
-        onSave(content);
-        debounceTimerRef.current = null;
-      }, 3000);
-    },
-    [onSave],
-  );
-  debouncedSaveRef.current = debouncedSave;
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, []);
 
   if (!editor) return null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col flex-1 min-h-full">
       {/* AI Text Enhancement Bubble Menu */}
       <BubbleMenu
         editor={editor}
@@ -374,7 +402,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
       >
         <div className="flex items-center gap-1 bg-black p-1">
           <button
-            onClick={() => { if (requireAuth()) handleTextEnhancement("expand"); }}
+            onClick={() => {
+              if (requireAuth()) handleTextEnhancement("expand");
+            }}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Expand text with more detail"
@@ -388,7 +418,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           </button>
 
           <button
-            onClick={() => { if (requireAuth()) handleTextEnhancement("dialogue"); }}
+            onClick={() => {
+              if (requireAuth()) handleTextEnhancement("dialogue");
+            }}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Improve dialogue quality"
@@ -402,7 +434,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           </button>
 
           <button
-            onClick={() => { if (requireAuth()) handleTextEnhancement("rewrite"); }}
+            onClick={() => {
+              if (requireAuth()) handleTextEnhancement("rewrite");
+            }}
             disabled={isEnhancing}
             className="px-3 py-2 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
             title="Rewrite with different phrasing"
@@ -417,7 +451,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       </BubbleMenu>
 
-      <div className="w-full bg-ns-elevated text-ns-ink transition-colors">
+      <div className="w-full flex-1 bg-ns-elevated text-ns-ink transition-colors">
         <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-10 lg:px-16">
           <EditorContent
             onClick={() => editor.commands.focus()}
@@ -425,23 +459,24 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             editor={editor}
           />
         </div>
-        <div className="flex items-center justify-center gap-4 px-6 pb-6">
-          <SaveStatusIndicator
-            status={saveState.status}
-            lastSaved={saveState.lastSaved}
-            errorMessage={saveState.errorMessage}
-            isOnline={isOnline}
-          />
-        </div>
       </div>
 
       {/* Loading indicator for generation */}
       {isGenerating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-ns-elevated border border-ns-border rounded-lg p-6 shadow-xl transition-colors">
+          <div className="bg-ns-elevated border border-ns-border rounded-lg p-6 shadow-xl transition-colors w-72">
             <div className="flex items-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ns-accent"></div>
-              <span className="text-ns-ink">Generating...</span>
+              <span className="text-ns-ink">
+                Generating
+                {generationProgress > 0 ? ` ${generationProgress}%` : "…"}
+              </span>
+            </div>
+            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-ns-surface">
+              <div
+                className="h-full rounded-full bg-ns-accent transition-all duration-500 ease-out"
+                style={{ width: `${Math.max(generationProgress, 5)}%` }}
+              />
             </div>
           </div>
         </div>
@@ -465,6 +500,20 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <p className="text-sm">{editorError}</p>
         </div>
       )}
+
+      {/* Confirm overwrite before generating into a non-empty chapter */}
+      <ConfirmDialog
+        open={generateConfirmOpen}
+        onOpenChange={setGenerateConfirmOpen}
+        title="Replace chapter content?"
+        description="This chapter already has text. Generating a chapter will replace its current content. This can't be undone."
+        confirmLabel="Generate"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          void runGenerateChapter();
+        }}
+      />
 
       {/* Image Generation Modal */}
       {imagePromptOpen && (

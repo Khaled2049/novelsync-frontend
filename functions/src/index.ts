@@ -10,8 +10,9 @@ setGlobalOptions({
 admin.initializeApp();
 
 // Export new agent endpoints
-export { generateStory } from "./generateStory";
 export { generateChapter } from "./generateChapter";
+export { generateChapterTask } from "./generateChapterTask";
+export { summarizeChapter } from "./summarizeChapter";
 export {
   brainstormIdeas,
   brainstormCharacter,

@@ -7,10 +7,22 @@ import { corsOptions } from "./corsConfig";
 
 export const encryptionKey = defineSecret("ENCRYPTION_KEY");
 
+/**
+ * Max concurrent function instances for AI endpoints. Caps how far a request
+ * flood can fan out compute (and, downstream, paid LLM calls), bounding
+ * worst-case cost. Override with AI_MAX_INSTANCES.
+ */
+function getAiMaxInstances(): number {
+  const parsed = Number.parseInt(process.env.AI_MAX_INSTANCES || "10", 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return 10;
+  return parsed;
+}
+
 /** onRequest options for endpoints that encrypt/decrypt BYOK API keys. */
 export const corsWithEncryption = {
   ...corsOptions,
   secrets: [encryptionKey],
+  maxInstances: getAiMaxInstances(),
 };
 
 const ALGORITHM = "aes-256-gcm";
