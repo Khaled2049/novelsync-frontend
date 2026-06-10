@@ -1,88 +1,96 @@
 // src/hooks/useSearch.ts
 
-import { useState, useCallback, useMemo } from "react";
-import { SearchResult } from "@/types/IReader";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChapterModel, RenderMark } from "@/types/IReader";
 
-export const useSearch = (content: string) => {
+const DEBOUNCE_MS = 200;
+
+/**
+ * In-chapter search over the chapter's plain text (so match offsets map onto
+ * the rendered DOM). Input is debounced; results are emitted as RenderMarks
+ * consumed by the offset-aware renderer.
+ */
+export const useSearch = (model: ChapterModel) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [effectiveTerm, setEffectiveTerm] = useState("");
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Find all occurrences of the search term
-  const results = useMemo(() => {
-    if (!searchTerm.trim()) return [];
+  const matches = useMemo(() => {
+    const term = effectiveTerm.trim();
+    if (!term) return [] as { start: number; end: number }[];
 
-    const cleanContent = content.toLowerCase();
-    const cleanSearch = searchTerm.toLowerCase();
-    const foundResults: SearchResult[] = [];
+    const haystack = model.plainText.toLowerCase();
+    const needle = term.toLowerCase();
+    const found: { start: number; end: number }[] = [];
 
-    let index = cleanContent.indexOf(cleanSearch);
-
+    let index = haystack.indexOf(needle);
     while (index !== -1) {
-      // Get context around the match (50 chars before and after)
-      const contextStart = Math.max(0, index - 50);
-      const contextEnd = Math.min(
-        content.length,
-        index + searchTerm.length + 50,
-      );
-      const context = content.substring(contextStart, contextEnd);
-
-      foundResults.push({
-        index,
-        context:
-          (contextStart > 0 ? "..." : "") +
-          context +
-          (contextEnd < content.length ? "..." : ""),
-      });
-
-      index = cleanContent.indexOf(cleanSearch, index + 1);
+      found.push({ start: index, end: index + term.length });
+      index = haystack.indexOf(needle, index + 1);
     }
+    return found;
+  }, [model.plainText, effectiveTerm]);
 
-    return foundResults;
-  }, [content, searchTerm]);
+  // Keep the active index within bounds whenever the result set changes.
+  useEffect(() => {
+    setCurrentResultIndex(0);
+  }, [matches]);
+
+  const searchMatches = useMemo<RenderMark[]>(
+    () =>
+      matches.map((m, i) => ({
+        start: m.start,
+        end: m.end,
+        kind: "search",
+        id: `search-${i}`,
+        active: i === currentResultIndex,
+      })),
+    [matches, currentResultIndex],
+  );
 
   const search = useCallback((term: string) => {
     setSearchTerm(term);
-    setCurrentResultIndex(0);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setEffectiveTerm(term), DEBOUNCE_MS);
   }, []);
 
   const clearSearch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setSearchTerm("");
+    setEffectiveTerm("");
     setCurrentResultIndex(0);
   }, []);
 
   const goToNextResult = useCallback(() => {
-    if (results.length > 0) {
-      setCurrentResultIndex((prev) => (prev + 1) % results.length);
+    if (matches.length > 0) {
+      setCurrentResultIndex((prev) => (prev + 1) % matches.length);
     }
-  }, [results.length]);
+  }, [matches.length]);
 
   const goToPreviousResult = useCallback(() => {
-    if (results.length > 0) {
+    if (matches.length > 0) {
       setCurrentResultIndex(
-        (prev) => (prev - 1 + results.length) % results.length,
+        (prev) => (prev - 1 + matches.length) % matches.length,
       );
     }
-  }, [results.length]);
+  }, [matches.length]);
 
-  const goToResult = useCallback(
-    (index: number) => {
-      if (index >= 0 && index < results.length) {
-        setCurrentResultIndex(index);
-      }
-    },
-    [results.length],
-  );
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   return {
     searchTerm,
-    results,
+    searchMatches,
     currentResultIndex,
     search,
     clearSearch,
     goToNextResult,
     goToPreviousResult,
-    goToResult,
-    hasResults: results.length > 0,
-    totalResults: results.length,
+    hasResults: matches.length > 0,
+    totalResults: matches.length,
   };
 };

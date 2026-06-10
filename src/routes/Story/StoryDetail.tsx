@@ -31,6 +31,7 @@ interface StoryDetailState {
   likes: number;
   loading: boolean;
   chapterLoading: boolean;
+  chapterError: string | null;
   error: string | null;
   isLiked: boolean;
   userRating: number | null;
@@ -55,6 +56,7 @@ const StoryDetail: React.FC = () => {
     likes: 0,
     loading: true,
     chapterLoading: false,
+    chapterError: null,
     error: null,
     isLiked: false,
     userRating: null,
@@ -72,14 +74,43 @@ const StoryDetail: React.FC = () => {
   );
 
   const chapterContentCache = useRef<Record<string, string>>({});
+  // Id of the chapter the reader currently wants. Used to discard stale
+  // responses when the user navigates faster than the network resolves.
+  const activeChapterId = useRef<string | null>(null);
+  // Saved resume position (chapter + scroll), captured on load.
+  const resumeRef = useRef<{ chapterIndex: number; scrollPercent: number } | null>(
+    null,
+  );
   const [readNowPending, setReadNowPending] = useState(false);
 
   // --- Data Loading ---
+
+  // Best-effort background fetch of a neighbouring chapter into the cache.
+  const prefetchChapter = useCallback(
+    (chapters: Omit<Chapter, "content">[], index: number) => {
+      if (!id) return;
+      const meta = chapters[index];
+      if (!meta || chapterContentCache.current[meta.id]) return;
+      storiesRepo
+        .getChapter(id, meta.id)
+        .then((c) => {
+          if (c) chapterContentCache.current[c.id] = c.content;
+        })
+        .catch(() => {
+          // Prefetch is best-effort; failures are retried on actual navigation.
+        });
+    },
+    [id],
+  );
+
   const loadChapterContent = useCallback(
     async (index: number, chapters: Omit<Chapter, "content">[]) => {
       if (!id) return;
       const chapterMeta = chapters[index];
       if (!chapterMeta) return;
+
+      // Mark this chapter as the one we want; later resolutions check against it.
+      activeChapterId.current = chapterMeta.id;
 
       const cached = chapterContentCache.current[chapterMeta.id];
       if (cached) {
@@ -87,30 +118,57 @@ const StoryDetail: React.FC = () => {
           ...prev,
           currentChapter: { ...chapterMeta, content: cached } as Chapter,
           chapterLoading: false,
+          chapterError: null,
         }));
+        // Warm neighbours even on a cache hit.
+        prefetchChapter(chapters, index + 1);
+        prefetchChapter(chapters, index - 1);
         return;
       }
 
-      setState((prev) => ({ ...prev, chapterLoading: true }));
-      const fullChapter = await storiesRepo.getChapter(id, chapterMeta.id);
-      if (fullChapter) {
+      setState((prev) => ({
+        ...prev,
+        chapterLoading: true,
+        chapterError: null,
+      }));
+
+      try {
+        const fullChapter = await storiesRepo.getChapter(id, chapterMeta.id);
+
+        // A newer navigation superseded this request — drop the stale result.
+        if (activeChapterId.current !== chapterMeta.id) return;
+
+        if (!fullChapter) {
+          setState((prev) => ({
+            ...prev,
+            chapterLoading: false,
+            chapterError: "This chapter could not be found.",
+          }));
+          return;
+        }
+
         chapterContentCache.current[fullChapter.id] = fullChapter.content;
         setState((prev) => ({
           ...prev,
           currentChapter: fullChapter,
           chapterLoading: false,
+          chapterError: null,
+        }));
+
+        // Prefetch both neighbours so back/forward feel instant.
+        prefetchChapter(chapters, index + 1);
+        prefetchChapter(chapters, index - 1);
+      } catch (error) {
+        console.error("Error loading chapter content:", error);
+        if (activeChapterId.current !== chapterMeta.id) return;
+        setState((prev) => ({
+          ...prev,
+          chapterLoading: false,
+          chapterError: "Failed to load this chapter. Please try again.",
         }));
       }
-
-      // Prefetch next chapter in the background
-      const nextMeta = chapters[index + 1];
-      if (nextMeta && !chapterContentCache.current[nextMeta.id]) {
-        storiesRepo.getChapter(id, nextMeta.id).then((c) => {
-          if (c) chapterContentCache.current[c.id] = c.content;
-        });
-      }
     },
-    [id],
+    [id, prefetchChapter],
   );
 
   const loadStory = useCallback(
@@ -248,6 +306,9 @@ const StoryDetail: React.FC = () => {
       ? chapterContentCache.current[chapterMeta.id]
       : null;
 
+    // Record the target so any in-flight fetch for another chapter is dropped.
+    if (chapterMeta) activeChapterId.current = chapterMeta.id;
+
     if (id && user && state.story) {
       readingProgressService.saveProgress(user.uid, {
         storyId: id,
@@ -262,6 +323,7 @@ const StoryDetail: React.FC = () => {
     setState((prev) => ({
       ...prev,
       currentChapterIndex: prevIndex,
+      chapterError: null,
       ...(cached && chapterMeta
         ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
         : { chapterLoading: true }),
@@ -288,6 +350,9 @@ const StoryDetail: React.FC = () => {
       ? chapterContentCache.current[chapterMeta.id]
       : null;
 
+    // Record the target so any in-flight fetch for another chapter is dropped.
+    if (chapterMeta) activeChapterId.current = chapterMeta.id;
+
     if (id && user && state.story) {
       readingProgressService.saveProgress(user.uid, {
         storyId: id,
@@ -302,6 +367,7 @@ const StoryDetail: React.FC = () => {
     setState((prev) => ({
       ...prev,
       currentChapterIndex: nextIndex,
+      chapterError: null,
       ...(cached && chapterMeta
         ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
         : { chapterLoading: true }),
@@ -317,6 +383,23 @@ const StoryDetail: React.FC = () => {
     state.story,
     loadChapterContent,
   ]);
+
+  const handleRetryChapter = useCallback(() => {
+    loadChapterContent(state.currentChapterIndex, state.chapters);
+  }, [loadChapterContent, state.currentChapterIndex, state.chapters]);
+
+  const handleScrollPersist = useCallback(
+    (percent: number) => {
+      if (!id || !user) return;
+      readingProgressService.saveScrollPercent(
+        user.uid,
+        id,
+        state.currentChapterIndex,
+        percent,
+      );
+    },
+    [id, user, state.currentChapterIndex],
+  );
 
   // --- Comment Logic ---
   const handleCommentLike = useCallback(
@@ -394,7 +477,9 @@ const StoryDetail: React.FC = () => {
     const init = async () => {
       let startIndex = 0;
       if (user) {
-        startIndex = await readingProgressService.getProgress(user.uid, id);
+        const progress = await readingProgressService.getProgress(user.uid, id);
+        startIndex = progress.chapterIndex;
+        resumeRef.current = progress;
       }
       loadStory(id, startIndex);
     };
@@ -668,15 +753,28 @@ const StoryDetail: React.FC = () => {
     return <StoryLoadingState />;
   }
 
+  // Only the resumed chapter restores scroll; everything else starts at top.
+  // useScrollProgress guards against restoring more than once per chapter entry.
+  const resumeScrollPercent =
+    resumeRef.current &&
+    state.currentChapterIndex === resumeRef.current.chapterIndex &&
+    resumeRef.current.scrollPercent > 0
+      ? resumeRef.current.scrollPercent
+      : null;
+
   return (
     <ChapterReader
       currentChapter={state.currentChapter}
       currentChapterIndex={state.currentChapterIndex}
       totalChapters={state.chapters.length}
       chapterLoading={state.chapterLoading}
+      chapterError={state.chapterError}
+      onRetryChapter={handleRetryChapter}
       onBackToDetails={() => setViewMode("details")}
       onPrevChapter={handlePrevChapter}
       onNextChapter={handleNextChapter}
+      resumeScrollPercent={resumeScrollPercent}
+      onScrollPersist={handleScrollPersist}
     />
   );
 };

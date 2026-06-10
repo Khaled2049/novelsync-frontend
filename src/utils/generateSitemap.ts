@@ -96,12 +96,6 @@ export const getStaticSitemapEntries = (): SitemapEntry[] => {
       priority: 0.8,
     },
     {
-      url: "/explore/book-lists",
-      lastmod: now,
-      changefreq: "weekly",
-      priority: 0.7,
-    },
-    {
       url: "/explore/competitions",
       lastmod: now,
       changefreq: "weekly",

@@ -12,6 +12,10 @@ interface ReaderBottomBarProps {
   };
   currentChapterIndex: number;
   totalChapters: number;
+  /** Live scroll fraction (0–1) within the current chapter. */
+  scrollPercent: number;
+  /** Estimated minutes left in the current chapter. */
+  minutesRemaining: number;
   onPrevChapter: () => void;
   onNextChapter: () => void;
 }
@@ -20,10 +24,19 @@ export const ReaderBottomBar: React.FC<ReaderBottomBarProps> = ({
   theme,
   currentChapterIndex,
   totalChapters,
+  scrollPercent,
+  minutesRemaining,
   onPrevChapter,
   onNextChapter,
 }) => {
-  const progress = ((currentChapterIndex + 1) / totalChapters) * 100;
+  // Combine chapter position + intra-chapter scroll into one continuous,
+  // monotonic fraction across the whole book.
+  const progress =
+    totalChapters > 0
+      ? ((currentChapterIndex + Math.min(1, Math.max(0, scrollPercent))) /
+          totalChapters) *
+        100
+      : 0;
   const isFirst = currentChapterIndex === 0;
   const isLast = currentChapterIndex === totalChapters - 1;
 
@@ -43,9 +56,16 @@ export const ReaderBottomBar: React.FC<ReaderBottomBarProps> = ({
             Prev
           </button>
 
-          <span className={`text-sm font-medium ${theme.text} tabular-nums`}>
-            {currentChapterIndex + 1} / {totalChapters}
-          </span>
+          <div className="flex flex-col items-center leading-tight">
+            <span className={`text-sm font-medium ${theme.text} tabular-nums`}>
+              {currentChapterIndex + 1} / {totalChapters}
+            </span>
+            {minutesRemaining > 0 && (
+              <span className={`text-xs ${theme.text} opacity-50 tabular-nums`}>
+                ~{minutesRemaining} min left in chapter
+              </span>
+            )}
+          </div>
 
           <button
             onClick={onNextChapter}

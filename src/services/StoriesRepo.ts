@@ -12,6 +12,10 @@ import {
   where,
   writeBatch,
   serverTimestamp,
+  limit,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
 import { auth, firestore } from "../config/firebase";
 import { Chapter, Story, StoryMetadata } from "@/types/IStory";
@@ -22,8 +26,39 @@ import { storageService } from "./StorageService";
 const WORD_LIMIT = 5000;
 const CHAPTER_LIMIT = 50;
 
+export const STORIES_PAGE_SIZE = 24;
+
+/** Cursor for paginated published-story queries (the last doc of the prior page). */
+export type StoryCursor = QueryDocumentSnapshot<DocumentData> | null;
+
+export interface PublishedStoriesPage {
+  stories: StoryMetadata[];
+  /** Cursor to fetch the next page, or null when there are no more pages. */
+  cursor: StoryCursor;
+}
+
 class StoriesRepo {
   private storiesCollection = collection(firestore, "stories");
+
+  /** Maps a Firestore story doc to the StoryMetadata shape used by lists. */
+  private mapStoryDoc(doc: QueryDocumentSnapshot<DocumentData>): StoryMetadata {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      title: data.title,
+      description: data.description,
+      chapterCount: data.chapterCount,
+      isPublished: data.isPublished,
+      updatedAt: data.updatedAt.toDate(),
+      createdAt: data.createdAt.toDate(),
+      author: data.author,
+      views: data.views,
+      likes: data.likes,
+      coverImageUrl: data.coverImageUrl || "",
+      tags: data.tags || [],
+      category: data.category || undefined,
+    };
+  }
 
   private getStoryLikesCollection(storyId: string) {
     return collection(doc(this.storiesCollection, storyId), "likes");
@@ -54,62 +89,46 @@ class StoriesRepo {
     });
   }
 
-  async getPublishedStories(): Promise<StoryMetadata[]> {
+  async getPublishedStories(
+    cursor: StoryCursor = null,
+    pageSize = STORIES_PAGE_SIZE,
+  ): Promise<PublishedStoriesPage> {
     const q = query(
       this.storiesCollection,
-      orderBy("updatedAt", "desc"),
       where("isPublished", "==", true),
+      orderBy("updatedAt", "desc"),
+      ...(cursor ? [startAfter(cursor)] : []),
+      limit(pageSize),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        description: data.description,
-        chapterCount: data.chapterCount,
-        isPublished: data.isPublished,
-        updatedAt: data.updatedAt.toDate(),
-        createdAt: data.createdAt.toDate(),
-        author: data.author,
-        views: data.views,
-        likes: data.likes,
-        coverImageUrl: data.coverImageUrl || "",
-        tags: data.tags || [],
-        category: data.category || undefined,
-      };
-    });
+    const docs = querySnapshot.docs;
+    return {
+      stories: docs.map((doc) => this.mapStoryDoc(doc)),
+      // A full page implies there may be more; a short page is the last one.
+      cursor: docs.length === pageSize ? docs[docs.length - 1] : null,
+    };
   }
 
   async getPublishedStoriesByCategory(
     category: string,
-  ): Promise<StoryMetadata[]> {
+    cursor: StoryCursor = null,
+    pageSize = STORIES_PAGE_SIZE,
+  ): Promise<PublishedStoriesPage> {
     try {
       const q = query(
         this.storiesCollection,
         where("isPublished", "==", true),
         where("category", "==", category),
         orderBy("updatedAt", "desc"),
+        ...(cursor ? [startAfter(cursor)] : []),
+        limit(pageSize),
       );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title,
-          description: data.description,
-          chapterCount: data.chapterCount,
-          isPublished: data.isPublished,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-          author: data.author,
-          views: data.views,
-          likes: data.likes,
-          coverImageUrl: data.coverImageUrl || "",
-          tags: data.tags || [],
-          category: data.category || undefined,
-        };
-      });
+      const docs = querySnapshot.docs;
+      return {
+        stories: docs.map((doc) => this.mapStoryDoc(doc)),
+        cursor: docs.length === pageSize ? docs[docs.length - 1] : null,
+      };
     } catch (error: any) {
       // Handle Firestore index errors gracefully
       if (error?.code === "failed-precondition") {
@@ -117,8 +136,8 @@ class StoriesRepo {
           "Firestore index required. Please create a composite index for: isPublished, category, updatedAt",
           error,
         );
-        // Return empty array if index is missing - user will need to create the index
-        return [];
+        // Return empty page if index is missing - user will need to create the index
+        return { stories: [], cursor: null };
       }
       console.error("Error fetching stories by category:", error);
       throw error;

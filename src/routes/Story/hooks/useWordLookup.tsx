@@ -1,8 +1,9 @@
 // src/hooks/useWordLookup.ts
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { WordDefinition, MenuPosition } from "@/types/IReader";
 import { dictionaryService } from "@/services/DictionaryService";
+import { cleanWord } from "./useChapterModel";
 
 export const useWordLookup = () => {
   const [definition, setDefinition] = useState<WordDefinition | null>(null);
@@ -10,30 +11,37 @@ export const useWordLookup = () => {
   const [error, setError] = useState<string | null>(null);
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 });
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  // Guards against rapid clicks: only the latest lookup is allowed to render.
+  const requestIdRef = useRef(0);
 
   const lookupWord = useCallback(async (word: string, x: number, y: number) => {
-    // Clean the word (remove punctuation)
-    const cleanWord = word.replace(/[.,!?;:'"""'']/g, "").toLowerCase();
+    // Unicode-aware clean (keeps accented letters), then lowercase for the API.
+    const term = cleanWord(word).toLowerCase();
+    if (!term) return;
 
-    if (!cleanWord) return;
-
-    setSelectedWord(cleanWord);
+    const reqId = ++requestIdRef.current;
+    setSelectedWord(term);
     setPosition({ x, y });
+    setDefinition(null);
     setLoading(true);
     setError(null);
 
     try {
-      const result = await dictionaryService.lookup(cleanWord);
+      const result = await dictionaryService.lookup(term);
+      if (reqId !== requestIdRef.current) return;
       setDefinition(result);
     } catch (err) {
-      setError("Word not found");
+      if (reqId !== requestIdRef.current) return;
+      setError("No definition found");
       console.error("Dictionary lookup error:", err);
     } finally {
-      setLoading(false);
+      if (reqId === requestIdRef.current) setLoading(false);
     }
   }, []);
 
   const clearDefinition = useCallback(() => {
+    // Invalidate any in-flight lookup so it can't reopen the popup.
+    requestIdRef.current++;
     setDefinition(null);
     setSelectedWord(null);
     setError(null);

@@ -2,15 +2,13 @@ import { useAuthContext } from "../../contexts/AuthContext";
 import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
-import { SearchField } from "@/components/common";
 import StoriesHeader from "@/components/story/StoriesHeader";
 import { StoryMetadata } from "@/types/IStory";
 import { usePublishedStories } from "@/hooks/queries/useStoryQueries";
-import { filterBySearchQuery } from "@/lib/filterBySearchQuery";
 
 const CATEGORIES = [
   { id: "all", name: "All", value: "all", symbol: "◆" },
@@ -70,43 +68,46 @@ const StoryCover: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => {
 const AllStories: React.FC = () => {
   const { user } = useAuthContext();
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const {
-    data: stories = [],
+    data,
     isLoading: loading,
     isError,
     error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = usePublishedStories(selectedCategory);
 
-  const filteredStories = useMemo(
-    () => filterBySearchQuery(stories, searchQuery),
-    [stories, searchQuery],
+  const stories = useMemo(
+    () => data?.pages.flatMap((page) => page.stories) ?? [],
+    [data],
   );
-
-  const storiesPerPage = 24;
-  const indexOfLastNovel = currentPage * storiesPerPage;
-  const indexOfFirstNovel = indexOfLastNovel - storiesPerPage;
-  const currentStories = filteredStories.slice(indexOfFirstNovel, indexOfLastNovel);
-  const totalPages = Math.ceil(filteredStories.length / storiesPerPage);
 
   const navigate = useNavigate();
 
+  // Infinite scroll: fetch the next page when the sentinel nears the viewport.
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "400px" }, // prefetch before the user hits the bottom
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    setCurrentPage(1);
   };
 
   const handleNewStory = () => {
@@ -154,14 +155,6 @@ const AllStories: React.FC = () => {
               onCloseModal={() => setIsModalOpen(false)}
             />
 
-            <SearchField
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onClear={() => handleSearchChange("")}
-              placeholder="Search by title, author, or description..."
-              className="mb-6 max-w-md"
-            />
-
             {/* Mobile genre strip */}
             <div className="lg:hidden mb-6">
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -203,28 +196,20 @@ const AllStories: React.FC = () => {
                   : "Failed to load stories. Please try again."}
               </div>
             )}
-            {!loading && searchQuery.trim() && (
-              <p className="mb-4 text-sm text-ns-ink-secondary font-ui">
-                {filteredStories.length}{" "}
-                {filteredStories.length === 1 ? "story" : "stories"} found
-              </p>
-            )}
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <span className="text-ns-ink-muted font-ui text-sm">
                   Loading stories…
                 </span>
               </div>
-            ) : currentStories.length === 0 ? (
+            ) : stories.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <FaBook className="text-5xl text-ns-ink-muted mb-4 opacity-30" />
                 <h3 className="font-heading text-title font-medium text-ns-ink mb-2">
                   No stories found
                 </h3>
                 <p className="text-ns-ink-secondary font-ui text-sm">
-                  {searchQuery.trim()
-                    ? "No stories match your search."
-                    : selectedCategory === "all"
+                  {selectedCategory === "all"
                     ? "No stories have been published yet."
                     : "No stories found in this category yet."}
                 </p>
@@ -233,7 +218,7 @@ const AllStories: React.FC = () => {
               <>
                 {/* Mobile: list layout */}
                 <div className="sm:hidden divide-y divide-ns-border border-t border-ns-border">
-                  {currentStories.map((story) => (
+                  {stories.map((story) => (
                     <div
                       key={story.id}
                       onClick={() => handleStoryClick(story)}
@@ -288,7 +273,7 @@ const AllStories: React.FC = () => {
 
                 {/* Desktop: grid layout */}
                 <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
-                  {currentStories.map((story) => (
+                  {stories.map((story) => (
                     <div
                       key={story.id}
                       onClick={() => handleStoryClick(story)}
@@ -336,23 +321,13 @@ const AllStories: React.FC = () => {
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="flex justify-center gap-2 mt-10">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (pageNumber) => (
-                        <button
-                          key={pageNumber}
-                          onClick={() => handlePageChange(pageNumber)}
-                          className={`w-8 h-8 rounded-ns font-ui text-sm transition-all duration-200 ${
-                            currentPage === pageNumber
-                              ? "bg-ns-accent text-white shadow-ns-sm"
-                              : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      ),
-                    )}
+                {/* Infinite-scroll sentinel + loading indicator */}
+                <div ref={loadMoreRef} className="h-px" aria-hidden="true" />
+                {isFetchingNextPage && (
+                  <div className="flex justify-center py-8">
+                    <span className="text-ns-ink-muted font-ui text-sm">
+                      Loading more…
+                    </span>
                   </div>
                 )}
               </>

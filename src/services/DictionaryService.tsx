@@ -46,16 +46,9 @@ class DictionaryService {
       return result;
     } catch (error) {
       console.error("Dictionary API error:", error);
-
-      // Fallback to mock data for demo purposes
-      const mockResult: WordDefinition = {
-        word,
-        partOfSpeech: "noun",
-        definition: `Definition of "${word}" (Demo mode - API unavailable)`,
-        examples: ["This is a sample usage example."],
-      };
-
-      return mockResult;
+      // Surface the failure honestly so the UI can show "no definition found"
+      // rather than fabricating a fake definition.
+      throw error instanceof Error ? error : new Error("Word lookup failed");
     }
   }
 

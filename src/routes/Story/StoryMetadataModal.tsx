@@ -321,6 +321,51 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </p>
         </DialogHeader>
 
+        {/* ── Mode toggle ──────────────────────────────────────────────────
+            Kept outside the form so it stays visible in every mode — including
+            "Start with AI" — letting users switch modes / back out of the AI
+            wizard instead of being trapped in it. */}
+        <div className="px-6 pt-4">
+          <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => handleModeChange("scratch")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                mode === "scratch"
+                  ? "bg-dark-green dark:bg-light-green text-white"
+                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
+              }`}
+            >
+              <PenLine className="w-4 h-4" />
+              Start from Scratch
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange("import")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
+                mode === "import"
+                  ? "bg-dark-green dark:bg-light-green text-white"
+                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              Import Existing
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange("cowrite")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
+                mode === "cowrite"
+                  ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white"
+                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Start with AI
+            </button>
+          </div>
+        </div>
+
         {mode === "cowrite" ? (
           <div className="flex-grow flex flex-col min-h-0">
             <CoWriteWizard
@@ -338,46 +383,6 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "cowrite" ? "hidden" : ""}`}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* ── Mode toggle ───────────────────────────────────────────────── */}
-            <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => handleModeChange("scratch")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                  mode === "scratch"
-                    ? "bg-dark-green dark:bg-light-green text-white"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
-                }`}
-              >
-                <PenLine className="w-4 h-4" />
-                Start from Scratch
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange("import")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
-                  mode === "import"
-                    ? "bg-dark-green dark:bg-light-green text-white"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
-                }`}
-              >
-                <Upload className="w-4 h-4" />
-                Import Existing
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange("cowrite")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
-                  mode === "cowrite"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white"
-                    : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                Start with AI
-              </button>
-            </div>
-
             {/* ── Metadata grid ─────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column */}
