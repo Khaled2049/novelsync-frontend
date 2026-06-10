@@ -263,7 +263,7 @@
 
   /* ─── Glass Effect ─── */
   .ns-glass {
-    background: color-mix(in srgb, var(--ns-elevated) 80%, transparent);
+    background: color-mix(in srgb, var(--ns-surface) 80%, transparent);
     backdrop-filter: blur(12px) saturate(150%);
     -webkit-backdrop-filter: blur(12px) saturate(150%);
   }
