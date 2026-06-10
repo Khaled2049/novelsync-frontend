@@ -9,7 +9,6 @@ import {
   Users,
   MapPin,
   GripVertical,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +45,6 @@ import { characterService } from "@/services/CharacterService";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { getFunctionUrl } from "@/api";
 
 // Helper to ensure event has all required fields with defaults
 function ensureEventDefaults(
@@ -267,24 +265,6 @@ const PlotTimeline: React.FC = () => {
     }
   };
 
-  const generateText = async () => {
-    if (!storyId) {
-      console.error("No storyId provided");
-      return;
-    }
-
-    try {
-      const url = new URL(getFunctionUrl("createContext"));
-      url.searchParams.set("storyId", storyId);
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      const generatedText = data.generatedText;
-      console.log("Generated text:", generatedText);
-    } catch (error) {
-      console.error("Error generating plot text:", error);
-    }
-  };
-
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination } = result;
 
@@ -340,7 +320,9 @@ const PlotTimeline: React.FC = () => {
         <div className="w-px h-5 bg-ns-border hidden sm:block" />
 
         <button
-          onClick={() => { if (requireAuth()) addPlotLine(); }}
+          onClick={() => {
+            if (requireAuth()) addPlotLine();
+          }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
           <PlusCircle className="w-3.5 h-3.5" />
@@ -381,16 +363,6 @@ const PlotTimeline: React.FC = () => {
         >
           <TrendingUp className="w-3.5 h-3.5" />
           Tension Curve
-        </button>
-
-        {/* Generate — pushed to right */}
-        <button
-          disabled={true}
-          onClick={generateText}
-          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-ns-gold/40 text-ns-gold font-ui text-xs font-medium rounded-ns hover:bg-ns-gold/5 active:scale-[0.97] transition-all duration-150"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Generate Ideas
         </button>
       </div>
 
@@ -437,7 +409,9 @@ const PlotTimeline: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
-                        onClick={() => { if (requireAuth()) addEvent(plotLine.id); }}
+                        onClick={() => {
+                          if (requireAuth()) addEvent(plotLine.id);
+                        }}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ns bg-white/20 hover:bg-white/30 font-ui text-xs transition-colors"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
@@ -610,7 +584,9 @@ const PlotTimeline: React.FC = () => {
                     </p>
                   </div>
                   <button
-                    onClick={() => { if (requireAuth()) addPlotLine(); }}
+                    onClick={() => {
+                      if (requireAuth()) addPlotLine();
+                    }}
                     className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 bg-ns-accent text-white font-ui text-sm font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 shadow-ns-sm"
                   >
                     <PlusCircle className="w-4 h-4" />

@@ -33,7 +33,6 @@ const TermsOfUse = lazy(() => import("./components/pages/TermsOfUse"));
 const ForgotPassword = lazy(() => import("./routes/Auth/forgot-password"));
 const CompleteSignup = lazy(() => import("./routes/Auth/complete-signup"));
 const StoriesLayout = lazy(() => import("./routes/Story/StoriesLayout"));
-const BookLists = lazy(() => import("./components/explore/BookLists"));
 const Competitions = lazy(() => import("./components/explore/Competitions"));
 
 const Announcements = lazy(() => import("./components/explore/Announcements"));
@@ -98,14 +97,6 @@ const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingFallback />}>
                 <AllStories />
-              </Suspense>
-            ),
-          },
-          {
-            path: "book-lists",
-            element: (
-              <Suspense fallback={<LoadingFallback />}>
-                <BookLists />
               </Suspense>
             ),
           },

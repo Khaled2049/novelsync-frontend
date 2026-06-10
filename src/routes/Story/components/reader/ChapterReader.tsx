@@ -1,58 +1,78 @@
 // src/components/reader/ChapterReader.tsx
 
-import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Chapter } from "@/types/IReader";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, AlertCircle, RotateCw } from "lucide-react";
+import { Chapter, Highlight, RenderMark } from "@/types/IReader";
 import { READER_THEMES } from "../../constants/readerThemes";
 import { useReaderSettings } from "../../hooks/useReaderSettings";
-
 import { useWordLookup } from "../../hooks/useWordLookup";
-
 import { useSearch } from "../../hooks/useSearch";
+import { useChapterModel } from "../../hooks/useChapterModel";
+import { useHighlights } from "../../hooks/useHighLights";
+import { useReaderSelection } from "../../hooks/useReaderSelection";
+import { useScrollProgress } from "../../hooks/useScrollProgress";
 import { ReaderTopBar } from "./ReaderTopBar";
 import { ReaderBottomBar } from "./ReaderBottomBar";
 import { ReaderContent } from "./ReaderContent";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
 import { ReaderSearchPanel } from "./ReaderSearchPanel";
 import { WordDefinitionPopup } from "./WordDefinitionPopup";
-import { Character } from "@/types/ICharacter";
+import { HighlightMenu } from "./HighlightMenu";
+import { HighlightActionMenu } from "./HighlightActionMenu";
 
 interface ChapterReaderProps {
   currentChapter: Chapter;
   currentChapterIndex: number;
   totalChapters: number;
   chapterLoading?: boolean;
+  chapterError?: string | null;
+  onRetryChapter?: () => void;
   onBackToDetails: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
-  characters?: Character[];
+  /** Scroll fraction to restore on entry (only for the resumed chapter). */
+  resumeScrollPercent?: number | null;
+  /** Persist the current scroll fraction (throttled). */
+  onScrollPersist?: (percent: number) => void;
 }
+
+const WORDS_PER_MINUTE = 225;
+
+const clampX = (x: number) => Math.min(window.innerWidth - 70, Math.max(70, x));
 
 export const ChapterReader: React.FC<ChapterReaderProps> = ({
   currentChapter,
   currentChapterIndex,
   totalChapters,
   chapterLoading = false,
+  chapterError = null,
+  onRetryChapter,
   onBackToDetails,
   onPrevChapter,
   onNextChapter,
+  resumeScrollPercent = null,
+  onScrollPersist,
 }) => {
   // Settings
   const { settings, updateSettings } = useReaderSettings();
   const [showSettings, setShowSettings] = useState(false);
 
+  // Parsed-once chapter model (text + offsets), shared by search & highlights.
+  const model = useChapterModel(currentChapter.content);
+
   // Search
   const {
     searchTerm,
-
+    searchMatches,
     currentResultIndex,
     search,
     clearSearch,
     goToNextResult,
     goToPreviousResult,
     totalResults,
-  } = useSearch(currentChapter.content);
+  } = useSearch(model);
   const [showSearch, setShowSearch] = useState(false);
+  const activeMarkRef = useRef<HTMLElement | null>(null);
 
   // Word Lookup
   const {
@@ -65,10 +85,69 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
     clearDefinition,
   } = useWordLookup();
 
+  // Highlights (localStorage, per chapter)
+  const { highlights, addHighlight, deleteHighlight, updateHighlight } =
+    useHighlights(currentChapter.id);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const { selection, clear: clearSelection } = useReaderSelection(
+    contentRef,
+    model.plainText,
+  );
+  const [activeHighlight, setActiveHighlight] = useState<{
+    highlight: Highlight;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Scroll progress (live value + save/restore)
+  const handlePersist = useCallback(
+    (percent: number) => onScrollPersist?.(percent),
+    [onScrollPersist],
+  );
+  const { scrollPercent } = useScrollProgress({
+    chapterId: currentChapter.id,
+    contentReady: !chapterLoading && !!currentChapter.content,
+    savedPercentForChapter: resumeScrollPercent,
+    onPersist: handlePersist,
+  });
+
   // Get current theme
   const currentTheme = READER_THEMES[settings.theme];
   const isFirstChapter = currentChapterIndex === 0;
   const isLastChapter = currentChapterIndex === totalChapters - 1;
+
+  // Compose marks: highlights first so search renders visually on top.
+  const highlightMarks = useMemo<RenderMark[]>(
+    () =>
+      highlights.map((h) => ({
+        start: h.position.start,
+        end: h.position.end,
+        kind: "highlight",
+        color: h.color,
+        id: h.id,
+      })),
+    [highlights],
+  );
+  const marks = useMemo<RenderMark[]>(
+    () => [...highlightMarks, ...searchMatches],
+    [highlightMarks, searchMatches],
+  );
+
+  // Estimated reading time left in this chapter.
+  const minutesRemaining = useMemo(
+    () => Math.ceil((model.wordCount * (1 - scrollPercent)) / WORDS_PER_MINUTE),
+    [model.wordCount, scrollPercent],
+  );
+
+  // Scroll the active search result into view.
+  useEffect(() => {
+    if (totalResults > 0) {
+      activeMarkRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }
+  }, [currentResultIndex, totalResults]);
 
   // Keyboard chapter navigation
   useEffect(() => {
@@ -85,17 +164,33 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFirstChapter, isLastChapter, onPrevChapter, onNextChapter]);
 
-  // Handle search toggle
   const handleSearchToggle = () => {
     setShowSearch(!showSearch);
-    if (showSearch) {
-      clearSearch();
-    }
+    if (showSearch) clearSearch();
   };
 
-  const handleSettingsToggle = () => {
-    setShowSettings(!showSettings);
-  };
+  const handleSettingsToggle = () => setShowSettings(!showSettings);
+
+  const handleHighlightClick = useCallback(
+    (id: string, x: number, y: number) => {
+      const highlight = highlights.find((h) => h.id === id);
+      if (highlight) setActiveHighlight({ highlight, x, y });
+    },
+    [highlights],
+  );
+
+  const handlePickColor = useCallback(
+    async (color: Highlight["color"]) => {
+      if (!selection) return;
+      await addHighlight(selection.text, color, {
+        start: selection.start,
+        end: selection.end,
+      });
+      clearSelection();
+      window.getSelection()?.removeAllRanges();
+    },
+    [selection, addHighlight, clearSelection],
+  );
 
   return (
     <div
@@ -146,6 +241,34 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         />
       )}
 
+      {/* Highlight colour menu (text selected) — takes precedence over actions */}
+      {selection && !activeHighlight && (
+        <HighlightMenu
+          position={{
+            x: clampX(selection.rect.left + selection.rect.width / 2),
+            y: selection.rect.top - 10,
+          }}
+          onSelectColor={handlePickColor}
+        />
+      )}
+
+      {/* Highlight action menu (existing highlight tapped) */}
+      {activeHighlight && (
+        <HighlightActionMenu
+          position={{ x: clampX(activeHighlight.x), y: activeHighlight.y }}
+          highlight={activeHighlight.highlight}
+          onDelete={() => {
+            deleteHighlight(activeHighlight.highlight.id);
+            setActiveHighlight(null);
+          }}
+          onSaveNote={(note) => {
+            updateHighlight(activeHighlight.highlight.id, { note });
+            setActiveHighlight(null);
+          }}
+          onClose={() => setActiveHighlight(null)}
+        />
+      )}
+
       {/* Side Navigation Zones */}
       {!isFirstChapter && (
         <button
@@ -179,6 +302,9 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         <div
           className={`fixed inset-0 z-40 flex items-center justify-center ${currentTheme.bg}`}
           style={{ opacity: 0.85 }}
+          role="status"
+          aria-live="polite"
+          aria-label="Loading chapter"
         >
           <svg
             className="w-8 h-8 animate-spin"
@@ -203,25 +329,58 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         </div>
       )}
 
+      {/* Chapter error overlay — replaces the infinite spinner on failure */}
+      {chapterError && !chapterLoading && (
+        <div
+          className={`fixed inset-0 z-40 flex items-center justify-center px-6 ${currentTheme.bg}`}
+        >
+          <div
+            className={`flex flex-col items-center gap-4 text-center max-w-sm ${currentTheme.text}`}
+          >
+            <AlertCircle size={36} className="opacity-70" />
+            <p className="text-base font-medium">{chapterError}</p>
+            {onRetryChapter && (
+              <button
+                onClick={onRetryChapter}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${currentTheme.border} ${currentTheme.hover} transition-colors`}
+              >
+                <RotateCw size={16} />
+                Try again
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Reading Content */}
       <ReaderContent
-        chapter={currentChapter}
+        title={currentChapter.title}
+        model={model}
+        marks={marks}
+        activeMarkRef={activeMarkRef}
+        containerRef={contentRef}
         fontSize={settings.fontSize}
         fontFamily={settings.fontFamily}
         lineHeight={settings.lineHeight}
         textAlign={settings.textAlign}
         onWordClick={lookupWord}
+        onHighlightClick={handleHighlightClick}
       />
 
       {/* The End */}
       {isLastChapter && (
-        <div className="flex flex-col items-center gap-3 py-16 pb-32" style={{ opacity: 0.6 }}>
+        <div
+          className="flex flex-col items-center gap-3 py-16 pb-32"
+          style={{ opacity: 0.6 }}
+        >
           <div className="flex items-center gap-4 w-48">
             <div className="flex-1 h-px bg-current" style={{ opacity: 0.3 }} />
             <span className="text-xs select-none">✦</span>
             <div className="flex-1 h-px bg-current" style={{ opacity: 0.3 }} />
           </div>
-          <p className={`font-heading italic text-3xl ${currentTheme.text}`}>The End</p>
+          <p className={`font-heading italic text-3xl ${currentTheme.text}`}>
+            The End
+          </p>
         </div>
       )}
 
@@ -230,6 +389,8 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         theme={currentTheme}
         currentChapterIndex={currentChapterIndex}
         totalChapters={totalChapters}
+        scrollPercent={scrollPercent}
+        minutesRemaining={minutesRemaining}
         onPrevChapter={onPrevChapter}
         onNextChapter={onNextChapter}
       />

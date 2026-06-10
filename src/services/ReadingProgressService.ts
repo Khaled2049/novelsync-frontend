@@ -27,6 +27,7 @@ class ReadingProgressService {
       storyAuthor: string;
       coverImageUrl: string;
       totalChapters: number;
+      scrollPercent?: number;
     },
   ): Promise<void> {
     try {
@@ -41,6 +42,8 @@ class ReadingProgressService {
           storyAuthor: data.storyAuthor,
           coverImageUrl: data.coverImageUrl,
           totalChapters: data.totalChapters,
+          // A chapter change resets scroll to the top unless told otherwise.
+          scrollPercent: data.scrollPercent ?? 0,
         },
         { merge: true },
       );
@@ -50,17 +53,51 @@ class ReadingProgressService {
     }
   }
 
-  async getProgress(userId: string, storyId: string): Promise<number> {
+  /**
+   * Lightweight write for frequent scroll updates — only touches the scroll
+   * position + chapter index, not the denormalized story metadata.
+   */
+  async saveScrollPercent(
+    userId: string,
+    storyId: string,
+    chapterIndex: number,
+    scrollPercent: number,
+  ): Promise<void> {
+    try {
+      const progressRef = doc(this.getProgressCollection(userId), storyId);
+      await setDoc(
+        progressRef,
+        {
+          storyId,
+          chapterIndex,
+          scrollPercent,
+          lastReadAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      console.error("Error saving scroll position:", error);
+    }
+  }
+
+  async getProgress(
+    userId: string,
+    storyId: string,
+  ): Promise<{ chapterIndex: number; scrollPercent: number }> {
     try {
       const progressRef = doc(this.getProgressCollection(userId), storyId);
       const snap = await getDoc(progressRef);
       if (snap.exists()) {
-        return (snap.data().chapterIndex as number) ?? 0;
+        const data = snap.data();
+        return {
+          chapterIndex: (data.chapterIndex as number) ?? 0,
+          scrollPercent: (data.scrollPercent as number) ?? 0,
+        };
       }
     } catch (error) {
       console.error("Error fetching reading progress:", error);
     }
-    return 0;
+    return { chapterIndex: 0, scrollPercent: 0 };
   }
 
   async getRecentlyRead(

@@ -1,8 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { formatEther, formatUnits } from "viem";
 import { queryKeys } from "./queryKeys";
-import { storiesRepo } from "@/services/StoriesRepo";
+import { storiesRepo, StoryCursor } from "@/services/StoriesRepo";
 import {
   tippingPlatformConfig,
   ZERO_ADDRESS,
@@ -23,13 +28,21 @@ export type StoryWithEarnings = Awaited<
   };
 };
 
+/**
+ * Cursor-paginated published stories for the discovery grid.
+ * Pages are fetched on demand (infinite scroll); each page carries the
+ * Firestore cursor for the next fetch. `getNextPageParam` returns undefined
+ * once the repo reports a null cursor, which sets `hasNextPage` to false.
+ */
 export function usePublishedStories(category: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.stories.byCategory(category),
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       category === "all"
-        ? storiesRepo.getPublishedStories()
-        : storiesRepo.getPublishedStoriesByCategory(category),
+        ? storiesRepo.getPublishedStories(pageParam)
+        : storiesRepo.getPublishedStoriesByCategory(category, pageParam),
+    initialPageParam: null as StoryCursor,
+    getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
     staleTime: 1000 * 60 * 5, // 5 min — story lists are low-churn
   });
 }
