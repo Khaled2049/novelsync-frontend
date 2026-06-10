@@ -21,8 +21,6 @@ const Home = lazy(() => import("./routes/Home"));
 const UserStories = lazy(() => import("./routes/Story/UserStories"));
 const AllStories = lazy(() => import("./routes/Story/AllStories"));
 const BookClubDetails = lazy(() => import("./routes/BookClub/BookClubDetails"));
-const Library = lazy(() => import("./routes/Library"));
-const BookDetails = lazy(() => import("./routes/Library/BookDetails"));
 const Characters = lazy(() => import("./routes/Story/Characters"));
 const Plot = lazy(() => import("./routes/Story/Plot"));
 const Places = lazy(() => import("./routes/Story/Places"));
@@ -149,22 +147,6 @@ const router = createBrowserRouter([
             ),
           },
         ],
-      },
-      {
-        path: "/library",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <Library />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/library/book/:id",
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <BookDetails />
-          </Suspense>
-        ),
       },
       {
         path: "/book-clubs",

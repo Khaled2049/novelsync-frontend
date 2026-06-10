@@ -335,8 +335,8 @@ const AllStories: React.FC = () => {
                       onClick={() => handleStoryClick(story)}
                       className="group cursor-pointer"
                     >
-                      <div className="max-w-[130px] mx-auto">
-                        <div className="relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
+                      <div className="max-w-[130px] mx-auto book-perspective">
+                        <div className="book-cover relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
                           <StoryCover
                             src={story.coverImageUrl}
                             alt={story.title}

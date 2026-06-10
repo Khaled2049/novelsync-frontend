@@ -505,4 +505,69 @@
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
   }
+
+  /* Peeking cat blink */
+  @keyframes ns-cat-blink {
+    0%,
+    90%,
+    100% {
+      transform: scaleY(1);
+    }
+    94% {
+      transform: scaleY(0.08);
+    }
+  }
+  .animate-cat-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ns-cat-blink 4.5s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-cat-blink {
+      animation: none;
+    }
+  }
+
+  /* Book-cover 3D hover: cover lifts and tilts open on its spine */
+  .book-perspective {
+    perspective: 1000px;
+  }
+  .book-cover {
+    transform-origin: left center;
+    transition:
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.5s ease;
+    will-change: transform;
+  }
+  .group:hover .book-cover {
+    transform: rotateY(-16deg) translateY(-4px);
+    box-shadow: 18px 16px 34px -10px rgba(0, 0, 0, 0.4);
+  }
+  /* Spine shadow that deepens as the cover opens */
+  .book-cover::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 8px;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.35),
+      rgba(0, 0, 0, 0)
+    );
+    transition: opacity 0.5s ease;
+  }
+  .group:hover .book-cover::before {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .book-cover {
+      transition: box-shadow 0.3s ease;
+    }
+    .group:hover .book-cover {
+      transform: none;
+    }
+  }
 }

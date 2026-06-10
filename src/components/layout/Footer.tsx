@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
+import PeekingCat from "./PeekingCat";
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-ns-surface border-t border-ns-border py-4 sm:py-6 transition-colors duration-200">
+    <div className="relative">
+      <PeekingCat />
+      <footer className="relative z-10 bg-ns-surface border-t border-ns-border py-4 sm:py-6 transition-colors duration-200">
       <div className="max-w-4xl mx-auto px-4 flex flex-col items-center gap-1.5 sm:gap-3">
         {/* Mobile: links + credit all on one line */}
         <div className="sm:hidden flex items-center gap-3 text-xs font-ui">
@@ -63,8 +66,9 @@ const Footer: React.FC = () => {
             Khaled Hossain
           </a>
         </p>
-      </div>
-    </footer>
+        </div>
+      </footer>
+    </div>
   );
 };
 
