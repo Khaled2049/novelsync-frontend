@@ -1,6 +1,6 @@
 import { useAuthContext } from "../../contexts/AuthContext";
 import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronDown, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
@@ -70,6 +70,11 @@ const AllStories: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [genreMenuOpen, setGenreMenuOpen] = useState(false);
+  const genreMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const activeCategory =
+    CATEGORIES.find((c) => c.value === selectedCategory) ?? CATEGORIES[0];
 
   const {
     data,
@@ -106,8 +111,24 @@ const AllStories: React.FC = () => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Close the mobile genre menu when clicking outside of it.
+  useEffect(() => {
+    if (!genreMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        genreMenuRef.current &&
+        !genreMenuRef.current.contains(e.target as Node)
+      ) {
+        setGenreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [genreMenuOpen]);
+
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
+    setGenreMenuOpen(false);
   };
 
   const handleNewStory = () => {
@@ -155,36 +176,71 @@ const AllStories: React.FC = () => {
               onCloseModal={() => setIsModalOpen(false)}
             />
 
-            {/* Mobile genre strip */}
-            <div className="lg:hidden mb-6">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                {CATEGORIES.map((category) => {
-                  const isActive = selectedCategory === category.value;
-                  return (
-                    <button
-                      key={category.id}
-                      onClick={() => handleCategoryChange(category.value)}
-                      className={`
-                        flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5
-                        rounded-full border text-xs font-ui font-medium tracking-wide
-                        transition-all duration-200
-                        ${
-                          isActive
-                            ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
-                            : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
-                        }
-                      `}
+            {/* Mobile genre selector (Libby-style dropdown) */}
+            <div className="lg:hidden mb-6" ref={genreMenuRef}>
+              <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-ns-ink-muted">
+                Genre
+              </span>
+              <div className="relative mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => setGenreMenuOpen((open) => !open)}
+                  aria-haspopup="listbox"
+                  aria-expanded={genreMenuOpen}
+                  className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-ns border border-ns-border bg-ns-surface text-ns-ink font-ui text-sm font-medium transition-colors hover:bg-ns-surface-hover"
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="text-xs leading-none text-ns-accent shrink-0"
+                      aria-hidden="true"
                     >
-                      <span
-                        className={`text-[10px] leading-none ${isActive ? "opacity-80" : "opacity-50"}`}
-                        aria-hidden="true"
-                      >
-                        {category.symbol}
-                      </span>
-                      {category.name}
-                    </button>
-                  );
-                })}
+                      {activeCategory.symbol}
+                    </span>
+                    <span className="truncate">{activeCategory.name}</span>
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-ns-ink-muted shrink-0 transition-transform duration-200 ${genreMenuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {genreMenuOpen && (
+                  <ul
+                    role="listbox"
+                    className="absolute z-20 mt-1.5 w-full max-h-[60vh] overflow-y-auto rounded-ns border border-ns-border bg-ns-elevated shadow-ns-lg py-1"
+                  >
+                    {CATEGORIES.map((category) => {
+                      const isActive = selectedCategory === category.value;
+                      return (
+                        <li key={category.id} role="option" aria-selected={isActive}>
+                          <button
+                            type="button"
+                            onClick={() => handleCategoryChange(category.value)}
+                            className={`
+                              w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left
+                              font-ui text-sm transition-colors
+                              ${
+                                isActive
+                                  ? "text-ns-accent font-medium bg-ns-accent/5"
+                                  : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
+                              }
+                            `}
+                          >
+                            <span
+                              className={`text-xs leading-none w-3 text-center shrink-0 ${isActive ? "text-ns-accent" : "opacity-50"}`}
+                              aria-hidden="true"
+                            >
+                              {category.symbol}
+                            </span>
+                            <span className="flex-1 truncate">{category.name}</span>
+                            {isActive && (
+                              <Check className="w-4 h-4 text-ns-accent shrink-0" />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </div>
 

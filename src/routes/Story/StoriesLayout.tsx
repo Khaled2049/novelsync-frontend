@@ -93,9 +93,9 @@ const StoriesLayout = () => {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Mobile / tablet horizontal scroll strip */}
-            <div className="lg:hidden mb-4">
-              <nav className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4 sm:-mx-6 sm:px-6">
+            {/* Mobile / tablet segmented tab bar */}
+            <div className="lg:hidden mb-4 -mx-2 sm:-mx-4">
+              <nav className="flex items-stretch border-b border-ns-border">
                 {tabs.map((tab) => {
                   const active = isActive(tab.path);
                   return (
@@ -103,20 +103,25 @@ const StoriesLayout = () => {
                       key={tab.id}
                       to={tab.path}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full border
-                        text-xs font-ui font-medium whitespace-nowrap shrink-0
-                        transition-all duration-150 touch-manipulation
+                        relative flex-1 min-w-0 flex flex-col items-center justify-end gap-1 px-1 pt-2 pb-2.5
+                        text-[10px] font-ui font-medium text-center leading-tight
+                        transition-colors duration-150 touch-manipulation
                         ${
                           active
-                            ? "bg-ns-accent border-ns-accent text-white shadow-ns-sm"
-                            : "bg-ns-surface border-ns-border text-ns-ink-secondary hover:bg-ns-surface-hover hover:text-ns-ink"
+                            ? "text-ns-accent"
+                            : "text-ns-ink-muted hover:text-ns-ink"
                         }
                       `}
                     >
-                      <span className={active ? "opacity-90" : "opacity-50"}>
+                      <span
+                        className={`shrink-0 transition-opacity ${active ? "opacity-100" : "opacity-60"}`}
+                      >
                         {tab.icon}
                       </span>
-                      {tab.label}
+                      <span className="w-full truncate">{tab.label}</span>
+                      {active && (
+                        <span className="absolute -bottom-px inset-x-2 h-0.5 rounded-full bg-ns-accent" />
+                      )}
                     </Link>
                   );
                 })}
