@@ -17,17 +17,17 @@ const StoriesHeader: React.FC<StoriesHeaderProps> = ({
 }) => {
   if (user) {
     return (
-      <div className="py-8 mb-2">
+      <div className="py-4 sm:py-8 mb-2">
         <div className="flex items-start justify-between">
           {/* Welcome Section */}
-          <div className="space-y-3">
-            <h1 className="font-heading text-3xl font-semibold tracking-wide text-gray-900 dark:text-white">
+          <div className="space-y-2 sm:space-y-3">
+            <h1 className="font-heading text-2xl sm:text-3xl font-semibold tracking-wide text-gray-900 dark:text-white">
               {user.displayName
                 ? `Welcome back, ${user.displayName}`
                 : "Welcome back"}
             </h1>
             <div className="w-12 h-0.5 bg-dark-green/30 dark:bg-light-green/30" />
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
               Discover and create amazing stories
             </p>
           </div>
