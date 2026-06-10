@@ -6,6 +6,7 @@ import { WalletConnectButton } from "../web3/WalletConnectButton";
 import UserDropdown from "./navbar/UserDropdown";
 import MobileMenu from "./navbar/MobileMenu";
 import { APP_NAME } from "../../config/seo";
+import { WEB3_ENABLED } from "../../config/featureFlags";
 
 const Navbar = () => {
   const { user, loading } = useAuthContext();
@@ -48,9 +49,11 @@ const Navbar = () => {
             {/* Right Section - Desktop */}
             <div className="hidden lg:flex items-center gap-4 xl:gap-6 z-10">
               {/* Wallet Connect Button */}
-              <div className="flex items-center">
-                <WalletConnectButton />
-              </div>
+              {WEB3_ENABLED && (
+                <div className="flex items-center">
+                  <WalletConnectButton />
+                </div>
+              )}
 
               {/* User Dropdown */}
               {loading ? (
@@ -64,7 +67,7 @@ const Navbar = () => {
                       e.stopPropagation();
                       toggleDropdown();
                     }}
-                    className="flex items-center justify-center w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)] focus:ring-offset-2 focus:ring-offset-[var(--ns-ring-offset)] transition-all hover:ring-2 hover:ring-ns-accent/30 hover:scale-105"
+                    className="flex items-center gap-3 pl-1.5 pr-3 py-1.5 rounded-full border border-ns-border hover:border-ns-accent/40 hover:bg-ns-surface focus:outline-none focus:ring-2 focus:ring-[var(--ns-ring)] focus:ring-offset-2 focus:ring-offset-[var(--ns-ring-offset)] transition-all"
                     aria-label="User menu"
                     aria-expanded={isDropdownOpen}
                   >
@@ -72,13 +75,16 @@ const Navbar = () => {
                       <img
                         src={user.photoURL}
                         alt="User Avatar"
-                        className="w-10 h-10 rounded-full border-2 border-ns-border hover:border-ns-accent transition-colors object-cover"
+                        className="w-9 h-9 rounded-full border-2 border-ns-border object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-ns-accent flex items-center justify-center">
-                        <User className="w-6 h-6 text-white" />
+                      <div className="w-9 h-9 rounded-full bg-ns-accent flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-white" />
                       </div>
                     )}
+                    <span className="font-ui text-sm font-semibold text-ns-ink truncate max-w-[180px]">
+                      {user.displayName || "Account"}
+                    </span>
                   </button>
                   <UserDropdown
                     isOpen={isDropdownOpen}

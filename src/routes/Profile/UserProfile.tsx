@@ -11,6 +11,7 @@ import { useAccount, useChainId } from "wagmi";
 import { userService } from "@/services/UserService";
 import { EditableField } from "@/components/ui/editable-field";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
+import { WEB3_ENABLED } from "@/config/featureFlags";
 import {
   User,
   DollarSign,
@@ -239,7 +240,9 @@ const UserProfile: React.FC = () => {
 
   const navItems: { id: Section; label: string; Icon: typeof User }[] = [
     { id: "profile", label: "Profile", Icon: User },
-    { id: "wallet", label: "Wallet & Earnings", Icon: Wallet },
+    ...(WEB3_ENABLED
+      ? [{ id: "wallet" as Section, label: "Wallet & Earnings", Icon: Wallet }]
+      : []),
     { id: "ai", label: "AI Provider", Icon: Bot },
     { id: "appearance", label: "Appearance", Icon: Globe },
   ];
@@ -472,7 +475,7 @@ const UserProfile: React.FC = () => {
           )}
 
           {/* ── Wallet & Earnings ── */}
-          {activeSection === "wallet" && (
+          {WEB3_ENABLED && activeSection === "wallet" && (
             <>
               <Card title="Wallet Connection">
                 {!isWalletConnected ? (
