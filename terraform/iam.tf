@@ -34,6 +34,23 @@ resource "google_project_iam_member" "github_cloudfunctions_developer" {
   member  = "serviceAccount:${data.google_service_account.github_actions.email}"
 }
 
+# IAM: Allow GitHub Actions to manage Cloud Tasks queues during deploy.
+# Required to deploy onTaskDispatched functions (e.g. generateChapterTask):
+# `firebase deploy` calls cloudtasks.queues.get/create/update to sync queue config.
+resource "google_project_iam_member" "github_cloudtasks_admin" {
+  project = var.project_id
+  role    = "roles/cloudtasks.admin"
+  member  = "serviceAccount:${data.google_service_account.github_actions.email}"
+}
+
+# IAM: Allow the Cloud Functions runtime SA to enqueue Cloud Tasks.
+# The generateChapter HTTP enqueuer pushes work onto the generateChapterTask queue.
+resource "google_project_iam_member" "runtime_cloudtasks_enqueuer" {
+  project = var.project_id
+  role    = "roles/cloudtasks.enqueuer"
+  member  = "serviceAccount:${local.appengine_service_account}"
+}
+
 # IAM: Allow GitHub Actions to add secret versions (principle of least privilege)
 # Note: Secrets must be pre-created; this SA can only add/update versions, not delete secrets
 resource "google_project_iam_member" "github_secretversion_adder" {

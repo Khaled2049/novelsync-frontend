@@ -19,6 +19,11 @@ resource "google_project_service" "cloudbuild" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "cloudtasks" {
+  service            = "cloudtasks.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "secretmanager" {
   service            = "secretmanager.googleapis.com"
   disable_on_destroy = false
