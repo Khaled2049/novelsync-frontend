@@ -26,6 +26,7 @@ class ReadingProgressService {
       storyTitle: string;
       storyAuthor: string;
       coverImageUrl: string;
+      thumbnailUrl?: string;
       totalChapters: number;
       scrollPercent?: number;
     },
@@ -41,6 +42,7 @@ class ReadingProgressService {
           storyTitle: data.storyTitle,
           storyAuthor: data.storyAuthor,
           coverImageUrl: data.coverImageUrl,
+          thumbnailUrl: data.thumbnailUrl ?? "",
           totalChapters: data.totalChapters,
           // A chapter change resets scroll to the top unless told otherwise.
           scrollPercent: data.scrollPercent ?? 0,
@@ -120,6 +122,7 @@ class ReadingProgressService {
           storyTitle: data.storyTitle,
           storyAuthor: data.storyAuthor,
           coverImageUrl: data.coverImageUrl ?? "",
+          thumbnailUrl: data.thumbnailUrl ?? "",
           totalChapters: data.totalChapters,
         } as IReadingProgress;
       });

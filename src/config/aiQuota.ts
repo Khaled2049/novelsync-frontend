@@ -13,10 +13,10 @@ export const PLATFORM_AI_DAILY_LIMIT = parseDailyLimit(
 );
 
 export const AI_SETTINGS_COPY = {
-  platformLabel: "NovelSync AI",
+  platformLabel: "TTT AI",
   platformResetHint:
     "Resets at midnight UTC. Each writing assistant action counts as one request.",
-  byokNoLimitHint: "No NovelSync daily request limit while your key is connected.",
+  byokNoLimitHint: "No TTT daily request limit while your key is connected.",
 } as const;
 
 function getTodayUtcDateKey(): string {

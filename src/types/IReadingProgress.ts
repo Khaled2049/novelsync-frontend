@@ -5,6 +5,7 @@ export interface IReadingProgress {
   storyTitle: string;
   storyAuthor: string;
   coverImageUrl: string;
+  thumbnailUrl?: string;
   totalChapters: number;
   /** Scroll position within the saved chapter, 0–1. */
   scrollPercent?: number;

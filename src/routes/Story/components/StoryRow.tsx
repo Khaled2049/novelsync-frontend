@@ -166,8 +166,10 @@ export const StoryRow = ({
         <div ref={imagePanelRef} className="relative flex-shrink-0 ml-4">
           {story.coverImageUrl ? (
             <img
-              src={story.coverImageUrl}
+              src={story.thumbnailUrl || story.coverImageUrl}
               alt={story.title}
+              loading="lazy"
+              decoding="async"
               onClick={() =>
                 onImageUpdate
                   ? setShowImagePanel(!showImagePanel)

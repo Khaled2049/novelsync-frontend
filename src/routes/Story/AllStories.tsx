@@ -58,6 +58,8 @@ const StoryCover: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         onLoad={() => setLoaded(true)}
         className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
       />
@@ -282,10 +284,12 @@ const AllStories: React.FC = () => {
                     >
                       {/* Thumbnail */}
                       <div className="relative w-10 h-[60px] rounded shrink-0 overflow-hidden bg-ns-surface">
-                        {story.coverImageUrl ? (
+                        {story.coverImageUrl || story.thumbnailUrl ? (
                           <img
-                            src={story.coverImageUrl}
+                            src={story.thumbnailUrl || story.coverImageUrl}
                             alt={story.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -338,7 +342,7 @@ const AllStories: React.FC = () => {
                       <div className="max-w-[130px] mx-auto book-perspective">
                         <div className="book-cover relative aspect-[2/3] rounded-ns overflow-hidden mb-2 bg-ns-surface">
                           <StoryCover
-                            src={story.coverImageUrl}
+                            src={story.thumbnailUrl || story.coverImageUrl}
                             alt={story.title}
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-300 flex flex-col justify-between p-2 opacity-0 group-hover:opacity-100">

@@ -20,6 +20,7 @@ export interface Story {
   views: number;
   likes: number;
   coverImageUrl?: string;
+  thumbnailUrl?: string;
   tags?: string[];
   category?: string;
   targetAudience?: string;
@@ -41,6 +42,7 @@ export interface StoryMetadata {
   views: number;
   likes: number;
   coverImageUrl?: string;
+  thumbnailUrl?: string;
   tags?: string[];
   category?: string;
   targetAudience?: string;

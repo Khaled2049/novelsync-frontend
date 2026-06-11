@@ -412,8 +412,10 @@ const UserProfile: React.FC = () => {
                           >
                             {story.coverImageUrl ? (
                               <img
-                                src={story.coverImageUrl}
+                                src={story.thumbnailUrl || story.coverImageUrl}
                                 alt=""
+                                loading="lazy"
+                                decoding="async"
                                 className="w-8 h-11 object-cover rounded flex-shrink-0"
                               />
                             ) : (

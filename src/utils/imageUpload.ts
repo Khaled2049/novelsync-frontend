@@ -113,3 +113,34 @@ export async function prepareImageForUpload(file: File): Promise<File> {
 
   return compressImageToLimit(file);
 }
+
+/**
+ * Produces a small JPEG thumbnail (long edge ≤ `maxDimension`) for grids and
+ * lists, preserving aspect ratio. Covers are stored at up to 2048px, but the
+ * discovery grid renders them ~130px wide — this avoids shipping a 1–2 MB file
+ * to paint a postage stamp. Returns a new File; the original is untouched.
+ */
+export async function createThumbnail(
+  file: File,
+  maxDimension = 400,
+): Promise<File> {
+  const img = await loadImage(file);
+
+  let width = img.naturalWidth;
+  let height = img.naturalHeight;
+  if (Math.max(width, height) > maxDimension) {
+    const scale = maxDimension / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Failed to create thumbnail.");
+  canvas.width = width;
+  canvas.height = height;
+  ctx.drawImage(img, 0, 0, width, height);
+
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
+  return canvasToFile(canvas, 0.8, `${baseName}-thumb.jpg`);
+}

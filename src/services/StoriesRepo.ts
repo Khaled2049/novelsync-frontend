@@ -55,6 +55,7 @@ class StoriesRepo {
       views: data.views,
       likes: data.likes,
       coverImageUrl: data.coverImageUrl || "",
+      thumbnailUrl: data.thumbnailUrl || "",
       tags: data.tags || [],
       category: data.category || undefined,
     };
@@ -85,6 +86,7 @@ class StoriesRepo {
         views: data.views,
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
+        thumbnailUrl: data.thumbnailUrl || "",
       };
     });
   }
@@ -175,6 +177,7 @@ class StoriesRepo {
         views: data.views,
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
+        thumbnailUrl: data.thumbnailUrl || "",
         tags: data.tags || [],
         category: data.category || "",
         targetAudience: data.targetAudience || "",
@@ -408,6 +411,7 @@ class StoriesRepo {
       language: string;
       copyright: string;
       coverImageUrl: string;
+      thumbnailUrl?: string;
     },
   ): Promise<string> {
     const newStoryRef = doc(this.storiesCollection);
@@ -668,31 +672,33 @@ class StoriesRepo {
         throw new Error("You do not have permission to update this cover.");
       }
 
-      // Delete the old image from Storage before replacing it
+      // Delete the old cover + thumbnail from Storage before replacing them
       if (story.coverImageUrl) {
         await storageService.deleteCoverImage(story.coverImageUrl);
       }
+      if (story.thumbnailUrl && story.thumbnailUrl !== story.coverImageUrl) {
+        await storageService.deleteCoverImage(story.thumbnailUrl);
+      }
 
       let coverImageUrl = "";
+      let thumbnailUrl = "";
 
       if (imageFile) {
         // User-selected file or AI-generated File object
-        coverImageUrl = await storageService.uploadCoverImage(
-          imageFile,
-          uid,
-          storyId,
-        );
+        ({ coverImageUrl, thumbnailUrl } =
+          await storageService.uploadCoverImage(imageFile, uid, storyId));
       } else if (previewUrl?.startsWith("data:")) {
         // AI-generated data URL — convert to File before uploading
         const file = storageService.dataUrlToFile(previewUrl);
-        coverImageUrl = await storageService.uploadCoverImage(
-          file,
-          uid,
-          storyId,
-        );
+        ({ coverImageUrl, thumbnailUrl } =
+          await storageService.uploadCoverImage(file, uid, storyId));
       }
 
-      await updateDoc(storyRef, { coverImageUrl, updatedAt: new Date() });
+      await updateDoc(storyRef, {
+        coverImageUrl,
+        thumbnailUrl,
+        updatedAt: new Date(),
+      });
     } catch (error) {
       console.error("Error updating cover image:", error);
       if (

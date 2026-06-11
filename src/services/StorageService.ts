@@ -1,6 +1,6 @@
 import { storage } from "@/config/firebase";
 import { reserveStorageUpload } from "@/api/storage";
-import { prepareImageForUpload } from "@/utils/imageUpload";
+import { prepareImageForUpload, createThumbnail } from "@/utils/imageUpload";
 import {
   ref,
   uploadBytes,
@@ -20,15 +20,19 @@ class StorageService {
   }
 
   /**
-   * Upload a cover image to Firebase Storage.
-   * Path: book-covers/{userId}/{storyId}-{timestamp}.{ext}
-   * Returns the permanent public download URL.
+   * Upload a cover image to Firebase Storage, plus a small thumbnail used by
+   * discovery grids and lists.
+   * Paths: book-covers/{userId}/{storyId}-{timestamp}.{ext}
+   *        book-covers/{userId}/{storyId}-{timestamp}-thumb.jpg
+   * Both writes share a single upload reservation (one logical cover upload).
+   * Thumbnail generation is best-effort: if it fails, `thumbnailUrl` falls back
+   * to the full cover URL so callers can always rely on the field.
    */
   async uploadCoverImage(
     file: File,
     userId: string,
     storyId: string,
-  ): Promise<string> {
+  ): Promise<{ coverImageUrl: string; thumbnailUrl: string }> {
     const prepared = await prepareImageForUpload(file);
     const ext =
       prepared.type === "image/png"
@@ -36,14 +40,36 @@ class StorageService {
         : prepared.type === "image/webp"
           ? "webp"
           : "jpg";
-    const path = `${COVERS_PATH}/${userId}/${storyId}-${Date.now()}.${ext}`;
+    const stamp = Date.now();
+    const path = `${COVERS_PATH}/${userId}/${storyId}-${stamp}.${ext}`;
     await this.reserveUploadSlot();
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, prepared, {
       contentType: prepared.type,
       cacheControl: "public, max-age=31536000",
     });
-    return getDownloadURL(snapshot.ref);
+    const coverImageUrl = await getDownloadURL(snapshot.ref);
+
+    let thumbnailUrl = coverImageUrl;
+    try {
+      const thumb = await createThumbnail(prepared);
+      const thumbRef = ref(
+        storage,
+        `${COVERS_PATH}/${userId}/${storyId}-${stamp}-thumb.jpg`,
+      );
+      const thumbSnap = await uploadBytes(thumbRef, thumb, {
+        contentType: "image/jpeg",
+        cacheControl: "public, max-age=31536000",
+      });
+      thumbnailUrl = await getDownloadURL(thumbSnap.ref);
+    } catch (error) {
+      console.warn(
+        "Cover thumbnail generation failed; falling back to full cover.",
+        error,
+      );
+    }
+
+    return { coverImageUrl, thumbnailUrl };
   }
 
   /**

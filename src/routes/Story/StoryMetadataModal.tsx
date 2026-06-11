@@ -200,19 +200,21 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     setIsSubmitting(true);
     try {
       let coverImageUrl = "";
+      let thumbnailUrl = "";
       if (coverImage) {
-        coverImageUrl = await storageService.uploadCoverImage(
-          coverImage,
-          userId,
-          `new-${Date.now()}`,
-        );
+        ({ coverImageUrl, thumbnailUrl } =
+          await storageService.uploadCoverImage(
+            coverImage,
+            userId,
+            `new-${Date.now()}`,
+          ));
       }
 
       const newStoryId = await storiesRepo.createStory(
         title,
         description,
         userId,
-        { ...buildMetadata(), coverImageUrl },
+        { ...buildMetadata(), coverImageUrl, thumbnailUrl },
       );
       onClose();
       navigate(`/create/${newStoryId}`);
@@ -234,12 +236,14 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     setIsSubmitting(true);
     try {
       let coverImageUrl = "";
+      let thumbnailUrl = "";
       if (coverImage) {
-        coverImageUrl = await storageService.uploadCoverImage(
-          coverImage,
-          userId,
-          `new-${Date.now()}`,
-        );
+        ({ coverImageUrl, thumbnailUrl } =
+          await storageService.uploadCoverImage(
+            coverImage,
+            userId,
+            `new-${Date.now()}`,
+          ));
       }
 
       // Create the story (auto-creates the first chapter with empty content)
@@ -247,7 +251,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         title,
         description,
         userId,
-        { ...buildMetadata(), coverImageUrl },
+        { ...buildMetadata(), coverImageUrl, thumbnailUrl },
       );
 
       // Fetch the auto-created first chapter so we can overwrite it

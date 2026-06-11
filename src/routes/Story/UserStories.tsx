@@ -377,8 +377,10 @@ const UserStories = () => {
                           <div className="flex-shrink-0 w-14 h-[80px] rounded overflow-hidden ring-1 ring-ns-border/50 shadow-sm">
                             {item.coverImageUrl ? (
                               <img
-                                src={item.coverImageUrl}
+                                src={item.thumbnailUrl || item.coverImageUrl}
                                 alt={item.storyTitle}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             ) : (

@@ -316,6 +316,7 @@ const StoryDetail: React.FC = () => {
         storyTitle: state.story.title,
         storyAuthor: state.story.author,
         coverImageUrl: state.story.coverImageUrl ?? "",
+        thumbnailUrl: state.story.thumbnailUrl ?? "",
         totalChapters: state.chapters.length,
       });
     }
@@ -360,6 +361,7 @@ const StoryDetail: React.FC = () => {
         storyTitle: state.story.title,
         storyAuthor: state.story.author,
         coverImageUrl: state.story.coverImageUrl ?? "",
+        thumbnailUrl: state.story.thumbnailUrl ?? "",
         totalChapters: state.chapters.length,
       });
     }
@@ -645,6 +647,7 @@ const StoryDetail: React.FC = () => {
                           storyTitle: state.story.title,
                           storyAuthor: state.story.author,
                           coverImageUrl: state.story.coverImageUrl ?? "",
+                          thumbnailUrl: state.story.thumbnailUrl ?? "",
                           totalChapters: state.chapters.length,
                         });
                       }
