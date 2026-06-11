@@ -176,6 +176,10 @@ class StoriesRepo {
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
         tags: data.tags || [],
+        category: data.category || "",
+        targetAudience: data.targetAudience || "",
+        language: data.language || "",
+        copyright: data.copyright || "",
       };
     });
   }
@@ -462,10 +466,18 @@ class StoriesRepo {
       description: string;
       category?: string;
       tags?: string[];
+      targetAudience?: string;
+      language?: string;
+      copyright?: string;
     },
   ): Promise<void> {
     const storyRef = doc(this.storiesCollection, storyId);
-    await updateDoc(storyRef, { ...data, updatedAt: new Date() });
+    // Firestore rejects `undefined` field values — drop any undefined keys so
+    // callers can safely omit optional fields.
+    const cleaned = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    );
+    await updateDoc(storyRef, { ...cleaned, updatedAt: new Date() });
   }
 
   async addChapter(storyId: string, chapterTitle: string): Promise<string> {

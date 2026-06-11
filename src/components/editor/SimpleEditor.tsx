@@ -113,6 +113,7 @@ export function SimpleEditor() {
 
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
   const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] =
     useState(false);
@@ -857,6 +858,8 @@ export function SimpleEditor() {
     </>
   );
 
+  const isPublished = !!state.story?.isPublished;
+
   return (
     <div className="relative w-full h-full bg-ns-bg flex overflow-hidden">
       {state.isLoading ? (
@@ -1079,10 +1082,13 @@ export function SimpleEditor() {
 
                   <div className="flex items-center justify-end flex-shrink-0">
                     <button
-                      onClick={handlePublish}
-                      disabled={togglePublish.isPending}
+                      onClick={() => setPublishDialogOpen(true)}
+                      disabled={togglePublish.isPending || isDemo}
+                      title={
+                        isDemo ? "Sign in to publish your story" : undefined
+                      }
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns font-ui text-xs font-medium active:scale-[0.97] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap ${
-                        state.story?.isPublished
+                        isPublished
                           ? "bg-ns-destructive text-white hover:bg-ns-destructive-hover"
                           : "bg-ns-accent text-white hover:bg-ns-accent-hover"
                       }`}
@@ -1093,10 +1099,10 @@ export function SimpleEditor() {
                         <Upload className="w-3.5 h-3.5" />
                       )}
                       <span className="hidden sm:inline">
-                        {state.story?.isPublished ? "Unpublish" : "Publish"}
+                        {isPublished ? "Unpublish" : "Publish"}
                       </span>
                       <span className="sm:hidden">
-                        {state.story?.isPublished ? "Unpub" : "Pub"}
+                        {isPublished ? "Unpub" : "Pub"}
                       </span>
                     </button>
                   </div>
@@ -1153,18 +1159,17 @@ export function SimpleEditor() {
                       )}
                     </button>
                     <button
-                      onClick={handlePublish}
-                      disabled={togglePublish.isPending}
+                      onClick={() => setPublishDialogOpen(true)}
+                      disabled={togglePublish.isPending || isDemo}
+                      title={
+                        isDemo ? "Sign in to publish your story" : undefined
+                      }
                       className={`inline-flex justify-center rounded-ns px-2 py-1.5 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                        state.story?.isPublished
+                        isPublished
                           ? "bg-ns-destructive hover:bg-ns-destructive-hover"
                           : "bg-ns-accent hover:bg-ns-accent-hover"
                       }`}
-                      aria-label={
-                        state.story?.isPublished
-                          ? "Unpublish story"
-                          : "Publish story"
-                      }
+                      aria-label={isPublished ? "Unpublish story" : "Publish story"}
                     >
                       {togglePublish.isPending ? (
                         <Loader className="w-3.5 h-3.5 animate-spin" />
@@ -1261,6 +1266,22 @@ export function SimpleEditor() {
             confirmLabel="Delete"
             variant="danger"
             onConfirm={confirmChapterDelete}
+          />
+
+          {/* ── Publish / Unpublish Dialog ── */}
+          <ConfirmDialog
+            open={publishDialogOpen}
+            onOpenChange={setPublishDialogOpen}
+            title={isPublished ? "Unpublish story?" : "Publish story?"}
+            description={
+              isPublished
+                ? `"${state.story?.title}" will be hidden from readers and returned to draft. You can publish it again at any time.`
+                : `"${state.story?.title}" will become visible to readers. You can unpublish it again at any time.`
+            }
+            confirmLabel={isPublished ? "Unpublish" : "Publish"}
+            cancelLabel={isPublished ? "Keep published" : "Cancel"}
+            isLoading={togglePublish.isPending}
+            onConfirm={handlePublish}
           />
 
           {/* ── Unsaved Changes Dialog ── */}

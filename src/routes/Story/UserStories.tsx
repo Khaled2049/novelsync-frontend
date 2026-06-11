@@ -74,7 +74,9 @@ const UserStories = () => {
     });
   };
 
-  const handleUnpublishStory = (storyId: string) => {
+  // handlePublish in the repo toggles isPublished, so the same mutation
+  // both publishes a draft and unpublishes a live story.
+  const handleTogglePublishStory = (storyId: string) => {
     setOperationLoading(storyId);
     togglePublish.mutate(storyId, {
       onSettled: () => setOperationLoading(null),
@@ -88,6 +90,9 @@ const UserStories = () => {
       description: string;
       category?: string;
       tags?: string[];
+      targetAudience?: string;
+      language?: string;
+      copyright?: string;
     },
   ) => {
     await updateMetadata.mutateAsync({ storyId, data });
@@ -301,7 +306,8 @@ const UserStories = () => {
                       story={story}
                       onEdit={editStory}
                       onDelete={handleDeleteStory}
-                      onUnpublish={handleUnpublishStory}
+                      onPublish={handleTogglePublishStory}
+                      onUnpublish={handleTogglePublishStory}
                       onEditDetails={(id) =>
                         setEditingStory(stories.find((s) => s.id === id) ?? null)
                       }

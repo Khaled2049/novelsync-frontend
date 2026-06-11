@@ -1,11 +1,19 @@
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { StoryMetadata } from "@/types/IStory";
+import { STORY_CATEGORIES, COPYRIGHT_OPTIONS } from "@/constants/storyOptions";
 
 interface StoryEditModalProps {
   story: Pick<
     StoryMetadata,
-    "id" | "title" | "description" | "category" | "tags"
+    | "id"
+    | "title"
+    | "description"
+    | "category"
+    | "tags"
+    | "targetAudience"
+    | "language"
+    | "copyright"
   >;
   onSave: (
     id: string,
@@ -14,10 +22,18 @@ interface StoryEditModalProps {
       description: string;
       category?: string;
       tags?: string[];
+      targetAudience?: string;
+      language?: string;
+      copyright?: string;
     },
   ) => Promise<void>;
   onClose: () => void;
 }
+
+const fieldClass =
+  "w-full px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors";
+const labelClass =
+  "block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5";
 
 export const StoryEditModal = ({
   story,
@@ -29,6 +45,11 @@ export const StoryEditModal = ({
   const [category, setCategory] = useState(story.category ?? "");
   const [tags, setTags] = useState<string[]>(story.tags ?? []);
   const [tagInput, setTagInput] = useState("");
+  const [targetAudience, setTargetAudience] = useState(
+    story.targetAudience ?? "",
+  );
+  const [language, setLanguage] = useState(story.language ?? "");
+  const [copyright, setCopyright] = useState(story.copyright ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,11 +97,16 @@ export const StoryEditModal = ({
     setSaving(true);
     setError(null);
     try {
+      // Firestore rejects `undefined` field values, so send empty strings /
+      // arrays (not undefined) — this also lets a cleared field persist as empty.
       await onSave(story.id, {
         title: trimmedTitle,
         description: description.trim(),
-        category: category.trim() || undefined,
-        tags: tags.length > 0 ? tags : undefined,
+        category: category.trim(),
+        tags,
+        targetAudience: targetAudience.trim(),
+        language: language.trim(),
+        copyright: copyright.trim(),
       });
       onClose();
     } catch {
@@ -148,59 +174,112 @@ export const StoryEditModal = ({
             />
           </div>
 
-          {/* Category + Tags */}
+          {/* Category + Target audience */}
           <div className="grid grid-cols-2 gap-4">
             {/* Category */}
             <div>
-              <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
-                Category
-              </label>
-              <input
-                type="text"
+              <label className={labelClass}>Category</label>
+              <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                className={fieldClass}
+              >
+                <option value="">Select category…</option>
+                {STORY_CATEGORIES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+                {/* Preserve a legacy/custom value not in the preset list */}
+                {category &&
+                  !STORY_CATEGORIES.some((c) => c.value === category) && (
+                    <option value={category}>{category}</option>
+                  )}
+              </select>
+            </div>
+
+            {/* Target audience */}
+            <div>
+              <label className={labelClass}>Target audience</label>
+              <input
+                type="text"
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
                 onKeyDown={handleFieldKeyDown}
-                className="w-full px-3 py-2 text-sm font-ui bg-ns-surface border border-ns-border rounded-ns text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-1 focus:ring-ns-accent focus:border-ns-accent transition-colors"
-                placeholder="e.g. Fantasy, Romance…"
+                className={fieldClass}
+                placeholder="e.g. Young Adult, Adults"
+              />
+            </div>
+          </div>
+
+          {/* Language + Copyright */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Language */}
+            <div>
+              <label className={labelClass}>Language</label>
+              <input
+                type="text"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                onKeyDown={handleFieldKeyDown}
+                className={fieldClass}
+                placeholder="e.g. English, Spanish"
               />
             </div>
 
-            {/* Tags */}
+            {/* Copyright */}
             <div>
-              <label className="block text-xs font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-1.5">
-                Tags{" "}
-                <span className="normal-case font-normal tracking-normal opacity-60">
-                  ({tags.length}/10)
-                </span>
-              </label>
-              <div className="min-h-[38px] px-2 py-1 flex flex-wrap gap-1.5 bg-ns-surface border border-ns-border rounded-ns focus-within:ring-1 focus-within:ring-ns-accent focus-within:border-ns-accent transition-colors">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui bg-ns-accent/10 text-ns-accent"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="hover:text-ns-accent/70 transition-colors leading-none"
-                    >
-                      ×
-                    </button>
-                  </span>
+              <label className={labelClass}>Copyright</label>
+              <select
+                value={copyright}
+                onChange={(e) => setCopyright(e.target.value)}
+                className={fieldClass}
+              >
+                <option value="">Select copyright…</option>
+                {COPYRIGHT_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
                 ))}
-                {tags.length < 10 && (
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    onBlur={() => tagInput.trim() && addTag(tagInput)}
-                    className="flex-1 min-w-[60px] text-sm font-ui bg-transparent text-ns-ink placeholder-ns-ink-muted outline-none py-0.5"
-                    placeholder={tags.length === 0 ? "Add tags…" : ""}
-                  />
-                )}
-              </div>
+              </select>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className={labelClass}>
+              Tags{" "}
+              <span className="normal-case font-normal tracking-normal opacity-60">
+                ({tags.length}/10)
+              </span>
+            </label>
+            <div className="min-h-[38px] px-2 py-1 flex flex-wrap gap-1.5 bg-ns-surface border border-ns-border rounded-ns focus-within:ring-1 focus-within:ring-ns-accent focus-within:border-ns-accent transition-colors">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui bg-ns-accent/10 text-ns-accent"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:text-ns-accent/70 transition-colors leading-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {tags.length < 10 && (
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={() => tagInput.trim() && addTag(tagInput)}
+                  className="flex-1 min-w-[60px] text-sm font-ui bg-transparent text-ns-ink placeholder-ns-ink-muted outline-none py-0.5"
+                  placeholder={tags.length === 0 ? "Add tags…" : ""}
+                />
+              )}
             </div>
           </div>
 

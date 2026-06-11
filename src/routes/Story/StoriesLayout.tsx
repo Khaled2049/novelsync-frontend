@@ -73,7 +73,7 @@ const StoriesLayout = () => {
                         transition-all duration-150
                         ${
                           active
-                            ? "bg-ns-accent text-white shadow-ns-sm"
+                            ? "bg-ns-accent text-white hover:text-white shadow-ns-sm"
                             : "text-ns-ink-secondary hover:bg-ns-surface hover:text-ns-ink"
                         }
                       `}
@@ -108,7 +108,7 @@ const StoriesLayout = () => {
                         transition-colors duration-150 touch-manipulation
                         ${
                           active
-                            ? "text-ns-accent"
+                            ? "text-ns-accent hover:text-ns-accent"
                             : "text-ns-ink-muted hover:text-ns-ink"
                         }
                       `}

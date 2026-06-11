@@ -139,6 +139,9 @@ export function useUpdateStoryMetadata(userId: string | undefined) {
         description: string;
         category?: string;
         tags?: string[];
+        targetAudience?: string;
+        language?: string;
+        copyright?: string;
       };
     }) => storiesRepo.updateStoryMetadata(storyId, data),
     onSuccess: () => {

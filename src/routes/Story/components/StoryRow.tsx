@@ -11,10 +11,10 @@ import {
   MoreVertical,
   DollarSign,
   Loader2,
-  Settings,
 } from "lucide-react";
 import { StoryMetadata } from "@/types/IStory";
 import { generateCover } from "@/services/imageGenerationService";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 interface StoryRowProps {
   story: StoryMetadata & {
@@ -22,8 +22,9 @@ interface StoryRowProps {
   };
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onPublish: (id: string) => void;
   onUnpublish: (id: string) => void;
-  onEditDetails?: (id: string) => void;
+  onEditDetails: (id: string) => void;
   onImageUpdate?: (
     id: string,
     imageFile: File | null,
@@ -59,6 +60,7 @@ export const StoryRow = ({
   story,
   onEdit,
   onDelete,
+  onPublish,
   onUnpublish,
   onEditDetails,
   onImageUpdate,
@@ -71,6 +73,9 @@ export const StoryRow = ({
   const [aiPrompt, setAiPrompt] = useState("");
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const imagePanelRef = useRef<HTMLDivElement>(null);
@@ -320,9 +325,9 @@ export const StoryRow = ({
                 {story.isPublished ? "Published" : "Draft"}
               </div>
 
-              {/* Edit button */}
+              {/* Edit button — opens the story details editor */}
               <button
-                onClick={() => onEdit(story.id)}
+                onClick={() => onEditDetails(story.id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-ui font-medium text-ns-ink bg-ns-surface hover:bg-ns-surface-hover border border-ns-border rounded-ns transition-colors"
               >
                 <PenLine className="w-3 h-3" />
@@ -339,24 +344,22 @@ export const StoryRow = ({
                 </button>
                 {showMenu && (
                   <div className="absolute right-0 top-8 z-20 bg-ns-elevated border border-ns-border rounded-ns-lg shadow-ns-lg py-1.5 min-w-[160px]">
-                    {onEditDetails && (
-                      <button
-                        onClick={() => {
-                          onEditDetails(story.id);
-                          setShowMenu(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5"
-                      >
-                        <Settings className="w-3.5 h-3.5 text-ns-ink-muted" />
-                        Edit details
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        onEdit(story.id);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5"
+                    >
+                      <PenLine className="w-3.5 h-3.5 text-ns-ink-muted" />
+                      Continue writing
+                    </button>
                     <div className="my-1 border-t border-ns-border" />
                     {story.isPublished ? (
                       <button
                         onClick={() => {
-                          onUnpublish(story.id);
                           setShowMenu(false);
+                          setShowUnpublishConfirm(true);
                         }}
                         className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5"
                       >
@@ -364,16 +367,28 @@ export const StoryRow = ({
                         Unpublish
                       </button>
                     ) : (
-                      <button
-                        onClick={() => {
-                          onDelete(story.id);
-                          setShowMenu(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-sm font-ui text-ns-destructive hover:bg-ns-surface-hover flex items-center gap-2.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Delete story
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowMenu(false);
+                            setShowPublishConfirm(true);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ns-ink-muted" />
+                          Publish
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowMenu(false);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm font-ui text-ns-destructive hover:bg-ns-surface-hover flex items-center gap-2.5"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete story
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
@@ -504,6 +519,40 @@ export const StoryRow = ({
           </div>
         </div>
       )}
+
+      {/* Publish confirmation */}
+      <ConfirmDialog
+        open={showPublishConfirm}
+        onOpenChange={setShowPublishConfirm}
+        title="Publish story?"
+        description={`"${story.title}" will become visible to readers. You can unpublish it again at any time.`}
+        confirmLabel="Publish"
+        cancelLabel="Cancel"
+        onConfirm={() => onPublish(story.id)}
+      />
+
+      {/* Unpublish confirmation */}
+      <ConfirmDialog
+        open={showUnpublishConfirm}
+        onOpenChange={setShowUnpublishConfirm}
+        title="Unpublish story?"
+        description={`"${story.title}" will be hidden from readers and returned to draft. You can publish it again at any time.`}
+        confirmLabel="Unpublish"
+        cancelLabel="Keep published"
+        onConfirm={() => onUnpublish(story.id)}
+      />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete story?"
+        description={`"${story.title}" will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete story"
+        cancelLabel="Keep story"
+        variant="danger"
+        onConfirm={() => onDelete(story.id)}
+      />
     </>
   );
 };

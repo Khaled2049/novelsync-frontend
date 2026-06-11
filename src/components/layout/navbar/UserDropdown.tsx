@@ -3,6 +3,7 @@ import { useRef, useEffect, RefObject, useState } from "react";
 import { useFirebaseAuth } from "../../../hooks/useFirebaseAuth";
 import { useNavigate } from "react-router-dom";
 import { useWalletState } from "@/hooks/useWalletState";
+import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
 
 import {
@@ -13,6 +14,8 @@ import {
   LogOut,
   Loader2,
   ArrowRight,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { IUser } from "../../../types/IUser";
 
@@ -33,6 +36,7 @@ const UserDropdown = ({
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { address, disconnectWallet } = useWalletState();
+  const { theme, toggleTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -176,6 +180,27 @@ const UserDropdown = ({
             </Link>
           );
         })}
+      </div>
+
+      {/* Theme toggle */}
+      <div className="border-t border-ns-border py-1.5">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="group relative flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-ns-surface transition-colors"
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
+          {/* accent bar slides in on hover */}
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-ns-accent scale-y-0 group-hover:scale-y-100 origin-center transition-transform duration-200" />
+          {theme === "light" ? (
+            <Moon className="w-4 h-4 text-ns-ink-muted group-hover:text-ns-accent transition-colors" />
+          ) : (
+            <Sun className="w-4 h-4 text-ns-ink-muted group-hover:text-ns-gold transition-colors" />
+          )}
+          <span className="font-ui text-ns-ink-secondary group-hover:text-ns-ink transition-colors">
+            {theme === "light" ? "Dark mode" : "Light mode"}
+          </span>
+        </button>
       </div>
 
       {/* Sign Out */}

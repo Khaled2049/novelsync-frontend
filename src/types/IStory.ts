@@ -22,6 +22,9 @@ export interface Story {
   coverImageUrl?: string;
   tags?: string[];
   category?: string;
+  targetAudience?: string;
+  language?: string;
+  copyright?: string;
   averageRating?: number;
   ratingsCount?: number;
 }
@@ -40,6 +43,9 @@ export interface StoryMetadata {
   coverImageUrl?: string;
   tags?: string[];
   category?: string;
+  targetAudience?: string;
+  language?: string;
+  copyright?: string;
   averageRating?: number;
   ratingsCount?: number;
   wordCount?: number;

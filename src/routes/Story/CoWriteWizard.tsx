@@ -35,6 +35,7 @@ import {
   BlueprintResult,
 } from "@/api/ai";
 import { ApiError } from "@/api";
+import { STORY_CATEGORIES as CATEGORIES } from "@/constants/storyOptions";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,21 +50,6 @@ type DraftPlace = { name: string; description: string; expanded: boolean };
 type DraftEvent = { name: string; storyBeat: StoryBeatType };
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-  { value: "fiction", label: "Fiction" },
-  { value: "non-fiction", label: "Non-Fiction" },
-  { value: "poetry", label: "Poetry" },
-  { value: "fantasy", label: "Fantasy" },
-  { value: "science-fiction", label: "Science Fiction" },
-  { value: "romance", label: "Romance" },
-  { value: "mystery-thriller", label: "Mystery/Thriller" },
-  { value: "horror", label: "Horror" },
-  { value: "historical-fiction", label: "Historical Fiction" },
-  { value: "young-adult", label: "Young Adult" },
-  { value: "drama", label: "Drama" },
-  { value: "adventure", label: "Adventure" },
-];
 
 const STORY_BEATS: { value: StoryBeatType; label: string }[] = [
   { value: "exposition", label: "Exposition" },

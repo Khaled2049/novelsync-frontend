@@ -12,10 +12,12 @@ import {
   Compass,
   Users,
   ChevronRight,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useWalletState } from "@/hooks/useWalletState";
+import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
-// import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -56,6 +58,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { address, disconnectWallet } = useWalletState();
+  const { theme, toggleTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -245,6 +248,25 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
                 </nav>
               </>
             )}
+
+            <nav aria-label="Appearance" className="mt-4">
+              <SectionLabel>Appearance</SectionLabel>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={`${navLinkClass(false)} w-full text-left`}
+                aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+              >
+                {theme === "light" ? (
+                  <Moon className="w-5 h-5 shrink-0 text-ns-ink-muted" />
+                ) : (
+                  <Sun className="w-5 h-5 shrink-0 text-ns-ink-muted" />
+                )}
+                <span className="flex-1">
+                  {theme === "light" ? "Dark mode" : "Light mode"}
+                </span>
+              </button>
+            </nav>
           </div>
 
           {user && (

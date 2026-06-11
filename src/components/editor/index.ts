@@ -8,7 +8,6 @@ export { SuggestionMenu } from "./SuggestionMenu";
 export { ImageNode } from "./ImageNode";
 export { LinkModal } from "./LinkModal";
 export { SaveStatusIndicator } from "./SaveStatusIndicator";
-export { SaveControls } from "./SaveControls";
 export { WritingStats } from "./WritingStats";
 export { BrainstormIdeas } from "./BrainstormIdeas";
 export { default as GenerateImage } from "./GenerateImage";

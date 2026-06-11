@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,23 +38,9 @@ import {
   parseTextFile,
   ParsedChapter,
 } from "@/utils/textFileParser";
+import { STORY_CATEGORIES, COPYRIGHT_OPTIONS } from "@/constants/storyOptions";
 
 type Mode = "scratch" | "import" | "cowrite";
-
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: "fiction", label: "Fiction" },
-  { value: "non-fiction", label: "Non-Fiction" },
-  { value: "poetry", label: "Poetry" },
-  { value: "fantasy", label: "Fantasy" },
-  { value: "science-fiction", label: "Science Fiction" },
-  { value: "romance", label: "Romance" },
-  { value: "mystery-thriller", label: "Mystery/Thriller" },
-  { value: "horror", label: "Horror" },
-  { value: "historical-fiction", label: "Historical Fiction" },
-  { value: "young-adult", label: "Young Adult" },
-  { value: "drama", label: "Drama" },
-  { value: "adventure", label: "Adventure" },
-];
 
 interface StoryMetadataModalProps {
   isOpen: boolean;
@@ -316,9 +303,9 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           <DialogTitle className="text-2xl font-bold text-black dark:text-white">
             Create New Story
           </DialogTitle>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Fill in the details to start your new story
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {/* ── Mode toggle ──────────────────────────────────────────────────
@@ -433,7 +420,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
-                      {CATEGORIES.map(({ value, label }) => (
+                      {STORY_CATEGORIES.map(({ value, label }) => (
                         <SelectItem
                           key={value}
                           value={value}
@@ -509,12 +496,15 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                       <SelectValue placeholder="Select copyright" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
-                      <SelectItem
-                        value="CC0"
-                        className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
-                      >
-                        Creative Commons Zero
-                      </SelectItem>
+                      {COPYRIGHT_OPTIONS.map(({ value, label }) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
