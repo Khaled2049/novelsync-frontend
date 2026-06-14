@@ -38,7 +38,15 @@ import {
   parseTextFile,
   ParsedChapter,
 } from "@/utils/textFileParser";
-import { STORY_CATEGORIES, COPYRIGHT_OPTIONS } from "@/constants/storyOptions";
+import {
+  STORY_CATEGORIES,
+  COPYRIGHT_OPTIONS,
+  STORY_TAGS,
+  MAX_STORY_TAGS,
+  TARGET_AUDIENCES,
+  LANGUAGES,
+} from "@/constants/storyOptions";
+import { TagMultiSelect } from "@/components/common";
 
 type Mode = "scratch" | "import" | "cowrite";
 
@@ -62,7 +70,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [targetAudience, setTargetAudience] = useState("");
   const [language, setLanguage] = useState("");
   const [copyright, setCopyright] = useState("");
@@ -185,10 +193,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
 
   const buildMetadata = () => ({
     category,
-    tags: tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean),
+    tags,
     targetAudience,
     language,
     copyright,
@@ -438,21 +443,18 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="tags"
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
-                  >
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Tags
                   </Label>
-                  <Input
-                    id="tags"
+                  <TagMultiSelect
+                    options={STORY_TAGS}
                     value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="Comma-separated tags"
-                    className="h-11 bg-gray-50 dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-neutral-700 focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:border-transparent transition-all"
+                    onChange={setTags}
+                    max={MAX_STORY_TAGS}
+                    placeholder="Select tags"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Separate tags with commas
+                    Choose up to {MAX_STORY_TAGS} tags
                   </p>
                 </div>
               </div>
@@ -460,35 +462,50 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
               {/* Right Column */}
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="targetAudience"
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
-                  >
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Target Audience
                   </Label>
-                  <Input
-                    id="targetAudience"
+                  <Select
                     value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="e.g., Young Adult, Adults"
-                    className="h-11 bg-gray-50 dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-neutral-700 focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:border-transparent transition-all"
-                  />
+                    onValueChange={setTargetAudience}
+                  >
+                    <SelectTrigger className="h-11 bg-gray-50 dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-neutral-700 focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green">
+                      <SelectValue placeholder="Select audience" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
+                      {TARGET_AUDIENCES.map(({ value, label }) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="language"
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
-                  >
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Language
                   </Label>
-                  <Input
-                    id="language"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    placeholder="e.g., English, Spanish"
-                    className="h-11 bg-gray-50 dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-neutral-700 focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green focus:border-transparent transition-all"
-                  />
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger className="h-11 bg-gray-50 dark:bg-neutral-800 text-black dark:text-white border-gray-300 dark:border-neutral-700 focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
+                      {LANGUAGES.map(({ value, label }) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-700 focus:bg-gray-100 dark:focus:bg-neutral-700"
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

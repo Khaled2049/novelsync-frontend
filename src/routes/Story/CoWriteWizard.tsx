@@ -35,7 +35,12 @@ import {
   BlueprintResult,
 } from "@/api/ai";
 import { ApiError } from "@/api";
-import { STORY_CATEGORIES as CATEGORIES } from "@/constants/storyOptions";
+import {
+  STORY_CATEGORIES as CATEGORIES,
+  STORY_TAGS,
+  MAX_STORY_TAGS,
+} from "@/constants/storyOptions";
+import { TagMultiSelect } from "@/components/common";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,12 +77,6 @@ const STEPS = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const splitTags = (tags: string) =>
-  tags
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-
 const now = () => new Date().toISOString();
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -102,7 +101,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   // Step 1 — Characters
   const [characters, setCharacters] = useState<DraftCharacter[]>([]);
@@ -296,7 +295,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         userId,
         {
           category,
-          tags: splitTags(tags),
+          tags,
           targetAudience: "",
           language: "",
           copyright: "",
@@ -526,11 +525,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
             Tags
           </Label>
-          <Input
+          <TagMultiSelect
+            options={STORY_TAGS}
             value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="e.g. magic, heist, redemption"
-            className="h-11 bg-ns-surface border-ns-border text-ns-ink focus:ring-ns-accent"
+            onChange={setTags}
+            max={MAX_STORY_TAGS}
+            placeholder="Select tags…"
           />
         </div>
       </div>
@@ -974,12 +974,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                 {categoryLabel}
               </span>
             )}
-            {splitTags(tags).map((tag) => (
+            {tags.map((tag) => (
               <span
                 key={tag}
                 className="px-2 py-0.5 rounded-full text-xs font-ui bg-ns-surface-hover text-ns-ink-secondary border border-ns-border"
               >
-                {tag}
+                {STORY_TAGS.find((t) => t.value === tag)?.label ?? tag}
               </span>
             ))}
           </div>

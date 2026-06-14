@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { StoryMetadata } from "@/types/IStory";
-import { STORY_CATEGORIES, COPYRIGHT_OPTIONS } from "@/constants/storyOptions";
+import {
+  STORY_CATEGORIES,
+  COPYRIGHT_OPTIONS,
+  STORY_TAGS,
+  MAX_STORY_TAGS,
+  TARGET_AUDIENCES,
+  LANGUAGES,
+} from "@/constants/storyOptions";
+import { TagMultiSelect } from "@/components/common";
 
 interface StoryEditModalProps {
   story: Pick<
@@ -44,7 +52,6 @@ export const StoryEditModal = ({
   const [description, setDescription] = useState(story.description ?? "");
   const [category, setCategory] = useState(story.category ?? "");
   const [tags, setTags] = useState<string[]>(story.tags ?? []);
-  const [tagInput, setTagInput] = useState("");
   const [targetAudience, setTargetAudience] = useState(
     story.targetAudience ?? "",
   );
@@ -66,26 +73,6 @@ export const StoryEditModal = ({
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
-
-  const addTag = (raw: string) => {
-    const value = raw.trim().replace(/,+$/, "").trim();
-    if (!value || tags.includes(value) || tags.length >= 10) return;
-    setTags((prev) => [...prev, value]);
-    setTagInput("");
-  };
-
-  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag(tagInput);
-    } else if (e.key === "Backspace" && tagInput === "" && tags.length > 0) {
-      setTags((prev) => prev.slice(0, -1));
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setTags((prev) => prev.filter((t) => t !== tag));
-  };
 
   const handleSave = async () => {
     const trimmedTitle = title.trim();
@@ -201,14 +188,23 @@ export const StoryEditModal = ({
             {/* Target audience */}
             <div>
               <label className={labelClass}>Target audience</label>
-              <input
-                type="text"
+              <select
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                onKeyDown={handleFieldKeyDown}
                 className={fieldClass}
-                placeholder="e.g. Young Adult, Adults"
-              />
+              >
+                <option value="">Select audience…</option>
+                {TARGET_AUDIENCES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+                {/* Preserve a legacy/custom value not in the preset list */}
+                {targetAudience &&
+                  !TARGET_AUDIENCES.some((a) => a.value === targetAudience) && (
+                    <option value={targetAudience}>{targetAudience}</option>
+                  )}
+              </select>
             </div>
           </div>
 
@@ -217,14 +213,22 @@ export const StoryEditModal = ({
             {/* Language */}
             <div>
               <label className={labelClass}>Language</label>
-              <input
-                type="text"
+              <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                onKeyDown={handleFieldKeyDown}
                 className={fieldClass}
-                placeholder="e.g. English, Spanish"
-              />
+              >
+                <option value="">Select language…</option>
+                {LANGUAGES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+                {/* Preserve a legacy/custom value not in the preset list */}
+                {language && !LANGUAGES.some((l) => l.value === language) && (
+                  <option value={language}>{language}</option>
+                )}
+              </select>
             </div>
 
             {/* Copyright */}
@@ -250,37 +254,16 @@ export const StoryEditModal = ({
             <label className={labelClass}>
               Tags{" "}
               <span className="normal-case font-normal tracking-normal opacity-60">
-                ({tags.length}/10)
+                ({tags.length}/{MAX_STORY_TAGS})
               </span>
             </label>
-            <div className="min-h-[38px] px-2 py-1 flex flex-wrap gap-1.5 bg-ns-surface border border-ns-border rounded-ns focus-within:ring-1 focus-within:ring-ns-accent focus-within:border-ns-accent transition-colors">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui bg-ns-accent/10 text-ns-accent"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="hover:text-ns-accent/70 transition-colors leading-none"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              {tags.length < 10 && (
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={() => tagInput.trim() && addTag(tagInput)}
-                  className="flex-1 min-w-[60px] text-sm font-ui bg-transparent text-ns-ink placeholder-ns-ink-muted outline-none py-0.5"
-                  placeholder={tags.length === 0 ? "Add tags…" : ""}
-                />
-              )}
-            </div>
+            <TagMultiSelect
+              options={STORY_TAGS}
+              value={tags}
+              onChange={setTags}
+              max={MAX_STORY_TAGS}
+              placeholder="Select tags…"
+            />
           </div>
 
           {/* Error */}
