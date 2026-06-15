@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,26 +21,30 @@ import {
   Users,
   MapPin,
   Swords,
-  FileCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { storiesRepo } from "@/services/StoriesRepo";
+import { storageService } from "@/services/StorageService";
 import { characterService } from "@/services/CharacterService";
 import { placeService } from "@/services/PlaceService";
 import { plotService } from "@/services/PlotService";
-import { DEFAULT_PLOT_EVENT_VALUES, StoryBeatType } from "@/types/IPlot";
 import {
-  enhanceWizardInput,
-  WizardEnhanceType,
-  BlueprintResult,
-} from "@/api/ai";
-import { ApiError } from "@/api";
+  DEFAULT_PLOT_EVENT_VALUES,
+  StoryBeatType,
+  PLOT_TEMPLATES,
+} from "@/types/IPlot";
+import { enhanceWizardInput, WizardEnhanceType } from "@/api/ai";
 import {
   STORY_CATEGORIES as CATEGORIES,
   STORY_TAGS,
   MAX_STORY_TAGS,
+  TARGET_AUDIENCES,
+  LANGUAGES,
+  COPYRIGHT_OPTIONS,
 } from "@/constants/storyOptions";
 import { TagMultiSelect } from "@/components/common";
+import CoverImagePicker from "./components/CoverImagePicker";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,9 +54,28 @@ interface CoWriteWizardProps {
   onSuccess: (storyId: string) => void;
 }
 
-type DraftCharacter = { name: string; description: string; expanded: boolean };
-type DraftPlace = { name: string; description: string; expanded: boolean };
-type DraftEvent = { name: string; storyBeat: StoryBeatType };
+type DraftCharacter = {
+  name: string;
+  backstory: string;
+  age: string;
+  personality: string;
+  voice: string;
+  soul: string;
+  affiliations: string;
+  notes: string;
+  expanded: boolean;
+};
+type DraftPlace = {
+  name: string;
+  description: string;
+  atmosphere: string;
+  geography: string;
+  history: string;
+  significance: string;
+  notes: string;
+  expanded: boolean;
+};
+type DraftEvent = { name: string; content: string; storyBeat: StoryBeatType };
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -70,14 +93,35 @@ const STEPS = [
   { icon: BookOpen, label: "Concept" },
   { icon: Users, label: "Characters" },
   { icon: MapPin, label: "Places" },
-  { icon: Swords, label: "Conflict" },
-  { icon: Sparkles, label: "Blueprint" },
-  { icon: FileCheck, label: "Review" },
+  { icon: Swords, label: "Plot" },
+];
+
+const LAST_STEP = STEPS.length - 1;
+
+// Forward-button label per step — names the next optional section so users
+// discover what they can add.
+const NEXT_LABELS = [
+  "Next: Add characters →",
+  "Next: Add places →",
+  "Next: Plot →",
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const now = () => new Date().toISOString();
+
+// Reusable banner reminding users these steps are optional and feed the AI.
+const OptionalNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="flex items-start gap-2.5 rounded-lg border border-ns-border bg-ns-surface px-3.5 py-2.5">
+    <Info className="w-4 h-4 text-ns-accent flex-shrink-0 mt-0.5" />
+    <p className="font-body text-xs text-ns-ink-secondary leading-relaxed">
+      {children}
+    </p>
+  </div>
+);
+
+const OPTIONAL_NOTE_TEXT =
+  "Optional — anything you add gives the AI richer context for chat and writing help. You can always add or edit these later from the editor.";
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -88,20 +132,18 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
 }) => {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isBlueprintLoading, setIsBlueprintLoading] = useState(false);
   const [enhancing, setEnhancing] = useState<string | null>(null);
-  const [blueprintData, setBlueprintData] = useState<BlueprintResult | null>(
-    null,
-  );
-  const [previousBlueprintData, setPreviousBlueprintData] =
-    useState<BlueprintResult | null>(null);
-  const [blueprintError, setBlueprintError] = useState<string | null>(null);
 
   // Step 0 — Concept
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [targetAudience, setTargetAudience] = useState("");
+  const [language, setLanguage] = useState("");
+  const [copyright, setCopyright] = useState("");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Step 1 — Characters
   const [characters, setCharacters] = useState<DraftCharacter[]>([]);
@@ -138,97 +180,30 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     }
   };
 
-  // ── Blueprint generation ──────────────────────────────────────────────────
-
-  const generateBlueprint = useCallback(async () => {
-    if (blueprintData) {
-      setPreviousBlueprintData(blueprintData);
-    }
-    setBlueprintData(null);
-    setBlueprintError(null);
-    setIsBlueprintLoading(true);
-
-    try {
-      const res = await enhanceWizardInput({
-        type: "blueprint",
-        data: {
-          title,
-          premise: description,
-          genre: category,
-          characters: characters
-            .filter((c) => c.name.trim())
-            .map(({ name, description: desc }) => ({
-              name,
-              description: desc,
-            })),
-          places: places
-            .filter((p) => p.name.trim())
-            .map(({ name, description: desc }) => ({
-              name,
-              description: desc,
-            })),
-          conflict,
-          events: events
-            .filter((e) => e.name.trim())
-            .map(({ name, storyBeat }) => ({ name, storyBeat })),
-        },
-      });
-
-      if (res.success && res.data?.blueprint) {
-        setBlueprintData(res.data.blueprint);
-      } else {
-        setBlueprintError(
-          res.error ?? "Blueprint generation failed. Try regenerating.",
-        );
-      }
-    } catch (err) {
-      let msg = "Could not reach AI. Check your connection.";
-      if (err instanceof ApiError) {
-        const serverMsg = (err.response.data as { error?: string }).error;
-        if (serverMsg) msg = serverMsg;
-      }
-      setBlueprintError(msg);
-    } finally {
-      setIsBlueprintLoading(false);
-    }
-  }, [
-    title,
-    description,
-    category,
-    characters,
-    places,
-    conflict,
-    events,
-    blueprintData,
-  ]);
-
-  useEffect(() => {
-    if (step === 4) {
-      setBlueprintData(null);
-      generateBlueprint();
-    }
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
-  // generateBlueprint is intentionally excluded — we only want to trigger once on step entry
-
   // ── Navigation ────────────────────────────────────────────────────────────
 
   const canAdvance = step === 0 ? title.trim().length > 0 : true;
+  const canLaunch = title.trim().length > 0;
 
-  const goNext = () => setStep((s) => Math.min(s + 1, 5));
+  const goNext = () => setStep((s) => Math.min(s + 1, LAST_STEP));
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
-
-  const handleUndo = () => {
-    setBlueprintData(previousBlueprintData);
-    setPreviousBlueprintData(null);
-    setBlueprintError(null);
-  };
 
   // ── Character helpers ─────────────────────────────────────────────────────
 
   const addCharacter = () =>
     setCharacters((prev) => [
       ...prev,
-      { name: "", description: "", expanded: true },
+      {
+        name: "",
+        backstory: "",
+        age: "",
+        personality: "",
+        voice: "",
+        soul: "",
+        affiliations: "",
+        notes: "",
+        expanded: true,
+      },
     ]);
 
   const removeCharacter = (i: number) =>
@@ -248,7 +223,16 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   const addPlace = () =>
     setPlaces((prev) => [
       ...prev,
-      { name: "", description: "", expanded: true },
+      {
+        name: "",
+        description: "",
+        atmosphere: "",
+        geography: "",
+        history: "",
+        significance: "",
+        notes: "",
+        expanded: true,
+      },
     ]);
 
   const removePlace = (i: number) =>
@@ -268,7 +252,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
   const addEvent = () =>
     setEvents((prev) => [
       ...prev,
-      { name: "", storyBeat: "rising_action" as StoryBeatType },
+      { name: "", content: "", storyBeat: "rising_action" as StoryBeatType },
     ]);
 
   const removeEvent = (i: number) =>
@@ -279,14 +263,39 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
       prev.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)),
     );
 
+  // Apply a plot template — sets the plot line name and seeds its events.
+  const applyTemplate = (templateId: string) => {
+    const template = PLOT_TEMPLATES.find((t) => String(t.id) === templateId);
+    if (!template) return;
+    setPlotLineName(template.name);
+    setEvents(
+      template.events.map((e) => ({
+        name: e.name,
+        content: e.content,
+        storyBeat: "rising_action" as StoryBeatType,
+      })),
+    );
+  };
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleLaunch = async () => {
     setIsSubmitting(true);
     try {
-      // Apply blueprint enrichments to the saved data where available
-      const finalDescription = blueprintData?.premise ?? description;
-      const finalConflict = blueprintData?.conflict ?? conflict;
+      const finalDescription = description;
+      const finalConflict = conflict;
+
+      // 0. Upload cover image if one was chosen
+      let coverImageUrl = "";
+      let thumbnailUrl = "";
+      if (coverImage) {
+        ({ coverImageUrl, thumbnailUrl } =
+          await storageService.uploadCoverImage(
+            coverImage,
+            userId,
+            `new-${Date.now()}`,
+          ));
+      }
 
       // 1. Create story
       const storyId = await storiesRepo.createStory(
@@ -296,10 +305,11 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         {
           category,
           tags,
-          targetAudience: "",
-          language: "",
-          copyright: "",
-          coverImageUrl: "",
+          targetAudience,
+          language,
+          copyright,
+          coverImageUrl,
+          thumbnailUrl,
         },
       );
 
@@ -328,7 +338,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
             ...DEFAULT_PLOT_EVENT_VALUES,
             id: crypto.randomUUID(),
             name: ev.name,
-            content: "",
+            content: ev.content,
             storyBeat: ev.storyBeat,
             orderIndex: orderIndex++,
             userId,
@@ -338,32 +348,20 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         }
       }
 
-      // 3. Create characters — prefer AI-enriched versions from blueprintData
-      const enrichedChars =
-        blueprintData?.characters ??
-        characters
-          .filter((c) => c.name.trim())
-          .map(({ name, description: desc }) => ({ name, description: desc }));
-
+      // 3. Create characters
       await Promise.all(
-        enrichedChars
+        characters
           .filter((c) => c.name.trim())
           .map((c) =>
             characterService.addCharacter(storyId, {
               name: c.name,
-              age: undefined,
-              soul: "",
-              personality:
-                "personality" in c
-                  ? ((c as { personality?: string }).personality ?? "")
-                  : "",
-              voice: "",
-              backstory:
-                "backstory" in c
-                  ? ((c as { backstory?: string }).backstory ?? c.description)
-                  : c.description,
-              affiliations: "",
-              notes: "",
+              age: c.age.trim() ? Number(c.age) : undefined,
+              soul: c.soul,
+              personality: c.personality,
+              voice: c.voice,
+              backstory: c.backstory,
+              affiliations: c.affiliations,
+              notes: c.notes,
               relationships: [],
               userId,
               artUrl: "",
@@ -371,31 +369,19 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           ),
       );
 
-      // 4. Create places — prefer AI-enriched versions from blueprintData
-      const enrichedPlaces =
-        blueprintData?.places ??
-        places
-          .filter((p) => p.name.trim())
-          .map(({ name, description: desc }) => ({ name, description: desc }));
-
+      // 4. Create places
       await Promise.all(
-        enrichedPlaces
+        places
           .filter((p) => p.name.trim())
           .map((p) =>
             placeService.addPlace(storyId, {
               name: p.name,
               description: p.description,
-              atmosphere:
-                "atmosphere" in p
-                  ? ((p as { atmosphere?: string }).atmosphere ?? "")
-                  : "",
-              geography: "",
-              history:
-                "history" in p
-                  ? ((p as { history?: string }).history ?? "")
-                  : "",
-              significance: "",
-              notes: "",
+              atmosphere: p.atmosphere,
+              geography: p.geography,
+              history: p.history,
+              significance: p.significance,
+              notes: p.notes,
               userId,
               storyId,
               imageUrl: "",
@@ -403,10 +389,10 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           ),
       );
 
-      toast.success("Your story blueprint is ready — time to write!");
+      toast.success("Your story is ready — time to write!");
       onSuccess(storyId);
     } catch (err) {
-      console.error("Error launching co-written story:", err);
+      console.error("Error creating story:", err);
       toast.error("Failed to create story. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -534,6 +520,89 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
+            Audience
+          </Label>
+          <Select value={targetAudience} onValueChange={setTargetAudience}>
+            <SelectTrigger className="h-11 bg-ns-surface border-ns-border text-ns-ink">
+              <SelectValue placeholder="Audience" />
+            </SelectTrigger>
+            <SelectContent className="bg-ns-surface border-ns-border">
+              {TARGET_AUDIENCES.map(({ value, label }) => (
+                <SelectItem
+                  key={value}
+                  value={value}
+                  className="text-ns-ink focus:bg-ns-surface-hover"
+                >
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
+            Language
+          </Label>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="h-11 bg-ns-surface border-ns-border text-ns-ink">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent className="bg-ns-surface border-ns-border">
+              {LANGUAGES.map(({ value, label }) => (
+                <SelectItem
+                  key={value}
+                  value={value}
+                  className="text-ns-ink focus:bg-ns-surface-hover"
+                >
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
+            Copyright
+          </Label>
+          <Select value={copyright} onValueChange={setCopyright}>
+            <SelectTrigger className="h-11 bg-ns-surface border-ns-border text-ns-ink">
+              <SelectValue placeholder="Copyright" />
+            </SelectTrigger>
+            <SelectContent className="bg-ns-surface border-ns-border">
+              {COPYRIGHT_OPTIONS.map(({ value, label }) => (
+                <SelectItem
+                  key={value}
+                  value={value}
+                  className="text-ns-ink focus:bg-ns-surface-hover"
+                >
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2 pt-2 border-t border-ns-border">
+        <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
+          Cover image
+        </Label>
+        <CoverImagePicker
+          title={title}
+          description={description}
+          previewUrl={imagePreview}
+          onChange={(file, preview) => {
+            setCoverImage(file);
+            setImagePreview(preview);
+          }}
+        />
+      </div>
     </div>
   );
 
@@ -544,10 +613,12 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           Who are the main characters?
         </h2>
         <p className="font-body text-ns-ink-secondary text-sm">
-          Add your key characters — a name and a brief description is enough to
-          start.
+          Add your key characters — a name is enough to start; expand a card to
+          flesh them out.
         </p>
       </div>
+
+      <OptionalNote>{OPTIONAL_NOTE_TEXT}</OptionalNote>
 
       <div className="space-y-3">
         {characters.map((char, i) => (
@@ -588,7 +659,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               <div className="px-4 pb-4 space-y-3 border-t border-ns-border pt-3">
                 <div className="flex items-center justify-between">
                   <Label className="font-ui text-xs text-ns-ink-secondary">
-                    Brief description
+                    Backstory
                   </Label>
                   <EnhanceBtn
                     enhanceKey={`character-${i}`}
@@ -596,21 +667,110 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                     type="character"
                     data={{
                       characterName: char.name,
-                      characterDescription: char.description,
+                      characterDescription: char.backstory,
                     }}
-                    onResult={(v) => updateCharacter(i, "description", v)}
+                    onResult={(v) => updateCharacter(i, "backstory", v)}
                     disabled={!char.name.trim()}
                   />
                 </div>
                 <Textarea
-                  value={char.description}
+                  value={char.backstory}
                   onChange={(e) =>
-                    updateCharacter(i, "description", e.target.value)
+                    updateCharacter(i, "backstory", e.target.value)
                   }
-                  placeholder="Who are they? What drives them? What makes them compelling?"
+                  placeholder="Origin, history, formative events…"
                   rows={3}
                   className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
                 />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs text-ns-ink-secondary">
+                      Age
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={char.age}
+                      onChange={(e) =>
+                        updateCharacter(i, "age", e.target.value)
+                      }
+                      placeholder="Age"
+                      className="h-9 bg-ns-elevated border-ns-border text-ns-ink text-sm focus:ring-ns-accent"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs text-ns-ink-secondary">
+                      Affiliations
+                    </Label>
+                    <Input
+                      value={char.affiliations}
+                      onChange={(e) =>
+                        updateCharacter(i, "affiliations", e.target.value)
+                      }
+                      placeholder="Groups, factions, allegiances…"
+                      className="h-9 bg-ns-elevated border-ns-border text-ns-ink text-sm focus:ring-ns-accent"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Personality
+                  </Label>
+                  <Textarea
+                    value={char.personality}
+                    onChange={(e) =>
+                      updateCharacter(i, "personality", e.target.value)
+                    }
+                    placeholder="How they act, quirks, habits…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Voice
+                  </Label>
+                  <Textarea
+                    value={char.voice}
+                    onChange={(e) =>
+                      updateCharacter(i, "voice", e.target.value)
+                    }
+                    placeholder="Speech patterns, tone, mannerisms…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Soul
+                  </Label>
+                  <Textarea
+                    value={char.soul}
+                    onChange={(e) => updateCharacter(i, "soul", e.target.value)}
+                    placeholder="Core essence, deepest fears, desires, wounds…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Notes
+                  </Label>
+                  <Textarea
+                    value={char.notes}
+                    onChange={(e) =>
+                      updateCharacter(i, "notes", e.target.value)
+                    }
+                    placeholder="Anything else worth remembering…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -638,6 +798,8 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
           Describe the world or settings your story inhabits.
         </p>
       </div>
+
+      <OptionalNote>{OPTIONAL_NOTE_TEXT}</OptionalNote>
 
       <div className="space-y-3">
         {places.map((place, i) => (
@@ -678,7 +840,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
               <div className="px-4 pb-4 space-y-3 border-t border-ns-border pt-3">
                 <div className="flex items-center justify-between">
                   <Label className="font-ui text-xs text-ns-ink-secondary">
-                    Description & atmosphere
+                    Description
                   </Label>
                   <EnhanceBtn
                     enhanceKey={`place-${i}`}
@@ -697,10 +859,81 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                   onChange={(e) =>
                     updatePlace(i, "description", e.target.value)
                   }
-                  placeholder="What does it look like, feel like? What's its history or significance?"
+                  placeholder="What is this place? A brief overview…"
                   rows={3}
                   className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
                 />
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Atmosphere
+                  </Label>
+                  <Textarea
+                    value={place.atmosphere}
+                    onChange={(e) =>
+                      updatePlace(i, "atmosphere", e.target.value)
+                    }
+                    placeholder="Mood, sensory details, sounds, smells, light…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Geography
+                  </Label>
+                  <Textarea
+                    value={place.geography}
+                    onChange={(e) =>
+                      updatePlace(i, "geography", e.target.value)
+                    }
+                    placeholder="Physical layout, terrain, surroundings…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    History
+                  </Label>
+                  <Textarea
+                    value={place.history}
+                    onChange={(e) => updatePlace(i, "history", e.target.value)}
+                    placeholder="Origins, past events, how it came to be…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Significance
+                  </Label>
+                  <Textarea
+                    value={place.significance}
+                    onChange={(e) =>
+                      updatePlace(i, "significance", e.target.value)
+                    }
+                    placeholder="Why this place matters to the story…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs text-ns-ink-secondary">
+                    Notes
+                  </Label>
+                  <Textarea
+                    value={place.notes}
+                    onChange={(e) => updatePlace(i, "notes", e.target.value)}
+                    placeholder="Anything else worth remembering…"
+                    rows={2}
+                    className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -722,11 +955,43 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     <div className="space-y-6">
       <div>
         <h2 className="font-heading text-2xl text-ns-ink mb-1">
-          What is the central conflict?
+          Shape your plot
         </h2>
         <p className="font-body text-ns-ink-secondary text-sm">
-          Every great story has a driving tension. What does your protagonist
-          want — and what stands in the way?
+          Start from a proven structure, then capture your central conflict and
+          key beats.
+        </p>
+      </div>
+
+      <OptionalNote>{OPTIONAL_NOTE_TEXT}</OptionalNote>
+
+      {/* Template picker — seeds the plot line name + a starter set of beats */}
+      <div className="space-y-2">
+        <Label className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
+          Start from a template{" "}
+          <span className="text-ns-ink-muted font-normal normal-case">
+            (optional)
+          </span>
+        </Label>
+        <Select onValueChange={applyTemplate}>
+          <SelectTrigger className="h-11 bg-ns-surface border-ns-border text-ns-ink">
+            <SelectValue placeholder="Choose a story structure…" />
+          </SelectTrigger>
+          <SelectContent className="bg-ns-surface border-ns-border">
+            {PLOT_TEMPLATES.map((t) => (
+              <SelectItem
+                key={t.id}
+                value={String(t.id)}
+                className="text-ns-ink focus:bg-ns-surface-hover"
+              >
+                {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="font-body text-xs text-ns-ink-muted">
+          Picking a template names your plot line and fills in its beats below —
+          edit them freely.
         </p>
       </div>
 
@@ -774,6 +1039,13 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
                   onChange={(e) => updateEvent(i, "name", e.target.value)}
                   placeholder="Event name…"
                   className="h-9 bg-ns-elevated border-ns-border text-ns-ink text-sm focus:ring-ns-accent"
+                />
+                <Textarea
+                  value={ev.content}
+                  onChange={(e) => updateEvent(i, "content", e.target.value)}
+                  placeholder="What happens in this beat…"
+                  rows={2}
+                  className="bg-ns-elevated border-ns-border text-ns-ink text-sm resize-none focus:ring-ns-accent"
                 />
                 <Select
                   value={ev.storyBeat}
@@ -830,376 +1102,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
     </div>
   );
 
-  const renderStep4 = () => {
-    if (isBlueprintLoading) {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 gap-5">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-            </div>
-            <Loader2 className="w-20 h-20 absolute -top-2 -left-2 text-purple-400 dark:text-purple-600 animate-spin opacity-60" />
-          </div>
-          <div className="text-center space-y-1">
-            <p className="font-heading text-xl text-ns-ink">
-              Crafting your story blueprint…
-            </p>
-            <p className="font-body text-ns-ink-secondary text-sm">
-              Organising and enriching your ideas into a coherent foundation.
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    // Resolved data: prefer AI-enriched, fall back to raw user inputs
-    const displayPremise = blueprintData?.premise ?? description;
-    const displayConflict = blueprintData?.conflict ?? conflict;
-    const displayCharacters =
-      blueprintData?.characters ??
-      characters
-        .filter((c) => c.name.trim())
-        .map(({ name, description: desc }) => ({ name, description: desc }));
-    const displayPlaces =
-      blueprintData?.places ??
-      places
-        .filter((p) => p.name.trim())
-        .map(({ name, description: desc }) => ({ name, description: desc }));
-
-    const categoryLabel =
-      CATEGORIES.find((c) => c.value === category)?.label ?? category;
-
-    const RegenerateBtn = () => (
-      <button
-        type="button"
-        onClick={generateBlueprint}
-        disabled={isBlueprintLoading || enhancing !== null}
-        className="inline-flex items-center gap-1 text-xs font-ui text-purple-500 hover:text-purple-700 dark:hover:text-purple-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {isBlueprintLoading ? (
-          <Loader2 className="w-3 h-3 animate-spin" />
-        ) : (
-          <Sparkles className="w-3 h-3" />
-        )}
-        Regenerate
-      </button>
-    );
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-heading text-2xl text-ns-ink mb-1">
-              Your story blueprint
-            </h2>
-            <p className="font-body text-ns-ink-secondary text-sm">
-              {blueprintData
-                ? "AI has enriched your inputs. Review and adjust before launching."
-                : blueprintError
-                  ? "Generation failed. Try again or use your raw inputs."
-                  : "Review your foundation before launching into the editor."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-            {previousBlueprintData && !isBlueprintLoading && (
-              <button
-                type="button"
-                onClick={handleUndo}
-                className="inline-flex items-center gap-1 text-xs font-ui text-ns-ink-muted hover:text-ns-ink transition-colors"
-              >
-                ← Undo
-              </button>
-            )}
-            {blueprintData && (
-              <span className="text-xs font-ui px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                AI enriched
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Error state */}
-        {blueprintError && !blueprintData && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20 p-4 space-y-3">
-            <p className="text-sm font-ui text-amber-800 dark:text-amber-300">
-              {blueprintError}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={generateBlueprint}
-                disabled={isBlueprintLoading}
-                className="inline-flex items-center gap-1.5 text-xs font-ui text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Try again
-              </button>
-              {previousBlueprintData && (
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  className="text-xs font-ui text-ns-ink-secondary hover:text-ns-ink transition-colors"
-                >
-                  ← Restore previous
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setBlueprintError(null)}
-                className="text-xs font-ui text-ns-ink-muted hover:text-ns-ink transition-colors"
-              >
-                Use my inputs →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Concept card */}
-        <div className="rounded-lg border border-ns-border bg-ns-surface p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
-              Story Concept
-            </h3>
-            <RegenerateBtn />
-          </div>
-          <p className="font-heading text-lg text-ns-ink">{title}</p>
-          {displayPremise && (
-            <p className="font-body text-sm text-ns-ink-secondary leading-relaxed">
-              {displayPremise}
-            </p>
-          )}
-          <div className="flex gap-2 flex-wrap">
-            {categoryLabel && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-ui bg-ns-accent/10 text-ns-accent border border-ns-accent/20">
-                {categoryLabel}
-              </span>
-            )}
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded-full text-xs font-ui bg-ns-surface-hover text-ns-ink-secondary border border-ns-border"
-              >
-                {STORY_TAGS.find((t) => t.value === tag)?.label ?? tag}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Characters */}
-        {displayCharacters.length > 0 && (
-          <div className="rounded-lg border border-ns-border bg-ns-surface p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
-                Characters
-              </h3>
-              <RegenerateBtn />
-            </div>
-            <div className="space-y-3">
-              {displayCharacters.map((c, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <div className="w-7 h-7 rounded-full bg-ns-accent/10 border border-ns-accent/20 flex-shrink-0 flex items-center justify-center">
-                    <span className="text-xs font-ui font-semibold text-ns-accent">
-                      {c.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-ui font-medium text-ns-ink">
-                      {c.name}
-                    </p>
-                    {c.description && (
-                      <p className="text-xs font-body text-ns-ink-secondary mt-0.5">
-                        {c.description}
-                      </p>
-                    )}
-                    {"personality" in c &&
-                      (c as { personality?: string }).personality && (
-                        <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
-                          {(c as { personality?: string }).personality}
-                        </p>
-                      )}
-                    {"backstory" in c &&
-                      (c as { backstory?: string }).backstory && (
-                        <p className="text-xs font-body text-ns-ink-secondary mt-1">
-                          {(c as { backstory?: string }).backstory}
-                        </p>
-                      )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Places */}
-        {displayPlaces.length > 0 && (
-          <div className="rounded-lg border border-ns-border bg-ns-surface p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
-                Places
-              </h3>
-              <RegenerateBtn />
-            </div>
-            <div className="space-y-3">
-              {displayPlaces.map((p, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <MapPin className="w-4 h-4 text-ns-accent flex-shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-ui font-medium text-ns-ink">
-                      {p.name}
-                    </p>
-                    {p.description && (
-                      <p className="text-xs font-body text-ns-ink-secondary mt-0.5">
-                        {p.description}
-                      </p>
-                    )}
-                    {"atmosphere" in p &&
-                      (p as { atmosphere?: string }).atmosphere && (
-                        <p className="text-xs font-body text-ns-ink-muted mt-1 italic">
-                          {(p as { atmosphere?: string }).atmosphere}
-                        </p>
-                      )}
-                    {"history" in p && (p as { history?: string }).history && (
-                      <p className="text-xs font-body text-ns-ink-secondary mt-1">
-                        {(p as { history?: string }).history}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Conflict & Plot */}
-        {(displayConflict.trim() || events.some((e) => e.name.trim())) && (
-          <div className="rounded-lg border border-ns-border bg-ns-surface p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-ui text-xs font-semibold text-ns-ink-secondary uppercase tracking-wide">
-                Plot — {plotLineName}
-              </h3>
-              <RegenerateBtn />
-            </div>
-            {displayConflict.trim() && (
-              <p className="text-sm font-body text-ns-ink-secondary leading-relaxed">
-                {displayConflict}
-              </p>
-            )}
-            {events.filter((e) => e.name.trim()).length > 0 && (
-              <div className="space-y-1">
-                {events
-                  .filter((e) => e.name.trim())
-                  .map((e, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-ns-surface-hover border border-ns-border flex items-center justify-center text-xs font-ui text-ns-ink-muted flex-shrink-0">
-                        {i + 1}
-                      </span>
-                      <span className="text-sm font-ui text-ns-ink">
-                        {e.name}
-                      </span>
-                      <span className="text-xs font-ui text-ns-ink-muted">
-                        (
-                        {
-                          STORY_BEATS.find((b) => b.value === e.storyBeat)
-                            ?.label
-                        }
-                        )
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderStep5 = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl text-ns-ink mb-1">
-          Ready to write?
-        </h2>
-        <p className="font-body text-ns-ink-secondary text-sm">
-          Your story blueprint will be saved and you'll be taken to the editor.
-          Everything can be refined from there.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-ns-border bg-ns-surface p-5 space-y-4">
-        <div className="flex items-start gap-3">
-          <BookOpen className="w-5 h-5 text-ns-accent mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-ui text-sm font-semibold text-ns-ink">{title}</p>
-            {(blueprintData?.premise ?? description) && (
-              <p className="font-body text-xs text-ns-ink-secondary mt-0.5 line-clamp-2">
-                {blueprintData?.premise ?? description}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-md bg-ns-surface-hover p-3">
-            <p className="font-heading text-xl text-ns-ink">
-              {
-                (
-                  blueprintData?.characters ??
-                  characters.filter((c) => c.name.trim())
-                ).length
-              }
-            </p>
-            <p className="font-ui text-xs text-ns-ink-secondary mt-0.5">
-              Characters
-            </p>
-          </div>
-          <div className="rounded-md bg-ns-surface-hover p-3">
-            <p className="font-heading text-xl text-ns-ink">
-              {
-                (blueprintData?.places ?? places.filter((p) => p.name.trim()))
-                  .length
-              }
-            </p>
-            <p className="font-ui text-xs text-ns-ink-secondary mt-0.5">
-              Places
-            </p>
-          </div>
-          <div className="rounded-md bg-ns-surface-hover p-3">
-            <p className="font-heading text-xl text-ns-ink">
-              {((blueprintData?.conflict ?? conflict).trim() ? 1 : 0) +
-                events.filter((e) => e.name.trim()).length}
-            </p>
-            <p className="font-ui text-xs text-ns-ink-secondary mt-0.5">
-              Plot events
-            </p>
-          </div>
-        </div>
-
-        {blueprintData && (
-          <div className="flex items-center gap-2 pt-1">
-            <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-            <p className="text-xs font-ui text-purple-600 dark:text-purple-400">
-              AI-enriched content will be saved to your story's database.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <p className="text-xs font-body text-ns-ink-muted">
-        Characters, places, and plot events are saved immediately. Continue
-        building them from the editor's sidebar.
-      </p>
-    </div>
-  );
-
-  const steps = [
-    renderStep0,
-    renderStep1,
-    renderStep2,
-    renderStep3,
-    renderStep4,
-    renderStep5,
-  ];
+  const steps = [renderStep0, renderStep1, renderStep2, renderStep3];
 
   const progressPct = ((step + 1) / STEPS.length) * 100;
 
@@ -1276,53 +1179,46 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={step === 4 ? () => setStep(3) : goBack}
+              onClick={goBack}
               disabled={isSubmitting}
               className="font-ui border-ns-border text-ns-ink"
             >
-              ← {step === 4 ? "Refine answers" : "Back"}
+              ← Back
             </Button>
           )}
 
-          {step < 4 && (
+          {/* Always-available create — lets users finish from any step */}
+          <Button
+            type="button"
+            variant={step === LAST_STEP ? "default" : "outline"}
+            onClick={handleLaunch}
+            disabled={!canLaunch || isSubmitting}
+            className={
+              step === LAST_STEP
+                ? "font-ui bg-ns-accent hover:bg-ns-accent-hover text-white disabled:opacity-50 px-6"
+                : "font-ui border-ns-border text-ns-ink disabled:opacity-50"
+            }
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating…
+              </>
+            ) : step === 0 || step === LAST_STEP ? (
+              "Create Story"
+            ) : (
+              "Create story now"
+            )}
+          </Button>
+
+          {step < LAST_STEP && (
             <Button
               type="button"
               onClick={goNext}
               disabled={!canAdvance}
               className="font-ui bg-ns-accent hover:bg-ns-accent-hover text-white disabled:opacity-50"
             >
-              Next →
-            </Button>
-          )}
-
-          {step === 4 && !isBlueprintLoading && (
-            <Button
-              type="button"
-              onClick={goNext}
-              className="font-ui bg-ns-accent hover:bg-ns-accent-hover text-white"
-            >
-              This looks good →
-            </Button>
-          )}
-
-          {step === 5 && (
-            <Button
-              type="button"
-              onClick={handleLaunch}
-              disabled={isSubmitting}
-              className="font-ui bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 shadow-md px-6"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Launching…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Launch Story
-                </>
-              )}
+              {NEXT_LABELS[step]}
             </Button>
           )}
         </div>

@@ -20,19 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  Sparkles,
-  Upload,
-  Loader2,
-  AlertCircle,
-  X,
-  FileText,
-  PenLine,
-} from "lucide-react";
+import { Upload, Loader2, AlertCircle, FileText, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { storiesRepo } from "@/services/StoriesRepo";
 import { storageService } from "@/services/StorageService";
-import { generateCover } from "@/services/imageGenerationService";
+import CoverImagePicker from "./components/CoverImagePicker";
 import {
   validateTextFile,
   parseTextFile,
@@ -48,7 +40,7 @@ import {
 } from "@/constants/storyOptions";
 import { TagMultiSelect } from "@/components/common";
 
-type Mode = "scratch" | "import" | "cowrite";
+type Mode = "create" | "import";
 
 interface StoryMetadataModalProps {
   isOpen: boolean;
@@ -64,7 +56,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
   const navigate = useNavigate();
 
   // ── Mode ────────────────────────────────────────────────────────────────────
-  const [mode, setMode] = useState<Mode>("scratch");
+  const [mode, setMode] = useState<Mode>("create");
 
   // ── Metadata fields ─────────────────────────────────────────────────────────
   const [title, setTitle] = useState("");
@@ -78,11 +70,6 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
   // ── Cover image ─────────────────────────────────────────────────────────────
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [showAiPrompt, setShowAiPrompt] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const coverFileRef = useRef<HTMLInputElement>(null);
 
   // ── Import state ─────────────────────────────────────────────────────────────
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -146,49 +133,6 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
 
   const handleDragLeave = () => setIsDragging(false);
 
-  // ── Cover image ──────────────────────────────────────────────────────────────
-
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => setImagePreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const generateAICover = async () => {
-    setIsGenerating(true);
-    setGenerationError(null);
-    try {
-      const prompt =
-        aiPrompt ||
-        `Book cover for "${title}". ${description}. Professional, eye-catching design.`;
-
-      const result = await generateCover(prompt);
-
-      setCoverImage(result.file);
-      setImagePreview(result.imageUrl);
-      setShowAiPrompt(false);
-      setAiPrompt("");
-      setGenerationError(null);
-      toast.success("Cover image generated successfully!");
-    } catch (error) {
-      console.error("Error generating AI cover:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to generate AI cover. Please try again.";
-      setGenerationError(errorMessage);
-      toast.error("Failed to generate cover image", {
-        description: errorMessage,
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   // ── Submission ───────────────────────────────────────────────────────────────
 
   const buildMetadata = () => ({
@@ -199,37 +143,6 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     copyright,
     coverImageUrl: "",
   });
-
-  const handleScratchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      let coverImageUrl = "";
-      let thumbnailUrl = "";
-      if (coverImage) {
-        ({ coverImageUrl, thumbnailUrl } =
-          await storageService.uploadCoverImage(
-            coverImage,
-            userId,
-            `new-${Date.now()}`,
-          ));
-      }
-
-      const newStoryId = await storiesRepo.createStory(
-        title,
-        description,
-        userId,
-        { ...buildMetadata(), coverImageUrl, thumbnailUrl },
-      );
-      onClose();
-      navigate(`/create/${newStoryId}`);
-    } catch (error) {
-      console.error("Error creating story:", error);
-      toast.error("Failed to create story. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,8 +213,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
     }
   };
 
-  const handleSubmit =
-    mode === "scratch" ? handleScratchSubmit : handleImportSubmit;
+  const handleSubmit = handleImportSubmit;
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -318,22 +230,21 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
         </DialogHeader>
 
         {/* ── Mode toggle ──────────────────────────────────────────────────
-            Kept outside the form so it stays visible in every mode — including
-            "Start with AI" — letting users switch modes / back out of the AI
-            wizard instead of being trapped in it. */}
+            Kept outside the form so it stays visible in both modes, letting
+            users switch between the guided New Story stepper and Import. */}
         <div className="px-6 pt-4">
           <div className="flex rounded-lg border border-gray-200 dark:border-neutral-700 overflow-hidden">
             <button
               type="button"
-              onClick={() => handleModeChange("scratch")}
+              onClick={() => handleModeChange("create")}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                mode === "scratch"
+                mode === "create"
                   ? "bg-dark-green dark:bg-light-green text-white"
                   : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
               }`}
             >
               <PenLine className="w-4 h-4" />
-              Start from Scratch
+              New Story
             </button>
             <button
               type="button"
@@ -347,36 +258,24 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
               <Upload className="w-4 h-4" />
               Import Existing
             </button>
-            <button
-              type="button"
-              onClick={() => handleModeChange("cowrite")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-neutral-700 ${
-                mode === "cowrite"
-                  ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white"
-                  : "bg-white dark:bg-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-700"
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              Start with AI
-            </button>
           </div>
         </div>
 
-        {mode === "cowrite" ? (
+        {mode === "create" ? (
           <div className="flex-grow flex flex-col min-h-0">
             <CoWriteWizard
               userId={userId}
               onClose={onClose}
               onSuccess={(id) => {
                 onClose();
-                navigate(`/create/${id}?wizard=true`);
+                navigate(`/create/${id}`);
               }}
             />
           </div>
         ) : null}
 
         <div
-          className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "cowrite" ? "hidden" : ""}`}
+          className={`flex-grow overflow-y-auto px-6 py-4 ${mode === "create" ? "hidden" : ""}`}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ── Metadata grid ─────────────────────────────────────────────── */}
@@ -534,116 +433,18 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
 
             {/* ── Cover image ───────────────────────────────────────────────── */}
             <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-neutral-800">
-              <Label
-                htmlFor="coverImage"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-300 block"
-              >
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
                 Cover Image
               </Label>
-              <Input
-                id="coverImage"
-                type="file"
-                accept="image/*"
-                onChange={handleCoverImageChange}
-                ref={coverFileRef}
-                className="hidden"
+              <CoverImagePicker
+                title={title}
+                description={description}
+                previewUrl={imagePreview}
+                onChange={(file, preview) => {
+                  setCoverImage(file);
+                  setImagePreview(preview);
+                }}
               />
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  onClick={() => coverFileRef.current?.click()}
-                  variant="outline"
-                  className="flex-1 h-11 border-2 hover:border-dark-green dark:hover:border-light-green"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Image
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setShowAiPrompt(!showAiPrompt);
-                    setGenerationError(null);
-                  }}
-                  className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 text-white hover:from-purple-700 hover:to-purple-800 dark:hover:from-purple-600 dark:hover:to-purple-700 transition-all shadow-md hover:shadow-lg border-0"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate with AI
-                </Button>
-              </div>
-
-              {showAiPrompt && (
-                <div className="space-y-3 mt-4 p-4 border-2 border-purple-200 dark:border-purple-800 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 backdrop-blur-sm">
-                  <Label
-                    htmlFor="aiPrompt"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Describe your cover (optional — will use title & description
-                    if empty)
-                  </Label>
-                  <Textarea
-                    id="aiPrompt"
-                    value={aiPrompt}
-                    onChange={(e) => {
-                      setAiPrompt(e.target.value);
-                      setGenerationError(null);
-                    }}
-                    placeholder="E.g., A mystical forest with glowing trees and a mysterious figure..."
-                    className="bg-white dark:bg-neutral-800 text-black dark:text-white border-purple-300 dark:border-purple-700 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 transition-all"
-                    rows={3}
-                  />
-
-                  {generationError && (
-                    <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Generation Failed</p>
-                        <p className="text-xs mt-1">{generationError}</p>
-                      </div>
-                      <button
-                        onClick={() => setGenerationError(null)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors"
-                        aria-label="Dismiss error"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  <Button
-                    type="button"
-                    onClick={generateAICover}
-                    disabled={isGenerating || !title}
-                    className="w-full h-10 bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 text-white hover:from-purple-700 hover:to-purple-800 dark:hover:from-purple-600 dark:hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Cover
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {imagePreview && (
-                <div className="mt-4 p-4 border-2 border-gray-200 dark:border-neutral-700 rounded-lg bg-gray-50 dark:bg-neutral-800/50">
-                  <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Preview
-                  </Label>
-                  <div className="relative rounded-lg overflow-hidden border border-gray-300 dark:border-neutral-600 shadow-md">
-                    <img
-                      src={imagePreview}
-                      alt="Cover preview"
-                      className="w-full h-auto max-h-64 object-contain bg-white dark:bg-neutral-900"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* ── Import section (only in import mode) ─────────────────────── */}
@@ -766,7 +567,7 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
           </form>
         </div>
 
-        {mode !== "cowrite" && (
+        {mode === "import" && (
           <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-neutral-800 dark:bg-neutral-900/50">
             <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
               <Button
@@ -780,21 +581,16 @@ const StoryMetadataModal: React.FC<StoryMetadataModalProps> = ({
               <Button
                 type="submit"
                 onClick={handleSubmit}
-                disabled={
-                  isSubmitting ||
-                  (mode === "import" && parsedChapters.length === 0)
-                }
+                disabled={isSubmitting || parsedChapters.length === 0}
                 className="h-11 px-8 bg-gradient-to-r from-dark-green to-light-green dark:from-light-green dark:to-dark-green text-white hover:shadow-lg transition-all shadow-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {mode === "import" ? "Importing..." : "Creating..."}
+                    Importing…
                   </>
-                ) : mode === "import" ? (
-                  "Import Story"
                 ) : (
-                  "Create Story"
+                  "Import Story"
                 )}
               </Button>
             </div>
