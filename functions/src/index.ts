@@ -32,6 +32,15 @@ export { generateStoryChoices } from "./generateStoryChoices";
 export { searchBooks, getBookDetails } from "./booksApi";
 export { generateCoverImage } from "./generateCoverImage";
 export { sendChatMessage } from "./sendChatMessage";
+export { onChapterWrite } from "./chapterIndexTrigger";
+export { onStoryWrite } from "./storyCountTrigger";
+export { indexChapterTask } from "./indexChapterTask";
+export { indexEntityTask } from "./indexEntityTask";
+export {
+  onCharacterWrite,
+  onPlaceWrite,
+  onPlotWrite,
+} from "./entityIndexTrigger";
 export { clearChatSession } from "./clearChatSession";
 export { enhanceText } from "./enhanceText";
 export { enhanceWizardInput } from "./enhanceWizardInput";

@@ -5,7 +5,6 @@ import * as logger from "firebase-functions/logger";
 import { requireStoryOwnership } from "./authService";
 import { callAgentWithRetry } from "./agentService";
 import { checkAiAccess, corsWithEncryption } from "./aiSettings";
-import { getStoryContext } from "./contextService";
 import {
   getChatHistory,
   saveChatMessages,
@@ -22,7 +21,9 @@ const MAX_CHAT_MESSAGE_LENGTH = 5000;
  * - storyId: string (required, validated by middleware)
  * - chatId?: string (optional, will be created if not provided)
  * - message: string (required)
- * - includeFullContext?: boolean (optional, default: true)
+ *
+ * Story context is NOT sent from here — the agent assembles a slim, bounded
+ * context itself (denormalized chapter index + vector-retrieved excerpts).
  *
  * Response:
  * - response: string (AI-generated response)
@@ -41,7 +42,7 @@ export const sendChatMessage = onRequest(
         return;
       }
 
-      const { chatId, message, includeFullContext = true } = request.body;
+      const { chatId, message } = request.body;
 
       // Validate message
       if (!message || typeof message !== "string" || message.trim() === "") {
@@ -66,28 +67,6 @@ export const sendChatMessage = onRequest(
         logger.info("Created new chat session", { storyId, chatId: sessionId });
       }
 
-      // Fetch story context
-      let context = {};
-      if (includeFullContext) {
-        try {
-          context = await getStoryContext(db, storyId);
-          logger.info("Fetched story context", {
-            storyId,
-            chapters: (context as any).chapters?.length || 0,
-            characters: (context as any).characters?.length || 0,
-            plots: (context as any).plots?.length || 0,
-            places: (context as any).places?.length || 0,
-          });
-        } catch (contextError) {
-          logger.error("Error fetching story context", {
-            storyId,
-            error: contextError,
-          });
-          // Continue with empty context if fetch fails
-          context = {};
-        }
-      }
-
       // Fetch chat history (last 10 messages for conversational context)
       const chatHistory = await getChatHistory(db, storyId, sessionId, 10);
       logger.info("Fetched chat history", {
@@ -97,16 +76,23 @@ export const sendChatMessage = onRequest(
       });
 
       // Call Python agent with retry
-      const agentResponse = await callAgentWithRetry("chatWithContext", {
-        storyId,
+      const agentResponse = await callAgentWithRetry(
+        "chatWithContext",
+        {
+          storyId,
+          userId,
+          message: message.trim(),
+          chatHistory: chatHistory.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        },
+        3,
+        1000,
         userId,
-        message: message.trim(),
-        context,
-        chatHistory: chatHistory.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-      }, 3, 1000, userId, access.providerConfig ?? undefined, idToken);
+        access.providerConfig ?? undefined,
+        idToken,
+      );
 
       if (!agentResponse.success || !agentResponse.data) {
         logger.error("Agent failed to generate chat response", {
@@ -123,18 +109,10 @@ export const sendChatMessage = onRequest(
 
       const responseData = (agentResponse.data as any).data;
 
-      // Create context snapshot for tracking
-      const contextSnapshot = includeFullContext
-        ? {
-            chapterIds: (context as any).chapters?.map((c: any) => c.id) || [],
-            characterIds:
-              (context as any).characters?.map((c: any) => c.id) || [],
-            plotIds: (context as any).plots?.map((p: any) => p.id) || [],
-            placeIds: (context as any).places?.map((p: any) => p.id) || [],
-          }
-        : undefined;
-
-      // Save user message and assistant response to Firestore
+      // Save user message and assistant response to Firestore. We no longer write
+      // a contextSnapshot: it required reading every context doc up front (the cost
+      // this change removes), and the agent now selects context per message via
+      // vector retrieval, so a Node-side ID list wouldn't reflect what was used.
       await saveChatMessages(
         db,
         storyId,
@@ -142,7 +120,6 @@ export const sendChatMessage = onRequest(
         userId,
         message.trim(),
         responseData.response,
-        contextSnapshot
       );
 
       logger.info("Chat message processed successfully", {
@@ -174,5 +151,5 @@ export const sendChatMessage = onRequest(
         details: error instanceof Error ? error.message : String(error),
       });
     }
-  })
+  }),
 );

@@ -26,5 +26,33 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "chapter_chunks",
+      "fieldPath": "embedding",
+      "indexes": [],
+      "vectorConfig": {
+        "dimension": 768,
+        "flat": {}
+      }
+    },
+    {
+      "collectionGroup": "semantic_memory",
+      "fieldPath": "embedding",
+      "indexes": [],
+      "vectorConfig": {
+        "dimension": 768,
+        "flat": {}
+      }
+    },
+    {
+      "collectionGroup": "episodic_memory",
+      "fieldPath": "embedding",
+      "indexes": [],
+      "vectorConfig": {
+        "dimension": 768,
+        "flat": {}
+      }
+    }
+  ]
 }
