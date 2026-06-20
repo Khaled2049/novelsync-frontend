@@ -163,6 +163,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
+            data-cy="chat-input"
             placeholder="Ask about your story…"
             className="flex-1 resize-none bg-transparent font-ui text-sm text-ns-ink placeholder:text-ns-ink-muted focus:outline-none min-h-[20px] leading-5"
             rows={1}
@@ -173,6 +174,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
             disabled={!inputMessage.trim() || isLoading}
             className="flex-shrink-0 w-7 h-7 rounded-full bg-ns-accent flex items-center justify-center hover:bg-ns-accent-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Send message"
+            data-cy="chat-send"
           >
             <Send className="w-3.5 h-3.5 text-white" />
           </button>

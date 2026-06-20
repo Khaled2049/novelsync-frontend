@@ -4,8 +4,11 @@ const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-project-id";
 const region = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || "us-central1";
 
 const isDevelopment = import.meta.env.MODE === "development";
+// Use 127.0.0.1 (not "localhost") for the Functions emulator: on hosts where
+// "localhost" resolves to IPv6 (::1) first, requests fail because the emulator
+// binds IPv4 only. This matches the explicit 127.0.0.1 hosts in config/firebase.ts.
 const baseURL = isDevelopment
-  ? `http://localhost:5001/${projectId}/${region}`
+  ? `http://127.0.0.1:5001/${projectId}/${region}`
   : `https://${region}-${projectId}.cloudfunctions.net`;
 
 export class ApiError extends Error {

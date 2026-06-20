@@ -456,6 +456,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          data-cy="wizard-title"
           placeholder="Give your story a working title…"
           className="h-12 text-base bg-ns-surface border-ns-border text-ns-ink focus:ring-ns-accent"
           autoFocus
@@ -1192,6 +1193,7 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
             type="button"
             variant={step === LAST_STEP ? "default" : "outline"}
             onClick={handleLaunch}
+            data-cy="wizard-create"
             disabled={!canLaunch || isSubmitting}
             className={
               step === LAST_STEP

@@ -10,7 +10,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
+    <div
+      data-cy={isUser ? "chat-message-user" : "chat-message-assistant"}
+      className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
+    >
       {!isUser && (
         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-ns-accent-subtle flex items-center justify-center mb-5">
           <Sparkles className="w-3 h-3 text-ns-accent" />

@@ -68,6 +68,7 @@ const SlashCommandMenu = forwardRef((props: SlashCommandMenuProps, ref) => {
           <button
             key={index}
             onClick={() => selectItem(index)}
+            data-cy={`slash-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
             className={`w-full text-left px-3 py-2 rounded-md flex items-start gap-3 transition-colors ${
               index === selectedIndex
                 ? "bg-dark-green text-white"

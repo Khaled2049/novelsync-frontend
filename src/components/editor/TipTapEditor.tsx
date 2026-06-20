@@ -457,6 +457,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             onClick={() => editor.commands.focus()}
             className="w-full focus:outline-none max-w-none"
             editor={editor}
+            data-cy="chapter-editor"
           />
         </div>
       </div>

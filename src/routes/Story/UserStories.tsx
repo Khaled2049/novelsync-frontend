@@ -146,6 +146,7 @@ const UserStories = () => {
 
             <button
               onClick={() => setIsCreating(true)}
+              data-cy="new-story"
               className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-ns-accent hover:bg-ns-accent-hover text-white text-xs sm:text-sm font-ui font-medium rounded-ns transition-colors flex-shrink-0"
             >
               <Plus className="w-4 h-4" />
