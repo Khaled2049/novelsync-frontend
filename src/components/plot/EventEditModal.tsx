@@ -4,12 +4,13 @@ import {
   PacingType,
   DEFAULT_PLOT_EVENT_VALUES,
 } from "@/types/IPlot";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Character } from "@/types/ICharacter";
 import { Place } from "@/types/IPlace";
 import { MultiSelectCharacters } from "./MultiSelectCharacters";
 import { LocationSelect } from "./LocationSelect";
+import { STORY_BEAT_OPTIONS, PACING_OPTIONS } from "./plotOptions";
 
 interface EventEditModalProps {
   isOpen: boolean;
@@ -22,34 +23,6 @@ interface EventEditModalProps {
   characters?: Character[];
   places?: Place[];
 }
-
-const STORY_BEAT_OPTIONS: { value: StoryBeatType; label: string }[] = [
-  { value: "exposition", label: "Exposition" },
-  { value: "inciting_incident", label: "Inciting Incident" },
-  { value: "rising_action", label: "Rising Action" },
-  { value: "midpoint", label: "Midpoint" },
-  { value: "climax", label: "Climax" },
-  { value: "falling_action", label: "Falling Action" },
-  { value: "resolution", label: "Resolution" },
-];
-
-const PACING_OPTIONS: {
-  value: PacingType;
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: "slow",
-    label: "Slow",
-    description: "Descriptive, atmospheric scenes",
-  },
-  {
-    value: "moderate",
-    label: "Moderate",
-    description: "Balanced narrative flow",
-  },
-  { value: "fast", label: "Fast", description: "Action-packed, quick cuts" },
-];
 
 const TENSION_LABELS: Record<number, string> = {
   1: "Peaceful",
@@ -92,6 +65,9 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
   places = [],
 }) => {
   const [activeTab, setActiveTab] = useState("basic");
+  // Track whether a click started on the backdrop, so dragging/selecting from
+  // inside the modal out onto the overlay doesn't accidentally close it.
+  const pointerDownOnOverlay = useRef(false);
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -124,10 +100,15 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
   // Ensure event has all fields with defaults
   const event = ensureEventDefaults(editingEvent.event);
 
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    pointerDownOnOverlay.current = e.target === e.currentTarget;
+  };
+
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && pointerDownOnOverlay.current) {
       onClose();
     }
+    pointerDownOnOverlay.current = false;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -152,6 +133,7 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 flex justify-center items-center p-4"
+      onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
       <div className="bg-neutral-50 dark:bg-gray-900 p-6 rounded-lg shadow-xl w-full max-w-2xl transition-colors duration-200 max-h-[90vh] overflow-y-auto">

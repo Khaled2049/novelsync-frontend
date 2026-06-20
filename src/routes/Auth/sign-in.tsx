@@ -86,6 +86,7 @@ const Signin: React.FC = () => {
                 type="email"
                 id="email"
                 name="email"
+                data-cy="email"
                 value={formData.email}
                 onChange={handleChange}
                 onKeyPress={handleKeyPress}
@@ -117,6 +118,7 @@ const Signin: React.FC = () => {
                 type="password"
                 id="password"
                 name="password"
+                data-cy="password"
                 autoComplete="new-password"
                 value={formData.password}
                 onChange={handleChange}
@@ -155,6 +157,7 @@ const Signin: React.FC = () => {
 
             <button
               onClick={handleSubmit}
+              data-cy="signin-submit"
               disabled={isLoading}
               className={`w-full bg-ns-accent text-white font-ui font-semibold py-3 px-6 rounded-ns-lg shadow-ns-sm transition-all duration-300 opacity-0 animate-ns-fade-in ${
                 isLoading

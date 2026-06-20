@@ -60,6 +60,8 @@ Firestore subcollection pattern: `stories/{id}/chapters`, `stories/{id}/chats/{i
 - **Chat**: Real-time Firestore subcollection + Cloud Function (`/sendChatMessage`) with story-context RAG
 - **Brainstorm / Text Enhancement**: API calls to Cloud Functions
 - **Daily quota**: UI display uses `VITE_MAX_AI_USAGE` (default 100) and user profile fields (`aiUsage`, `lastAiUsageDate`). Server-side enforcement is in `functions/src/aiSettings.ts` (`checkAiAccess` → `consumePlatformDailyQuota`), controlled by `MAX_AI_USAGE` env var. Keep `VITE_MAX_AI_USAGE` aligned with `MAX_AI_USAGE`. BYOK users bypass quota.
+- **Indexing budget**: write-triggered (re)embedding is metered separately from the chat quota via `consumeIndexingBudget` (`functions/src/usageBudget.ts`), controlled by `MAX_INDEX_USAGE` (default 300/day), stored on the user doc as `indexUsage`/`lastIndexUsageDate`. Counts one unit per debounced embedding pass (not per autosave). Applies to BYOK users too — indexing uses the platform embedder regardless. Deletes are never gated.
+- **Per-user story cap**: `users.storyCount` is maintained by the `onStoryWrite` trigger (`functions/src/storyCountTrigger.ts`); `firestore.rules` blocks story creation past `MAX_STORIES_PER_USER` (literal `100` in rules — keep both in sync). Soft cap; the indexing budget is the hard cost ceiling.
 
 ### Web3
 Wagmi config in `src/blockchain/config.ts`. Target chain from `VITE_CHAIN_ID` (default 31337 for local Anvil). Tipping contract ABI in `src/blockchain/abi/TippingPlatform.abi.json`. Wallet state machine: `DISCONNECTED → CONNECTING → CONNECTED → READY` (or `WRONG_NETWORK / ERROR`).

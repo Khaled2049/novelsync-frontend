@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { corsOptions } from "./corsConfig";
+import { consumeDailyBudget } from "./usageBudget";
 
 export const encryptionKey = defineSecret("ENCRYPTION_KEY");
 
@@ -262,38 +263,10 @@ function getDailyAiQuotaLimit(): number {
 }
 
 async function consumePlatformDailyQuota(userId: string): Promise<boolean> {
-  const db = getFirestore();
-  const userRef = db.collection("users").doc(userId);
-  const today = new Date().toISOString().split("T")[0];
-  const dailyLimit = getDailyAiQuotaLimit();
-
-  try {
-    return await db.runTransaction(async (tx) => {
-      const userSnap = await tx.get(userRef);
-      const data = userSnap.data() || {};
-      const lastUsageDate =
-        typeof data.lastAiUsageDate === "string" ? data.lastAiUsageDate : "";
-      const priorUsage = typeof data.aiUsage === "number" ? data.aiUsage : 0;
-      const todayUsage = lastUsageDate === today ? priorUsage : 0;
-
-      if (todayUsage >= dailyLimit) {
-        return false;
-      }
-
-      tx.set(
-        userRef,
-        {
-          aiUsage: todayUsage + 1,
-          lastAiUsageDate: today,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-      return true;
-    });
-  } catch (error) {
-    logger.error("consumePlatformDailyQuota failed", { userId, error });
-    // Fail-closed to avoid free unlimited usage when quota state is unavailable.
-    return false;
-  }
+  // Shares the transactional, fail-closed daily counter with the indexing budget.
+  return consumeDailyBudget(userId, {
+    usageField: "aiUsage",
+    dateField: "lastAiUsageDate",
+    limit: getDailyAiQuotaLimit(),
+  });
 }

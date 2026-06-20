@@ -27,3 +27,8 @@ cors.json
 .firebase
 public/images/landing/*.png
 docs/blogs/*
+
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/

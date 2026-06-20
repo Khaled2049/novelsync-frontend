@@ -37,6 +37,7 @@ export function StoryWorkspaceTabs({
           key={label}
           to={buildTo(basePath, storyId, segment)}
           end={end}
+          data-cy={`tab-${segment || "editor"}`}
           className={({ isActive }) =>
             `inline-flex shrink-0 items-center gap-1.5 rounded-ns px-3 py-1.5 font-ui text-xs transition-colors ${
               isActive

@@ -133,6 +133,7 @@ const AddCharacterModal = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                data-cy="character-name"
                 placeholder="Character name"
                 required
                 className="w-full font-ui text-sm text-ns-ink bg-ns-bg border border-ns-border rounded-ns px-3 py-2 focus:outline-none focus:border-ns-accent transition-colors placeholder:text-ns-ink-muted"
@@ -256,6 +257,7 @@ const AddCharacterModal = ({
             </button>
             <button
               type="submit"
+              data-cy="character-save"
               disabled={submitting || !name.trim()}
               className="px-4 py-2 rounded-ns bg-ns-accent text-white font-ui text-xs font-medium hover:bg-ns-accent-hover active:scale-[0.97] transition-all disabled:opacity-50"
             >

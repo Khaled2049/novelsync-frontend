@@ -12,6 +12,16 @@ service cloud.firestore {
       return members is list ? members : [];
     }
 
+    // Per-user story cap. Reads the denormalized counter maintained by the
+    // onStoryWrite Cloud Function; treats a missing user doc / field as 0. Bounds the
+    // total embedding/storage cost one account can drive (soft cap — see
+    // storyCountTrigger.ts). Keep MAX_STORIES_PER_USER in sync with that doc.
+    function userStoryCount(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        ? get(/databases/$(database)/documents/users/$(uid)).data.get("storyCount", 0)
+        : 0;
+    }
+
     // Invites collection for invite-only signup
     match /invites/{email} {
       // enforce linkSentCount == 0 on create — prevent injecting a pre-incremented counter.
@@ -120,7 +130,9 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read: if resource.data.isPublished == true
                   || (request.auth != null && resource.data.userId == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && userStoryCount(request.auth.uid) < 100; // MAX_STORIES_PER_USER
 
       allow update: if (
         // Unauthenticated view increment: exactly +1 only.

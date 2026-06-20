@@ -275,6 +275,7 @@ const Characters: React.FC = () => {
         </div>
         <button
           onClick={() => { if (requireAuth()) setIsAddModalOpen(true); }}
+          data-cy="add-character"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ns-accent text-white font-ui text-xs font-medium rounded-ns hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150"
         >
           <UserPlus className="w-3.5 h-3.5" />
