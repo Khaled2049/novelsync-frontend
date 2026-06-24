@@ -250,17 +250,23 @@ export function SimpleEditor() {
       await forceSave();
     }
 
-    const newChapterId = await storiesRepo.addChapter(
-      state.story.id,
-      "New Chapter",
-    );
-    const newChapter = await storiesRepo.getChapter(
-      state.story.id,
-      newChapterId,
-    );
-    if (newChapter) {
-      actions.addChapter(newChapter);
-      resetSaveState();
+    try {
+      const newChapterId = await storiesRepo.addChapter(
+        state.story.id,
+        "New Chapter",
+      );
+      const newChapter = await storiesRepo.getChapter(
+        state.story.id,
+        newChapterId,
+      );
+      if (newChapter) {
+        actions.addChapter(newChapter);
+        resetSaveState();
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add chapter.",
+      );
     }
   };
 
@@ -897,6 +903,7 @@ export function SimpleEditor() {
                 storyTitle={state.storyTitle}
                 onChapterSelect={handleChapterSelect}
                 onChapterDelete={handleChapterDeleteRequest}
+                onChapterAdd={handleNewChapter}
                 onStoryTitleChange={actions.updateStoryTitle}
                 onChapterTitleChange={actions.updateChapterTitle}
                 onMetadataChange={handleMetadataChange}

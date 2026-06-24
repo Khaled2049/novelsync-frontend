@@ -15,6 +15,8 @@ import ReportButton from "@/components/community/ReportButton";
 import { voteService } from "@/services/VoteService";
 import { reportService } from "@/services/ReportService";
 import { postsService } from "@/services/PostService";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { toast } from "sonner";
 
 interface PostCardProps {
   post: IPost;
@@ -39,6 +41,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isVoting, setIsVoting] = useState(false);
   const [hasReported, setHasReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const checkReported = async () => {
@@ -99,20 +102,15 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleDelete = async () => {
     if (!currentUser || currentUser.uid !== post.authorId) return;
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this post? This action cannot be undone.",
-      )
-    )
-      return;
 
     setIsDeleting(true);
     try {
       await postsService.deletePost(post.id, post.authorId);
       onPostDeleted?.(post.id);
+      toast.success("Post deleted");
     } catch (error) {
       console.error("Error deleting post:", error);
-      alert("Failed to delete post. Please try again.");
+      toast.error("Failed to delete post. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -167,7 +165,7 @@ const PostCard: React.FC<PostCardProps> = ({
           )}
           {currentUser?.uid === post.authorId && (
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
               className="text-ns-ink-muted hover:text-ns-destructive transition-colors disabled:opacity-40"
               title="Delete post"
@@ -229,6 +227,19 @@ const PostCard: React.FC<PostCardProps> = ({
           onHideComments={() => setCommentsExpanded(false)}
         />
       )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete post?"
+        description="This post and all its comments will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete post"
+        cancelLabel="Keep post"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 };
