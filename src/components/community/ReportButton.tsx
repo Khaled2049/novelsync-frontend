@@ -15,14 +15,28 @@ interface ReportButtonProps {
   onReport: (reason?: string) => Promise<void>;
   hasReported?: boolean;
   disabled?: boolean;
+  /** Hide the built-in trigger button and drive the dialog externally. */
+  showTrigger?: boolean;
+  /** Controlled open state (used with showTrigger={false}). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const ReportButton: React.FC<ReportButtonProps> = ({
   onReport,
   hasReported = false,
   disabled = false,
+  showTrigger = true,
+  open,
+  onOpenChange,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setIsOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,12 +54,13 @@ const ReportButton: React.FC<ReportButtonProps> = ({
   };
 
   if (hasReported) {
+    if (!showTrigger) return null;
     return (
       <Button
         variant="ghost"
         size="sm"
         disabled
-        className="text-gray-400 dark:text-gray-500"
+        className="text-ns-ink-muted"
       >
         <Flag size={14} className="mr-1" />
         <span className="text-xs">Reported</span>
@@ -55,16 +70,18 @@ const ReportButton: React.FC<ReportButtonProps> = ({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-        disabled={disabled}
-        className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-      >
-        <Flag size={14} className="mr-1" />
-        <span className="text-xs">Report</span>
-      </Button>
+      {showTrigger && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsOpen(true)}
+          disabled={disabled}
+          className="text-ns-ink-muted hover:text-ns-destructive"
+        >
+          <Flag size={14} className="mr-1" />
+          <span className="text-xs">Report</span>
+        </Button>
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
