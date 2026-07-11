@@ -1,7 +1,7 @@
 // src/components/reader/ReaderTopBar.tsx
 
 import React from "react";
-import { ArrowLeft, Settings, Search } from "lucide-react";
+import { ArrowLeft, Settings, Search, Headphones } from "lucide-react";
 
 interface ReaderTopBarProps {
   theme: {
@@ -13,6 +13,9 @@ interface ReaderTopBarProps {
   onBack: () => void;
   onSearchToggle: () => void;
   onSettingsToggle: () => void;
+  /** When omitted, the read-aloud button is hidden (feature flag off). */
+  onReadAloudToggle?: () => void;
+  readAloudActive?: boolean;
 }
 
 export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
@@ -20,6 +23,8 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
   onBack,
   onSearchToggle,
   onSettingsToggle,
+  onReadAloudToggle,
+  readAloudActive = false,
 }) => {
   return (
     <div
@@ -36,6 +41,26 @@ export const ReaderTopBar: React.FC<ReaderTopBarProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
+          {onReadAloudToggle && (
+            <div className="relative group">
+              <button
+                onClick={onReadAloudToggle}
+                className={`p-2 rounded-lg ${theme.hover} transition-colors ${
+                  readAloudActive ? "text-blue-500" : theme.text
+                }`}
+                aria-label="Read aloud (experimental)"
+                aria-pressed={readAloudActive}
+              >
+                <Headphones size={20} />
+              </button>
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1.5 px-1.5 py-0.5 rounded bg-gray-900 text-white text-[10px] font-medium uppercase tracking-wide whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+              >
+                Experimental
+              </span>
+            </div>
+          )}
           <button
             onClick={onSearchToggle}
             className={`p-2 rounded-lg ${theme.hover} transition-colors ${theme.text}`}
