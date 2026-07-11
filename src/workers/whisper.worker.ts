@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import "@/lib/transformersConfig";
 import {
   pipeline,
   type AutomaticSpeechRecognitionPipeline,

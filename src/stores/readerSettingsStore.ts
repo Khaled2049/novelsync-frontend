@@ -28,6 +28,16 @@ export const useReaderSettingsStore = create<ReaderSettingsState>()(
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ settings: state.settings }),
+      // Persisted settings from before a field was added lack the new keys;
+      // the default shallow merge would drop their defaults entirely.
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<ReaderSettingsState>),
+        settings: {
+          ...current.settings,
+          ...(persisted as { settings?: Partial<ReaderSettings> })?.settings,
+        },
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

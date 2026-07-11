@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import "@/lib/transformersConfig";
 import {
   pipeline,
   type TextClassificationPipeline,

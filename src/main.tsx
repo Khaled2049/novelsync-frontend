@@ -11,6 +11,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { appQueryClient } from "./lib/queryClient";
 import { AuthBootstrap } from "./components/AppBootstrap/AuthBootstrap";
+import { RouteError } from "./components/common/RouteError";
 
 const Root = lazy(() => import("./routes/root"));
 const Signin = lazy(() => import("./routes/Auth/sign-in"));
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <NavbarWrapper />,
+    errorElement: <RouteError />,
     children: [
       {
         path: "/",

@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, AlertCircle, RotateCw } from "lucide-react";
 import { Chapter, Highlight, RenderMark } from "@/types/IReader";
 import { READER_THEMES } from "../../constants/readerThemes";
+import { READ_ALOUD_ENABLED } from "@/config/featureFlags";
+import { useReadAloud } from "@/hooks/useReadAloud";
 import { useReaderSettings } from "../../hooks/useReaderSettings";
 import { useWordLookup } from "../../hooks/useWordLookup";
 import { useSearch } from "../../hooks/useSearch";
@@ -15,6 +17,7 @@ import { ReaderTopBar } from "./ReaderTopBar";
 import { ReaderBottomBar } from "./ReaderBottomBar";
 import { ReaderContent } from "./ReaderContent";
 import { ReaderSettingsPanel } from "./ReaderSettingsPanel";
+import { ReadAloudPanel } from "./ReadAloudPanel";
 import { ReaderSearchPanel } from "./ReaderSearchPanel";
 import { WordDefinitionPopup } from "./WordDefinitionPopup";
 import { HighlightMenu } from "./HighlightMenu";
@@ -59,6 +62,14 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
 
   // Parsed-once chapter model (text + offsets), shared by search & highlights.
   const model = useChapterModel(currentChapter.content);
+
+  // Read aloud (client-side Kokoro TTS)
+  const [showReadAloud, setShowReadAloud] = useState(false);
+  const readAloud = useReadAloud({
+    text: model.plainText,
+    voice: settings.ttsVoice,
+    speed: settings.ttsSpeed,
+  });
 
   // Search
   const {
@@ -202,7 +213,38 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
         onBack={onBackToDetails}
         onSearchToggle={handleSearchToggle}
         onSettingsToggle={handleSettingsToggle}
+        onReadAloudToggle={
+          READ_ALOUD_ENABLED ? () => setShowReadAloud(!showReadAloud) : undefined
+        }
+        readAloudActive={
+          readAloud.status !== "idle" && readAloud.status !== "error"
+        }
       />
+
+      {/* Read Aloud Panel */}
+      {READ_ALOUD_ENABLED && showReadAloud && (
+        <ReadAloudPanel
+          status={readAloud.status}
+          loadProgress={readAloud.loadProgress}
+          device={readAloud.device}
+          voice={settings.ttsVoice}
+          speed={settings.ttsSpeed}
+          onVoiceChange={(ttsVoice) => updateSettings({ ttsVoice })}
+          onSpeedChange={(ttsSpeed) => updateSettings({ ttsSpeed })}
+          onPlayPause={() => {
+            if (
+              readAloud.status === "playing" ||
+              readAloud.status === "buffering"
+            ) {
+              readAloud.pause();
+            } else {
+              void readAloud.play();
+            }
+          }}
+          onStop={readAloud.stop}
+          onClose={() => setShowReadAloud(false)}
+        />
+      )}
 
       {/* Settings Panel */}
       {showSettings && (

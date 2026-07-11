@@ -38,6 +38,8 @@ export const DEFAULT_READER_SETTINGS = {
   lineHeight: 1.8,
   theme: "light" as const,
   textAlign: "justify" as const,
+  ttsVoice: "af_heart" as const,
+  ttsSpeed: 1.0,
 };
 
 export const HIGHLIGHT_COLORS = {

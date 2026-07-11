@@ -17,12 +17,25 @@ export interface Highlight {
   createdAt: Date;
 }
 
+export type TtsVoiceId =
+  | "af_heart"
+  | "af_bella"
+  | "af_nicole"
+  | "af_sarah"
+  | "am_michael"
+  | "am_puck"
+  | "am_fenrir"
+  | "am_eric";
+
 export interface ReaderSettings {
   fontSize: number;
   fontFamily: "serif" | "sans" | "mono" | "palatino" | "bookerly";
   lineHeight: number;
   theme: "light" | "dark" | "sepia";
   textAlign: "left" | "justify";
+  ttsVoice: TtsVoiceId;
+  /** Speaking speed multiplier (0.5–2.0). */
+  ttsSpeed: number;
 }
 
 export interface WordDefinition {
