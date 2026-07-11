@@ -142,8 +142,11 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
 
     return (
       <div
-        className="mt-1.5"
-        style={depth > 0 ? { marginLeft: `${depth * 0.875}rem` } : undefined}
+        className={
+          depth > 0
+            ? "mt-1.5 pl-3 border-l border-ns-border"
+            : "mt-1.5"
+        }
       >
         <div className="flex items-start gap-1.5">
           {/* Collapse toggle */}
@@ -164,7 +167,7 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
           )}
 
           <div className="flex-1 min-w-0">
-            <div className="px-3 py-2 rounded-ns bg-ns-surface border border-ns-border">
+            <div className="py-1">
               {error && (
                 <p className="mb-1 text-[10px] font-ui text-ns-destructive">
                   {error}
@@ -217,7 +220,7 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
                       </div>
                     </div>
                   ) : (
-                    <p className="font-body text-xs text-ns-ink leading-relaxed whitespace-pre-wrap">
+                    <p className="font-body text-xs text-ns-ink leading-relaxed whitespace-pre-wrap break-words">
                       {comment.content}
                     </p>
                   )}
@@ -271,6 +274,12 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
                       <textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleReply();
+                          }
+                        }}
                         placeholder="Write a reply…"
                         rows={2}
                         disabled={isLoading}

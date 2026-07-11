@@ -33,21 +33,21 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
   const buttonSize = size === "sm" ? "sm" : "default";
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       {/* Upvote Button */}
       <Button
         variant="ghost"
         size={buttonSize}
         onClick={() => handleVote("up")}
         disabled={disabled || isLoading}
-        className={`flex items-center gap-1 px-2 ${
+        className={`flex items-center gap-1 px-2 rounded-full ${
           userVote === "up"
-            ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-            : "text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+            ? "text-ns-accent bg-ns-accent-subtle hover:bg-ns-accent-subtle"
+            : "text-ns-ink-muted hover:text-ns-accent hover:bg-ns-surface-hover"
         }`}
       >
         <ChevronUp size={iconSize} />
-        <span className="text-xs font-medium">{upvoteCount}</span>
+        <span className="text-xs font-medium tabular-nums">{upvoteCount}</span>
       </Button>
 
       {/* Downvote Button */}
@@ -56,14 +56,14 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
         size={buttonSize}
         onClick={() => handleVote("down")}
         disabled={disabled || isLoading}
-        className={`flex items-center gap-1 px-2 ${
+        className={`flex items-center gap-1 px-2 rounded-full ${
           userVote === "down"
-            ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
-            : "text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+            ? "text-ns-destructive bg-ns-destructive/10 hover:bg-ns-destructive/10"
+            : "text-ns-ink-muted hover:text-ns-destructive hover:bg-ns-surface-hover"
         }`}
       >
         <ChevronDown size={iconSize} />
-        <span className="text-xs font-medium">{downvoteCount}</span>
+        <span className="text-xs font-medium tabular-nums">{downvoteCount}</span>
       </Button>
     </div>
   );

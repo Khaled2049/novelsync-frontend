@@ -5,6 +5,7 @@ import { IUser } from "@/types/IUser";
 import { postCommentService } from "@/services/PostCommentService";
 import { voteService } from "@/services/VoteService";
 import { PostComment } from "./PostComment";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 interface PostCommentSectionProps {
   postId: string;
@@ -24,6 +25,8 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeletingComment, setIsDeletingComment] = useState(false);
 
   useEffect(() => {
     loadComments();
@@ -52,6 +55,13 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
       console.error("Error loading comments:", error);
     } finally {
       setIsLoadingComments(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
@@ -123,14 +133,20 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!window.confirm("Are you sure you want to delete this comment?"))
-      return;
+    setPendingDeleteId(commentId);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    setIsDeletingComment(true);
     try {
-      await postCommentService.deleteComment(postId, commentId);
+      await postCommentService.deleteComment(postId, pendingDeleteId);
       await loadComments();
+      setPendingDeleteId(null);
     } catch (error) {
       console.error("Error deleting comment:", error);
-      throw error;
+    } finally {
+      setIsDeletingComment(false);
     }
   };
 
@@ -147,7 +163,7 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
   const topLevelComments = comments.filter((c) => !c.parentId);
 
   return (
-    <div className="mt-4 pt-4 border-t border-ns-border bg-ns-surface/50 rounded-b-ns-lg py-4">
+    <div className="mt-3 pt-3 border-t border-ns-border">
       {onHideComments && (
         <div className="flex justify-end mb-3">
           <button
@@ -175,6 +191,7 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
                 setNewComment(e.target.value);
                 setCommentError(null);
               }}
+              onKeyDown={handleKeyDown}
               placeholder="Write a comment…"
               rows={2}
               disabled={isLoading}
@@ -215,6 +232,21 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
           No comments yet. Be the first!
         </p>
       )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+        title="Delete comment?"
+        description="This comment and all its replies will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete comment"
+        cancelLabel="Keep comment"
+        variant="danger"
+        isLoading={isDeletingComment}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

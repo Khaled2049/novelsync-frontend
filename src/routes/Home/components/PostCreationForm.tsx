@@ -86,7 +86,7 @@ const PostCreationForm: React.FC<PostCreationFormProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-ns-elevated border border-ns-border rounded-ns-lg p-4 mb-5"
+      className="border-b border-ns-border px-2 py-4 mb-1"
     >
       <textarea
         value={content}
@@ -141,27 +141,36 @@ const PostCreationForm: React.FC<PostCreationFormProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-ns-border">
-        <span
-          className={`font-ui text-xs tabular-nums ${isNearLimit ? "text-ns-destructive" : "text-ns-ink-muted"}`}
-        >
-          {remainingChars}
-        </span>
+      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-ns-border">
+        <div className="flex items-center gap-3 ml-auto">
+          <span
+            className={`font-ui text-xs tabular-nums ${
+              isOverLimit
+                ? "text-ns-destructive font-semibold"
+                : isNearLimit
+                  ? "text-ns-destructive"
+                  : "text-ns-ink-muted"
+            }`}
+          >
+            {content.length}/{maxCharacters}
+          </span>
 
-        <button
-          type="submit"
-          disabled={!content.trim() || isBusy || isOverLimit}
-          className="
-            inline-flex items-center gap-1.5 px-4 py-1.5
-            bg-ns-accent text-white rounded-full
-            font-ui text-xs font-medium tracking-wide
-            hover:bg-ns-accent-hover transition-colors duration-200
-            disabled:opacity-40 disabled:cursor-not-allowed
-          "
-        >
-          <Send size={12} />
-          {buttonLabel}
-        </button>
+          <button
+            type="submit"
+            disabled={!content.trim() || isBusy || isOverLimit}
+            className="
+              inline-flex items-center gap-1.5 px-5 py-2
+              bg-ns-accent text-white rounded-full
+              font-ui text-sm font-semibold tracking-wide
+              shadow-ns-sm hover:bg-ns-accent-hover hover:shadow-ns
+              transition-all duration-200
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+            "
+          >
+            <Send size={14} />
+            {buttonLabel}
+          </button>
+        </div>
       </div>
     </form>
   );

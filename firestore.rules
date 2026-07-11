@@ -22,6 +22,15 @@ service cloud.firestore {
         : 0;
     }
 
+    // True if the requester owns the parent post. Used so a post author can
+    // cascade-delete the post's child docs (comments/votes/reports) created by
+    // other users — the deletePost() batch in PostService relies on this.
+    function isPostAuthor(postId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/posts/$(postId))
+        && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid;
+    }
+
     // Invites collection for invite-only signup
     match /invites/{email} {
       // enforce linkSentCount == 0 on create — prevent injecting a pre-incremented counter.
@@ -81,18 +90,21 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
 
       match /reports/{reportId} {
-        allow read: if request.auth != null && reportId == request.auth.uid;
+        // get is per-doc (own report or post author); list can't reference reportId,
+        // so it's restricted to the post author (needed for the deletePost cascade).
+        allow get: if request.auth != null && (reportId == request.auth.uid || isPostAuthor(postId));
+        allow list: if isPostAuthor(postId);
         allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
         // Reports immutable after create
         allow update: if false;
-        allow delete: if request.auth != null && reportId == request.auth.uid;
+        allow delete: if request.auth != null && (reportId == request.auth.uid || isPostAuthor(postId));
       }
 
       match /votes/{voteId} {
         allow read: if true;
         allow create: if request.auth != null && voteId == request.auth.uid;
         allow update: if request.auth != null && voteId == request.auth.uid;
-        allow delete: if request.auth != null && voteId == request.auth.uid;
+        allow delete: if request.auth != null && (voteId == request.auth.uid || isPostAuthor(postId));
       }
 
       match /comments/{commentId} {
@@ -109,13 +121,13 @@ service cloud.firestore {
            request.resource.data.downvoteCount >= resource.data.downvoteCount - 1 &&
            request.resource.data.downvoteCount <= resource.data.downvoteCount + 1)
         );
-        allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+        allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isPostAuthor(postId));
 
         match /votes/{voteId} {
           allow read: if true;
           allow create: if request.auth != null && voteId == request.auth.uid;
           allow update: if request.auth != null && voteId == request.auth.uid;
-          allow delete: if request.auth != null && voteId == request.auth.uid;
+          allow delete: if request.auth != null && (voteId == request.auth.uid || isPostAuthor(postId));
         }
       }
     }
@@ -441,8 +453,8 @@ service cloud.firestore {
       match /posts/{postId} {
         allow read: if true;
         allow create: if request.auth != null && userId == request.auth.uid;
-        allow update: if request.auth != null && resource.data.creator == request.auth.uid;
-        allow delete: if request.auth != null && resource.data.creator == request.auth.uid;
+        allow update: if request.auth != null && resource.data.authorId == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
       }
     }
   }

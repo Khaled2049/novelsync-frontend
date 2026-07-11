@@ -7,6 +7,7 @@ import {
   Users,
   MapPin,
   Layers,
+  Plus,
 } from "lucide-react";
 import { Chapter } from "@/types/IStory";
 
@@ -30,6 +31,8 @@ interface SidebarPanelProps {
   storyTitle: string;
   onChapterSelect: (chapter: Chapter) => void;
   onChapterDelete: (chapterId: string) => void;
+  onChapterAdd?: () => void;
+  chapterLimit?: number;
   onStoryTitleChange: (title: string) => void;
   onChapterTitleChange: (title: string) => void;
   onMetadataChange: () => void;
@@ -44,6 +47,8 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   storyTitle,
   onChapterSelect,
   onChapterDelete,
+  onChapterAdd,
+  chapterLimit = 50,
   onStoryTitleChange,
   onChapterTitleChange,
   onMetadataChange,
@@ -137,7 +142,29 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
       <div className="flex-1 overflow-hidden">
         {/* Chapters list */}
         {localTab === "chapters" && (
-          <div className="h-full overflow-y-auto py-3 px-3">
+          <div className="h-full flex flex-col">
+            {/* Chapters header + add button */}
+            {onChapterAdd && (
+              <div className="flex items-center justify-between flex-shrink-0 px-4 pt-3 pb-2">
+                <span className="font-ui text-[10px] font-semibold text-ns-ink-muted uppercase tracking-widest">
+                  {chapters.length} {chapters.length === 1 ? "Chapter" : "Chapters"}
+                </span>
+                <button
+                  onClick={onChapterAdd}
+                  disabled={chapters.length >= chapterLimit}
+                  title={
+                    chapters.length >= chapterLimit
+                      ? `Chapter limit reached (${chapterLimit})`
+                      : "Add chapter"
+                  }
+                  aria-label="Add chapter"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-ns text-ns-ink-muted hover:text-ns-accent hover:bg-ns-accent-subtle active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto pb-3 px-3">
             {chapters.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
                 <div className="w-12 h-12 rounded-full bg-ns-accent-subtle flex items-center justify-center">
@@ -148,6 +175,15 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                   <br />
                   Create your first chapter.
                 </p>
+                {onChapterAdd && (
+                  <button
+                    onClick={onChapterAdd}
+                    className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ns bg-ns-accent text-white font-ui text-xs font-medium hover:bg-ns-accent-hover active:scale-[0.97] transition-all duration-150 shadow-ns-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Chapter
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-0.5">
@@ -203,6 +239,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                 })}
               </div>
             )}
+            </div>
           </div>
         )}
 

@@ -3,8 +3,8 @@ import {
   MessageCircle,
   BookOpen,
   Trash2,
-  ChevronDown,
-  ChevronUp,
+  Flag,
+  MoreHorizontal,
 } from "lucide-react";
 import { IPost } from "@/types/IPost";
 import { IUser } from "@/types/IUser";
@@ -12,9 +12,17 @@ import { Link } from "react-router-dom";
 import PostCommentSection from "./PostCommentSection";
 import VoteButtons from "@/components/community/VoteButtons";
 import ReportButton from "@/components/community/ReportButton";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { voteService } from "@/services/VoteService";
 import { reportService } from "@/services/ReportService";
 import { postsService } from "@/services/PostService";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { toast } from "sonner";
 
 interface PostCardProps {
   post: IPost;
@@ -39,6 +47,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isVoting, setIsVoting] = useState(false);
   const [hasReported, setHasReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   useEffect(() => {
     const checkReported = async () => {
@@ -99,20 +109,15 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleDelete = async () => {
     if (!currentUser || currentUser.uid !== post.authorId) return;
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this post? This action cannot be undone.",
-      )
-    )
-      return;
 
     setIsDeleting(true);
     try {
       await postsService.deletePost(post.id, post.authorId);
       onPostDeleted?.(post.id);
+      toast.success("Post deleted");
     } catch (error) {
       console.error("Error deleting post:", error);
-      alert("Failed to delete post. Please try again.");
+      toast.error("Failed to delete post. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -135,61 +140,92 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   const initials = post.authorName.charAt(0).toUpperCase();
+  const isAuthor = currentUser?.uid === post.authorId;
+
+  const handleRowClick = (e: React.MouseEvent) => {
+    // Ignore clicks on interactive elements or inside the comment section so
+    // votes, menus, links and text selection keep working.
+    if (
+      (e.target as HTMLElement).closest(
+        "a, button, textarea, input, [role='menu'], [data-no-rowclick]",
+      )
+    ) {
+      return;
+    }
+    // Ignore click that is actually a text selection drag.
+    if (window.getSelection()?.toString()) return;
+    setCommentsExpanded(true);
+  };
 
   return (
-    <div className="bg-ns-elevated border border-ns-border rounded-ns-lg p-5 mb-3 shadow-ns-sm hover:shadow-ns transition-shadow duration-200 overflow-hidden">
-      {/* Post Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="w-9 h-9 rounded-full bg-ns-accent flex items-center justify-center text-white font-ui font-semibold text-sm flex-shrink-0">
-            {initials}
-          </div>
-          <div>
-            <div className="font-ui font-semibold text-ns-ink text-sm leading-tight">
-              {post.authorName}
-            </div>
-            <div className="font-ui text-xs text-ns-ink-muted mt-0.5">
-              {formatDate(post.createdAt)}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {post.bookClubId && bookClubName && (
-            <Link
-              to={`/book-clubs/${post.bookClubId}`}
-              className="flex items-center gap-1 text-xs font-ui text-ns-accent hover:text-ns-accent-hover transition-colors no-underline"
-            >
-              <BookOpen size={13} />
-              <span>{bookClubName}</span>
-            </Link>
-          )}
-          {currentUser?.uid === post.authorId && (
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="text-ns-ink-muted hover:text-ns-destructive transition-colors disabled:opacity-40"
-              title="Delete post"
-            >
-              {isDeleting ? (
-                <span className="font-ui text-xs">Deleting…</span>
-              ) : (
-                <Trash2 size={14} />
-              )}
-            </button>
-          )}
-        </div>
+    <article
+      onClick={handleRowClick}
+      className="group flex gap-3 px-2 py-4 border-b border-ns-border hover:bg-ns-surface-hover transition-colors rounded-ns cursor-pointer"
+    >
+      {/* Avatar column */}
+      <div className="w-9 h-9 rounded-full bg-ns-accent flex items-center justify-center text-white font-ui font-semibold text-sm flex-shrink-0">
+        {initials}
       </div>
 
-      {/* Post Content */}
-      <p className="font-body text-ns-ink whitespace-pre-wrap leading-relaxed mb-4 text-[0.9375rem]">
-        {post.content}
-      </p>
+      {/* Content column */}
+      <div className="flex-1 min-w-0">
+        {/* Header: meta + overflow menu */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 font-ui text-sm leading-tight">
+            <span className="font-semibold text-ns-ink truncate">
+              {post.authorName}
+            </span>
+            <span className="text-ns-ink-muted">·</span>
+            <span className="text-ns-ink-muted text-xs">
+              {formatDate(post.createdAt)}
+            </span>
+            {post.bookClubId && bookClubName && (
+              <Link
+                to={`/book-clubs/${post.bookClubId}`}
+                className="flex items-center gap-1 text-xs text-ns-accent hover:text-ns-accent-hover transition-colors no-underline"
+              >
+                <BookOpen size={12} />
+                <span className="truncate max-w-[10rem]">{bookClubName}</span>
+              </Link>
+            )}
+          </div>
 
-      {/* Post Actions */}
-      <div className="flex items-center justify-between border-t border-ns-border pt-3">
-        <div className="flex items-center gap-4">
+          {currentUser && (isAuthor || !hasReported) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="flex-shrink-0 -mr-1 p-1.5 rounded-full text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors focus:outline-none disabled:opacity-40"
+                disabled={isDeleting}
+                aria-label="Post options"
+              >
+                <MoreHorizontal size={18} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {isAuthor ? (
+                  <DropdownMenuItem
+                    onSelect={() => setShowDeleteConfirm(true)}
+                    className="text-ns-destructive focus:text-ns-destructive"
+                  >
+                    <Trash2 size={14} className="mr-2" />
+                    {isDeleting ? "Deleting…" : "Delete post"}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onSelect={() => setShowReportDialog(true)}>
+                    <Flag size={14} className="mr-2" />
+                    Report post
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* Content */}
+        <p className="font-body text-ns-ink whitespace-pre-wrap break-words leading-relaxed mt-1 mb-2 text-[0.95rem]">
+          {post.content}
+        </p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 -ml-2">
           <VoteButtons
             upvoteCount={upvoteCount}
             downvoteCount={downvoteCount}
@@ -201,35 +237,55 @@ const PostCard: React.FC<PostCardProps> = ({
           <button
             type="button"
             onClick={() => setCommentsExpanded((prev) => !prev)}
-            className="flex items-center gap-1.5 font-ui text-xs text-ns-ink-secondary hover:text-ns-ink transition-colors"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-ui text-xs transition-colors ${
+              commentsExpanded
+                ? "text-ns-accent bg-ns-accent-subtle"
+                : "text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover"
+            }`}
             aria-expanded={commentsExpanded}
           >
-            <MessageCircle size={14} />
-            <span>
-              {commentCount} {commentCount === 1 ? "comment" : "comments"}
-            </span>
-            {commentsExpanded ? (
-              <ChevronUp size={14} />
-            ) : (
-              <ChevronDown size={14} />
-            )}
+            <MessageCircle size={15} />
+            <span>{commentCount}</span>
           </button>
         </div>
-        {currentUser && (
-          <ReportButton onReport={handleReport} hasReported={hasReported} />
+
+        {/* Comment Section (expandable) */}
+        {commentsExpanded && (
+          <div data-no-rowclick>
+            <PostCommentSection
+              postId={post.id}
+              currentUser={currentUser}
+              onCommentCountChange={setCommentCount}
+              onHideComments={() => setCommentsExpanded(false)}
+            />
+          </div>
         )}
       </div>
 
-      {/* Comment Section (expandable) */}
-      {commentsExpanded && (
-        <PostCommentSection
-          postId={post.id}
-          currentUser={currentUser}
-          onCommentCountChange={setCommentCount}
-          onHideComments={() => setCommentsExpanded(false)}
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete post?"
+        description="This post and all its comments will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete post"
+        cancelLabel="Keep post"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+      />
+
+      {/* Report dialog (driven from the overflow menu) */}
+      {currentUser && (
+        <ReportButton
+          onReport={handleReport}
+          hasReported={hasReported}
+          showTrigger={false}
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
         />
       )}
-    </div>
+    </article>
   );
 };
 
