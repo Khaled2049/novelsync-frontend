@@ -59,8 +59,12 @@ export async function enqueueDebounced(
       .taskQueue(queueName)
       .enqueue(payload, { id: dedupId, scheduleDelaySeconds: INDEX_DEBOUNCE_SECONDS });
   } catch (err) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code?: string }).code
+        : undefined;
+    if (code === "functions/task-already-exists") return;
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("ALREADY_EXISTS") || msg.includes("409")) return;
     logger.warn("enqueueDebounced failed", { queueName, dedupId, error: msg });
   }
 }

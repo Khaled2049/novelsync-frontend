@@ -20,6 +20,7 @@ export interface AgentResponse {
   success: boolean;
   data?: unknown;
   error?: string;
+  errorCode?: string;
 }
 
 const isLocalDevelopment = process.env.FUNCTIONS_EMULATOR === "true";
@@ -41,7 +42,10 @@ class FetchError extends Error {
 
   constructor(
     message: string,
-    options?: { code?: string; response?: { status: number; statusText: string; data: unknown } }
+    options?: {
+      code?: string;
+      response?: { status: number; statusText: string; data: unknown };
+    },
   ) {
     super(message);
     this.name = "FetchError";
@@ -144,7 +148,7 @@ export async function callAgent(
             statusText: rawResponse.statusText,
             data: responseData,
           },
-        }
+        },
       );
     }
 
@@ -152,7 +156,10 @@ export async function callAgent(
       status: rawResponse.status,
       hasData: !!responseData,
       durationMs: duration,
-      responseKeys: responseData && typeof responseData === "object" ? Object.keys(responseData as object) : [],
+      responseKeys:
+        responseData && typeof responseData === "object"
+          ? Object.keys(responseData as object)
+          : [],
     });
 
     return {
@@ -162,10 +169,17 @@ export async function callAgent(
   } catch (error) {
     if (error instanceof FetchError) {
       const agentError = (error.response?.data as any)?.error;
-      const friendlyMessage = (typeof agentError === "object" && agentError?.message)
-        ? agentError.message
-        : (typeof agentError === "string" ? agentError : null);
+      const friendlyMessage =
+        typeof agentError === "object" && agentError?.message
+          ? agentError.message
+          : typeof agentError === "string"
+            ? agentError
+            : null;
       const errorMessage = friendlyMessage ?? error.message;
+      const errorCode: string | undefined =
+        typeof agentError === "object" && typeof agentError?.code === "string"
+          ? agentError.code
+          : undefined;
 
       const errorDetails = {
         code: error.code,
@@ -208,18 +222,18 @@ export async function callAgent(
 
       return {
         success: false,
-        error: friendlyMessage ?? `${errorMessage}${
-          error.code ? ` (${error.code})` : ""
-        }${
-          error.response?.status
-            ? ` [HTTP ${error.response.status}]`
-            : ""
-        }`,
+        error:
+          friendlyMessage ??
+          `${errorMessage}${error.code ? ` (${error.code})` : ""}${
+            error.response?.status ? ` [HTTP ${error.response.status}]` : ""
+          }`,
+        errorCode,
       };
     }
 
     // Network errors (ECONNREFUSED, ETIMEDOUT, abort, etc.)
-    const networkError = error instanceof Error ? error : new Error(String(error));
+    const networkError =
+      error instanceof Error ? error : new Error(String(error));
     const errorMessage = networkError.message;
 
     if (errorMessage.includes("ECONNREFUSED")) {
@@ -254,6 +268,16 @@ export async function callAgent(
   }
 }
 
+const NON_RETRYABLE_ERROR_CODES = new Set([
+  "INSUFFICIENT_CREDITS",
+  "UNAUTHORIZED",
+  "PROVIDER_NOT_FOUND",
+  "INVALID_REQUEST",
+  "BILLING_ERROR",
+  "VALIDATION_ERROR",
+  "BAD_REQUEST",
+]);
+
 /**
  * Call agent with retry logic.
  */
@@ -267,7 +291,13 @@ export async function callAgentWithRetry(
   firebaseToken?: string,
 ): Promise<AgentResponse> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const result = await callAgent(action, parameters, userId, providerConfig, firebaseToken);
+    const result = await callAgent(
+      action,
+      parameters,
+      userId,
+      providerConfig,
+      firebaseToken,
+    );
 
     // If successful, return immediately
     if (result.success) {
@@ -279,9 +309,7 @@ export async function callAgentWithRetry(
       return result;
     }
 
-    // Don't retry non-transient errors (credits, auth)
-    const errMsg = result.error || "";
-    if (errMsg.includes("Insufficient AI credits") || errMsg.includes("[HTTP 402]") || errMsg.includes("[HTTP 401]")) {
+    if (result.errorCode && NON_RETRYABLE_ERROR_CODES.has(result.errorCode)) {
       return result;
     }
 
