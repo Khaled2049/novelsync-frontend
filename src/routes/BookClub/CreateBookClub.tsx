@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { IClub } from "../../types/IClub";
+import { IBookOfTheMonth, IClub } from "../../types/IClub";
 import { IUser } from "../../types/IUser";
 import { ArrowLeft } from "lucide-react";
-import { IBook } from "../../types/IBook";
-import BookSearch from "../../components/common/BookSearch";
+import { BookPicker } from "../../components/common/BookPicker";
+import { hasBook } from "../../utils/bookMapping";
 
 const CATEGORIES = [
   "Fantasy",
@@ -28,17 +28,9 @@ const CreateBookClub = ({
   onCreate: (newClub: IClub) => void;
   onCancel: () => void;
 }) => {
-  const [bookOfTheMonth, setBookOfTheMonth] = useState<IBook>({
-    id: "",
-    volumeInfo: {
-      title: "",
-      authors: [],
-      description: "",
-      imageLinks: {
-        thumbnail: "",
-      },
-    },
-  });
+  const [bookOfTheMonth, setBookOfTheMonth] = useState<IBookOfTheMonth | null>(
+    null,
+  );
 
   const [newClub, setNewClub] = useState<IClub>({
     id: "",
@@ -49,17 +41,6 @@ const CreateBookClub = ({
     category: "",
     activity: "",
     creatorId: "",
-    bookOfTheMonth: {
-      id: "",
-      volumeInfo: {
-        title: "",
-        authors: [],
-        description: "",
-        imageLinks: {
-          thumbnail: "",
-        },
-      },
-    },
     meetUp: "",
   });
 
@@ -76,33 +57,17 @@ const CreateBookClub = ({
     setNewClub({ ...newClub, category: cat });
   };
 
-  const handleBookSelect = (book: IBook) => {
-    setBookOfTheMonth(book);
-    setNewClub({
-      ...newClub,
-      bookOfTheMonth: book,
-    });
-  };
-
   const handleCreateClub = () => {
-    const clubWithDefaults = {
+    const clubWithDefaults: IClub = {
       ...newClub,
       id: uuidv4(),
       members: [user.uid],
       activity: "New",
       image: "/api/placeholder/400/250",
       creatorId: user.uid,
-      bookOfTheMonth: {
-        id: bookOfTheMonth.id,
-        volumeInfo: {
-          title: bookOfTheMonth.volumeInfo.title,
-          authors: bookOfTheMonth.volumeInfo.authors,
-          description: bookOfTheMonth.volumeInfo.description,
-          imageLinks: {
-            thumbnail: bookOfTheMonth.volumeInfo.imageLinks?.thumbnail || "",
-          },
-        },
-      },
+      // Only persist a book when one was actually chosen — legacy code wrote
+      // an all-empty-strings placeholder object here.
+      ...(hasBook(bookOfTheMonth) ? { bookOfTheMonth } : {}),
       meetUp: newClub.meetUp,
     };
     onCreate(clubWithDefaults);
@@ -115,7 +80,7 @@ const CreateBookClub = ({
     "w-full bg-transparent border-0 border-b border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 pb-2.5 focus:outline-none focus:border-dark-green dark:focus:border-light-green transition-colors duration-200 placeholder:text-neutral-300 dark:placeholder:text-neutral-700";
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 px-5 py-10 md:px-10">
+    <div className="min-h-screen bg-ns-bg px-5 py-10 md:px-10">
       {/* Back */}
       <button
         onClick={onCancel}
@@ -209,31 +174,13 @@ const CreateBookClub = ({
           <div>
             <label className={fieldLabelClass}>Opening Read</label>
             <p className="font-body text-sm text-neutral-400 dark:text-neutral-600 mb-5">
-              Choose the first book your club will read together.
+              Choose the first book your club will read together — a story
+              published on NovelSync, or anything from Google Books.
             </p>
-            <BookSearch onBookSelect={handleBookSelect} />
-
-            {bookOfTheMonth.volumeInfo.title && (
-              <div className="mt-6 flex items-start gap-4 border-l-2 border-dark-green dark:border-light-green pl-4">
-                {bookOfTheMonth.volumeInfo.imageLinks?.thumbnail && (
-                  <img
-                    src={bookOfTheMonth.volumeInfo.imageLinks.thumbnail}
-                    alt={bookOfTheMonth.volumeInfo.title}
-                    className="w-11 h-16 object-cover shadow-md shrink-0"
-                  />
-                )}
-                <div>
-                  <p className="font-heading italic text-lg text-neutral-900 dark:text-white leading-snug">
-                    {bookOfTheMonth.volumeInfo.title}
-                  </p>
-                  {bookOfTheMonth.volumeInfo.authors && (
-                    <p className="font-ui text-[11px] tracking-wide text-neutral-500 dark:text-neutral-500 mt-1">
-                      by {bookOfTheMonth.volumeInfo.authors.join(", ")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            <BookPicker
+              onSelect={setBookOfTheMonth}
+              selected={bookOfTheMonth}
+            />
           </div>
         </div>
 
@@ -242,7 +189,7 @@ const CreateBookClub = ({
           <button
             onClick={handleCreateClub}
             disabled={!newClub.name.trim()}
-            className="font-ui text-[12px] font-bold tracking-[0.14em] uppercase px-8 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-dark-green dark:hover:bg-light-green transition-colors duration-200"
+            className="font-ui text-[12px] font-bold tracking-[0.14em] uppercase px-8 py-3.5 bg-ns-accent text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ns-accent-hover transition-colors duration-200"
           >
             Found This Club
           </button>

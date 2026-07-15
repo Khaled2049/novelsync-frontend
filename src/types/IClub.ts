@@ -40,7 +40,8 @@ export interface IDiscussionPrompt {
   createdAt: string; // ISO date string
   creatorId: string;
   responses?: IPromptResponse[];
-  unlockedFor?: string[]; // Array of user IDs who have unlocked this
+  /** @deprecated No longer written — spoiler-blur now compares chapterNumber against the viewer's memberProgress. Kept so old docs typecheck. */
+  unlockedFor?: string[];
 }
 
 export interface IPromptResponse {
@@ -101,6 +102,12 @@ export interface IComment {
 
 export interface IBookOfTheMonth {
   id: string;
+  /** Where the book comes from. Legacy docs have no value — treat as "google". */
+  source?: "google" | "novelsync";
+  /** Set when source === "novelsync"; links to /story/:storyId */
+  storyId?: string;
+  /** Chapter count snapshot (from Story.chapterCount) used to prefill schedules */
+  totalChapters?: number;
   volumeInfo: {
     title: string;
     authors?: string[];

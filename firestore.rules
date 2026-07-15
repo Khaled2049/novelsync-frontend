@@ -293,7 +293,20 @@ service cloud.firestore {
           (clubMembers(request.resource.data).size() == clubMembers(resource.data).size() - 1 &&
            clubMembers(resource.data).hasAll(clubMembers(request.resource.data)) &&
            clubMembers(resource.data).hasAny([request.auth.uid]))
-        ))
+        )) ||
+        // discussionPrompts / polls — members may reply to a thread or cast a
+        // vote, both of which rewrite the whole array (client does read+map+write).
+        // New threads/polls are creator-only (gated in the UI), so member writes
+        // must not change the top-level list length. Rules can't cheaply verify
+        // "only my own nested entry changed", so a member could in principle
+        // clobber another member's response/vote in the same write — same trust
+        // level as the /messages subcollection's membership check.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['discussionPrompts']) &&
+         clubMembers(resource.data).hasAny([request.auth.uid]) &&
+         request.resource.data.discussionPrompts.size() == resource.data.discussionPrompts.size()) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['polls']) &&
+         clubMembers(resource.data).hasAny([request.auth.uid]) &&
+         request.resource.data.polls.size() == resource.data.polls.size())
       );
 
       match /messages/{messageId} {

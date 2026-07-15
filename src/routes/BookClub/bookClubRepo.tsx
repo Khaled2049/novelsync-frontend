@@ -1,5 +1,6 @@
 import { firestore } from "@/config/firebase";
 import {
+  IBookOfTheMonth,
   IClub,
   IReadingSchedule,
   IDiscussionPrompt,
@@ -103,6 +104,16 @@ class BookClubRepo {
   updateMeetUp = async (clubId: string, meetUp: string): Promise<void> => {
     const clubRef = doc(firestore, "bookClubs", clubId);
     await updateDoc(clubRef, { meetUp });
+  };
+
+  // Targeted single-key update — avoids the read+full-merge write of
+  // updateBookClub, which can clobber concurrent member joins.
+  updateBookOfTheMonth = async (
+    clubId: string,
+    book: IBookOfTheMonth,
+  ): Promise<void> => {
+    const clubRef = doc(firestore, "bookClubs", clubId);
+    await updateDoc(clubRef, { bookOfTheMonth: book });
   };
 
   deleteBookClub = async (id: string) => {
@@ -266,7 +277,6 @@ class BookClubRepo {
         ...prompt,
         id: `prompt-${Date.now()}`,
         responses: [],
-        unlockedFor: [],
       };
 
       await updateDoc(clubRef, {
@@ -304,40 +314,6 @@ class BookClubRepo {
       });
     } catch (error) {
       console.error("Error updating discussion prompt:", error);
-      throw error;
-    }
-  };
-
-  unlockPromptForUser = async (
-    clubId: string,
-    promptId: string,
-    userId: string,
-  ) => {
-    try {
-      const clubRef = doc(firestore, "bookClubs", clubId);
-      const clubDoc = await getDoc(clubRef);
-
-      if (!clubDoc.exists()) {
-        throw new Error("Club not found");
-      }
-
-      const clubData = clubDoc.data() as IClub;
-      const prompts = clubData.discussionPrompts || [];
-      const updatedPrompts = prompts.map((p) => {
-        if (p.id === promptId) {
-          const unlockedFor = p.unlockedFor || [];
-          if (!unlockedFor.includes(userId)) {
-            return { ...p, unlockedFor: [...unlockedFor, userId] };
-          }
-        }
-        return p;
-      });
-
-      await updateDoc(clubRef, {
-        discussionPrompts: updatedPrompts,
-      });
-    } catch (error) {
-      console.error("Error unlocking prompt:", error);
       throw error;
     }
   };
@@ -474,6 +450,30 @@ class BookClubRepo {
       });
     } catch (error) {
       console.error("Error voting on poll:", error);
+      throw error;
+    }
+  };
+
+  closePoll = async (clubId: string, pollId: string) => {
+    try {
+      const clubRef = doc(firestore, "bookClubs", clubId);
+      const clubDoc = await getDoc(clubRef);
+
+      if (!clubDoc.exists()) {
+        throw new Error("Club not found");
+      }
+
+      const clubData = clubDoc.data() as IClub;
+      const polls = clubData.polls || [];
+      const updatedPolls = polls.map((p) =>
+        p.id === pollId ? { ...p, isActive: false } : p,
+      );
+
+      await updateDoc(clubRef, {
+        polls: updatedPolls,
+      });
+    } catch (error) {
+      console.error("Error closing poll:", error);
       throw error;
     }
   };
