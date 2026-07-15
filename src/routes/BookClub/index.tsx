@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Search } from "lucide-react";
 import BookClubCard from "./BookClubCard";
 import { IClub } from "../../types/IClub";
 import CreateBookClub from "./CreateBookClub";
@@ -30,6 +30,22 @@ const BookClubs = () => {
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [selectedClub, setSelectedClub] = useState<IClub | null>(null);
   const [clubToDelete, setClubToDelete] = useState<IClub | null>(null);
+  const [notCreatorDeleteAttempt, setNotCreatorDeleteAttempt] =
+    useState<IClub | null>(null);
+  const [notCreatorUpdateAttempt, setNotCreatorUpdateAttempt] =
+    useState<IClub | null>(null);
+  const [loginRequiredForJoin, setLoginRequiredForJoin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredClubs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return bookClubs;
+    return bookClubs.filter((club) =>
+      [club.name, club.description, club.category].some((field) =>
+        field?.toLowerCase().includes(q),
+      ),
+    );
+  }, [bookClubs, searchQuery]);
 
   const handleCreateClub = async (newClub: IClub) => {
     if (user) {
@@ -60,7 +76,7 @@ const BookClubs = () => {
       setSelectedClub(club);
       setShowUpdateForm(true);
     } else {
-      alert("You can only update clubs you created.");
+      setNotCreatorUpdateAttempt(club);
     }
   };
 
@@ -79,7 +95,7 @@ const BookClubs = () => {
         console.error("Failed to join club:", error);
       }
     } else {
-      alert("You must be logged in to join a club.");
+      setLoginRequiredForJoin(true);
     }
   };
 
@@ -87,7 +103,7 @@ const BookClubs = () => {
     if (club.creatorId === user?.uid) {
       setClubToDelete(club);
     } else {
-      alert("You can only delete clubs you created.");
+      setNotCreatorDeleteAttempt(club);
     }
   };
 
@@ -156,6 +172,38 @@ const BookClubs = () => {
         onConfirm={confirmDeleteClub}
       />
 
+      <ConfirmDialog
+        open={!!notCreatorDeleteAttempt}
+        onOpenChange={(open) => !open && setNotCreatorDeleteAttempt(null)}
+        title="Can't Delete This Club"
+        description={`Only the creator of "${notCreatorDeleteAttempt?.name}" can delete it.`}
+        confirmLabel="Got It"
+        variant="danger"
+        hideCancel
+        onConfirm={() => setNotCreatorDeleteAttempt(null)}
+      />
+
+      <ConfirmDialog
+        open={!!notCreatorUpdateAttempt}
+        onOpenChange={(open) => !open && setNotCreatorUpdateAttempt(null)}
+        title="Can't Edit This Club"
+        description={`Only the creator of "${notCreatorUpdateAttempt?.name}" can edit it.`}
+        confirmLabel="Got It"
+        variant="danger"
+        hideCancel
+        onConfirm={() => setNotCreatorUpdateAttempt(null)}
+      />
+
+      <ConfirmDialog
+        open={loginRequiredForJoin}
+        onOpenChange={(open) => !open && setLoginRequiredForJoin(false)}
+        title="Sign In Required"
+        description="You must be logged in to join a club."
+        confirmLabel="Got It"
+        hideCancel
+        onConfirm={() => setLoginRequiredForJoin(false)}
+      />
+
       <SEOHead
         title={`Book Clubs - ${APP_NAME}`}
         description={`Join reading communities and book clubs on ${APP_NAME}. Read together, discuss stories, and connect with fellow readers.`}
@@ -171,22 +219,20 @@ const BookClubs = () => {
       <div className="max-w-4xl mx-auto px-5 md:px-10 py-12 md:py-16">
         {/* Masthead */}
         <header className="mb-2">
-          <div className="flex items-start justify-between gap-6">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+            <div className="min-w-0 sm:flex-1">
               <p className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-dark-green dark:text-light-green mb-4">
                 Novelsync — Reading Circles
               </p>
-              <h1 className="font-heading text-[3rem] md:text-[4.5rem] font-light italic leading-[1.05] text-neutral-900 dark:text-white">
-                Find Your
-                <br />
-                Reading Tribe.
+              <h1 className="font-heading text-[clamp(1.75rem,7vw,4.5rem)] font-light italic leading-[1.05] whitespace-nowrap text-neutral-900 dark:text-white">
+                Find Your Reading Tribe.
               </h1>
             </div>
 
             {user && (
               <button
                 onClick={handleShowCreateForm}
-                className="group shrink-0 mt-2 flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-900 dark:text-white hover:text-dark-green dark:hover:text-light-green transition-colors duration-200"
+                className="group shrink-0 sm:mt-2 flex items-center gap-2 font-ui text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-900 dark:text-white hover:text-dark-green dark:hover:text-light-green transition-colors duration-200"
               >
                 <span>Start a Club</span>
                 <ArrowUpRight
@@ -201,19 +247,34 @@ const BookClubs = () => {
             Browse active communities, meet fellow readers, and discover books
             worth talking about.
           </p>
+
+          <div className="mt-8 relative max-w-md">
+            <Search
+              size={16}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-600"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search clubs by name, category, or description…"
+              className="w-full pl-7 pb-3 bg-transparent border-b border-neutral-300 dark:border-neutral-700 font-body text-base text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:border-neutral-900 dark:focus:border-white transition-colors"
+            />
+          </div>
         </header>
 
         {/* Thin rule */}
         <div className="mt-10 mb-0 border-t border-neutral-900 dark:border-neutral-100 opacity-100" />
 
         {/* Club list */}
-        {bookClubs.length > 0 ? (
+        {filteredClubs.length > 0 ? (
           <div>
-            {bookClubs.map((club: IClub, index) => (
+            {filteredClubs.map((club: IClub, index) => (
               <BookClubCard
                 key={club.id}
                 index={index}
                 joined={user ? club.members.includes(user.uid) : false}
+                isCreator={user ? club.creatorId === user.uid : false}
                 club={club}
                 onEdit={() => handleShowUpdateForm(club)}
                 onDelete={() => handleDeleteClub(club)}
@@ -221,6 +282,15 @@ const BookClubs = () => {
                 onLeave={() => handleLeaveClub(club.id)}
               />
             ))}
+          </div>
+        ) : searchQuery ? (
+          <div className="py-28 text-center">
+            <p className="font-heading italic text-3xl text-neutral-300 dark:text-neutral-700 mb-6">
+              No matches.
+            </p>
+            <p className="font-body text-sm text-neutral-400 dark:text-neutral-600">
+              No clubs match “{searchQuery}”. Try a different search.
+            </p>
           </div>
         ) : (
           <div className="py-28 text-center">

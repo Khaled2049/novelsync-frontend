@@ -282,7 +282,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
         )}
         <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
           <div className="flex-1 relative">
-            <input
+            <Input
               type="text"
               value={newMessage}
               onChange={(e) => {
@@ -291,30 +291,30 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
               }}
               placeholder="Type your message..."
               maxLength={maxMessageLength}
-              className="w-full p-3 sm:p-4 border border-ns-border rounded-ns-lg bg-ns-surface text-ns-ink placeholder-ns-ink-muted focus:outline-none focus:ring-2 focus:ring-ns-accent focus:border-transparent transition-all duration-200"
+              className="pr-14"
             />
-            <div className="absolute right-2 bottom-1 text-xs text-ns-ink-muted">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-ui text-[10px] text-ns-ink-muted pointer-events-none">
               {newMessage.length}/{maxMessageLength}
-            </div>
+            </span>
           </div>
           <button
             type="button"
             onClick={() => setIsSpoilerDialogOpen(true)}
-            className="px-3 sm:px-4 py-3 sm:py-4 border border-ns-accent/30 rounded-ns-lg bg-ns-accent/10 text-ns-accent hover:bg-ns-accent/20 transition-colors"
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-ns border border-ns-accent/30 bg-ns-accent/10 text-ns-accent hover:bg-ns-accent/20 transition-colors"
             title="Add spoiler"
           >
-            <AlertTriangle size={18} />
+            <AlertTriangle size={16} />
           </button>
-          <button
+          <Button
             type="submit"
             disabled={
               !newMessage.trim() || newMessage.length > maxMessageLength
             }
-            className="bg-ns-gradient hover:opacity-90 disabled:bg-none disabled:bg-ns-surface-hover text-white px-4 sm:px-6 py-3 sm:py-4 rounded-ns-lg font-medium transition-all duration-200 shadow-ns-lg hover:shadow-ns-xl disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
+            className="gap-2"
           >
             <span className="hidden sm:inline">Send</span>
-            <Send size={18} />
-          </button>
+            <Send size={16} />
+          </Button>
         </form>
       </div>
 

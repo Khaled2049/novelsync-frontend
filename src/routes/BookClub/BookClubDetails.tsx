@@ -1,53 +1,74 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
-import {
-  Book,
-  Calendar,
-  MessageCircle,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  User,
-  ChevronLeft,
-  ChevronRight,
-  Crown,
-  Edit,
-  Save,
-  X,
-} from "lucide-react";
+import { useParams, Link } from "react-router-dom";
+import { ChevronDown, ChevronUp, Crown } from "lucide-react";
 import { bookClubRepo } from "./bookClubRepo";
 import { useAuthContext } from "@/contexts/AuthContext";
 import BookClubChat from "./BookClubChat";
-import ReadingScheduleSection from "./components/ReadingScheduleSection";
-import DiscussionPromptsSection from "./components/DiscussionPromptsSection";
-import PollsSection from "./components/PollsSection";
-import ReadingProgressTracker from "./components/ReadingProgressTracker";
+import ReadingPaceSection from "./components/ReadingPaceSection";
+import DiscussionSection from "./components/DiscussionSection";
+import NextBookSection from "./components/NextBookSection";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { getAbsoluteUrl, APP_NAME } from "@/config/seo";
 import { useBookClub } from "@/hooks/queries/useBookClubQueries";
 import { publicProfileService } from "@/services/PublicProfileService";
+import { BookPickerDialog } from "@/components/common/BookPicker";
+import { hasBook } from "@/utils/bookMapping";
+import { IReadingProgress } from "@/types/IClub";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface MemberInfo {
   id: string;
   username: string;
 }
 
+const Ornament = () => (
+  <div className="flex items-center justify-center gap-3 py-2" aria-hidden="true">
+    <span className="w-10 h-px bg-ns-border" />
+    <span className="text-ns-ink-muted text-xs">✦</span>
+    <span className="w-10 h-px bg-ns-border" />
+  </div>
+);
+
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <section className="border-t border-ns-border py-10 sm:py-12">
+    <div className="min-w-0">
+      <h2 className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-ns-ink-muted mb-5">
+        {title}
+      </h2>
+      {children}
+    </div>
+  </section>
+);
+
 const BookClubDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user, loading } = useAuthContext();
   const { data: clubData, isPending: isLoading } = useBookClub(id);
   const club = clubData ?? undefined;
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+
   const [members, setMembers] = useState<MemberInfo[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [userCurrentChapter, setUserCurrentChapter] = useState<number>(0);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
   const previousMemberIdsRef = useRef<string>("");
+  const [progressList, setProgressList] = useState<IReadingProgress[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isEditingMeetup, setIsEditingMeetup] = useState(false);
   const [meetupDraft, setMeetupDraft] = useState("");
   const [isSavingMeetup, setIsSavingMeetup] = useState(false);
   const [isUpdatingMembership, setIsUpdatingMembership] = useState(false);
-
+  const [isChangingBook, setIsChangingBook] = useState(false);
 
   // Fetch usernames for member IDs
   useEffect(() => {
@@ -66,53 +87,48 @@ const BookClubDetails: React.FC = () => {
       if (memberIdsString === previousMemberIdsRef.current) return;
       previousMemberIdsRef.current = memberIdsString;
 
-      if (isMounted) setLoadingMembers(true);
       try {
-        const profileMap = await publicProfileService.getPublicProfiles(club.members);
+        const profileMap = await publicProfileService.getPublicProfiles(
+          club.members,
+        );
         const memberInfos = club.members.map((memberId) => {
           const profile = profileMap.get(memberId);
           return {
             id: memberId,
-            username: profile?.username || profile?.displayName || "Unknown User",
+            username:
+              profile?.username || profile?.displayName || "Unknown User",
           };
         });
         if (isMounted) setMembers(memberInfos);
       } catch {
         console.error("Error fetching member usernames");
-      } finally {
-        if (isMounted) setLoadingMembers(false);
       }
     };
 
     fetchMemberUsernames();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [club?.members?.length, club?.members]);
 
-  // Fetch user's reading progress
+  // One realtime source for every member's reading progress.
+  // Firestore rules require auth to read memberProgress, so skip when signed out.
   useEffect(() => {
-    const fetchUserProgress = async () => {
-      if (!id || !user) {
-        setUserCurrentChapter(0);
-        return;
-      }
+    if (!id || !user) {
+      setProgressList([]);
+      return;
+    }
+    const unsubscribe = bookClubRepo.getAllMemberProgress(id, setProgressList);
+    return unsubscribe;
+  }, [id, user]);
 
-      try {
-        const progress = await bookClubRepo.getMemberProgress(id, user.uid);
-        if (progress) {
-          setUserCurrentChapter(progress.currentChapter);
-        } else {
-          setUserCurrentChapter(0);
-        }
-      } catch (error) {
-        console.error("Error fetching user progress:", error);
-      }
-    };
-
-    fetchUserProgress();
-  }, [id, user, club?.id]); // Update when club changes
+  const userCurrentChapter = user
+    ? (progressList.find((p) => p.userId === user.uid)?.currentChapter ?? 0)
+    : 0;
 
   const isCreator = user ? club?.creatorId === user.uid : false;
-  const isMember = user ? club?.members?.includes(user.uid) : false;
+  const isMember = user ? (club?.members?.includes(user.uid) ?? false) : false;
+  const membersById = new Map(members.map((m) => [m.id, m.username]));
 
   const handleMembershipToggle = async () => {
     if (!club || !user || isUpdatingMembership) return;
@@ -132,12 +148,10 @@ const BookClubDetails: React.FC = () => {
 
   if (loading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
+      <div className="min-h-screen flex items-center justify-center bg-ns-bg">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-dark-green dark:border-light-green border-t-transparent animate-spin mx-auto mb-4"></div>
-          <h1 className="text-2xl font-serif text-neutral-900 dark:text-white">
-            Loading...
-          </h1>
+          <div className="w-10 h-10 border-2 border-ns-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="font-heading italic text-xl text-ns-ink">Loading…</p>
         </div>
       </div>
     );
@@ -145,15 +159,16 @@ const BookClubDetails: React.FC = () => {
 
   if (!club) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-        <div className="text-center">
-          <h1 className="text-3xl font-serif text-neutral-900 dark:text-white">
-            Club not found
-          </h1>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-ns-bg">
+        <h1 className="font-heading italic text-3xl text-ns-ink">
+          Club not found
+        </h1>
       </div>
     );
   }
+
+  const book = hasBook(club.bookOfTheMonth) ? club.bookOfTheMonth : null;
+  const memberCount = club.members?.length || 0;
 
   return (
     <>
@@ -180,363 +195,340 @@ const BookClubDetails: React.FC = () => {
           },
         }}
       />
-      <div className="flex w-full h-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
-        {/* Mobile Overlay */}
-        {isSidebarExpanded && (
-          <div
-            className="md:hidden fixed inset-0 bg-black/50 z-20 transition-opacity duration-300"
-            onClick={() => setIsSidebarExpanded(false)}
-            aria-hidden="true"
-          />
-        )}
 
-        {/* Sidebar — mobile: fixed drawer (translate only, always in DOM); desktop: relative push */}
-        <aside
-          className={`
-            w-72 fixed md:relative h-full shrink-0
-            border-r border-neutral-200 dark:border-neutral-800
-            bg-white dark:bg-neutral-900 z-30 md:z-auto
-            transition-all duration-300 ease-in-out overflow-hidden
-            ${isSidebarExpanded
-              ? "translate-x-0 md:w-72"
-              : "-translate-x-full md:translate-x-0 md:w-0 md:border-r-0"
-            }
-          `}
-        >
-          <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-            <h2 className="text-base md:text-lg font-ui font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <Users
-                className="text-dark-green dark:text-light-green w-4 h-4 md:w-5 md:h-5"
-                size={16}
-              />
-              {isSidebarExpanded && (
-                <>
-                  <span>Members</span>
-                  <span className="text-xs font-normal text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
-                    {club.members?.length || 0}
-                  </span>
-                </>
-              )}
-            </h2>
-            {/* Desktop Toggle Button */}
-            <button
-              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-              className="hidden md:flex p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
-              aria-label="Toggle sidebar"
-            >
-              {isSidebarExpanded ? (
-                <ChevronLeft
-                  size={20}
-                  className="text-neutral-600 dark:text-neutral-400"
-                />
-              ) : (
-                <ChevronRight
-                  size={20}
-                  className="text-neutral-600 dark:text-neutral-400"
-                />
-              )}
-            </button>
-          </div>
+      <div className="min-h-full bg-ns-bg text-ns-ink transition-colors duration-300">
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 pb-24">
+          {/* Masthead */}
+          <header className="pt-14 sm:pt-20 pb-10">
+            <p className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-ns-accent mb-4">
+              Book Club
+              {club.category && ` · ${club.category}`}
+            </p>
+            <h1 className="font-heading font-light italic text-4xl sm:text-6xl leading-[1.02] tracking-tight mb-5">
+              {club.name}
+            </h1>
+            {club.description && (
+              <p className="font-body text-base text-ns-ink-secondary leading-relaxed max-w-2xl mb-7">
+                {club.description}
+              </p>
+            )}
 
-          {isSidebarExpanded && (
-            <div className="flex-1 p-3 sm:p-4 space-y-2 sm:space-y-3 overflow-y-auto max-h-[calc(100vh-120px)]">
-              {loadingMembers ? (
-                <div className="flex flex-col items-center justify-center h-32 sm:h-40 text-neutral-400 dark:text-neutral-500">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-dark-green dark:border-light-green border-t-transparent animate-spin rounded-full mb-2"></div>
-                  <p className="text-xs sm:text-sm">Loading members...</p>
-                </div>
-              ) : members && members.length > 0 ? (
-                members.map((member) => {
-                  const isAdmin = member.id === club.creatorId;
-                  return (
-                    <div
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setIsMembersOpen(true)}
+                className="flex items-center gap-2.5 group"
+              >
+                <span className="flex items-center">
+                  {members.slice(0, 5).map((member) => (
+                    <span
                       key={member.id}
-                      className="group flex items-center gap-3 p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all duration-200 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ns-surface border border-ns-border font-ui text-[11px] font-semibold text-ns-ink-secondary -ml-2 first:ml-0"
+                      title={member.username}
                     >
-                      {/* Avatar */}
-                      <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 font-semibold text-sm rounded-full shrink-0 relative">
-                        {member.username.charAt(0).toUpperCase()}
-                        {isAdmin && (
-                          <div className="absolute -top-1 -right-1 bg-dark-green dark:bg-light-green rounded-full p-0.5">
-                            <Crown size={9} className="text-white" />
-                          </div>
-                        )}
-                      </div>
+                      {member.username.charAt(0).toUpperCase()}
+                    </span>
+                  ))}
+                </span>
+                <span className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-ns-ink-muted group-hover:text-ns-accent transition-colors">
+                  {memberCount} reader{memberCount !== 1 ? "s" : ""}
+                </span>
+              </button>
 
-                      {/* Name */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-neutral-900 dark:text-white truncate group-hover:text-dark-green dark:group-hover:text-light-green transition-colors">
-                            {member.username}
-                          </p>
-                          {isAdmin && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-dark-green/10 dark:bg-light-green/10 text-dark-green dark:text-light-green border border-dark-green/20 dark:border-light-green/20 shrink-0">
-                              <Crown size={8} />
-                              Admin
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                          {isAdmin ? "Creator" : "Member"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex flex-col items-center justify-center h-32 sm:h-40 text-neutral-400 dark:text-neutral-500">
-                  <User size={32} className="sm:w-12 sm:h-12 mb-2 opacity-20" />
-                  <p className="text-sm sm:text-base italic">No members yet</p>
-                </div>
-              )}
-
-              {/* Reading Progress Tracker */}
-              {club && (
-                <ReadingProgressTracker
-                  clubId={club.id}
-                  members={members}
-                  currentUserChapter={userCurrentChapter}
-                />
+              {user && !isCreator && (
+                <button
+                  type="button"
+                  onClick={handleMembershipToggle}
+                  disabled={isUpdatingMembership}
+                  className={`font-ui text-[11px] font-semibold tracking-[0.12em] uppercase px-4 py-1.5 rounded-full border transition-colors duration-200 disabled:opacity-50 ${
+                    isMember
+                      ? "text-ns-ink-secondary border-ns-border hover:text-ns-accent hover:border-ns-accent"
+                      : "text-ns-ink border-ns-ink hover:bg-ns-ink hover:text-ns-bg"
+                  }`}
+                >
+                  {isUpdatingMembership
+                    ? "Working…"
+                    : isMember
+                      ? "Leave"
+                      : "Join"}
+                </button>
               )}
             </div>
-          )}
-        </aside>
+          </header>
 
-        {/* Sidebar Expand Button (when collapsed) */}
-        {/* Desktop: expand button when sidebar collapsed */}
-        {!isSidebarExpanded && (
-          <button
-            onClick={() => setIsSidebarExpanded(true)}
-            className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-20 p-1.5 bg-white dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 border-l-0 hover:text-dark-green dark:hover:text-light-green transition-all rounded-r-lg shadow-sm"
-            aria-label="Expand sidebar"
-          >
-            <ChevronRight size={16} />
-          </button>
-        )}
-
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile sticky header — always below navbar (top-16), replaces the broken top-4 button */}
-          <div className="md:hidden sticky top-0 z-10 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800 px-4 py-2.5 flex items-center justify-between gap-3">
-            <button
-              onClick={() => setIsSidebarExpanded(true)}
-              className="flex items-center gap-1.5 text-xs font-ui font-medium text-neutral-600 dark:text-neutral-400 hover:text-dark-green dark:hover:text-light-green transition-colors"
-            >
-              <Users size={14} />
-              <span>Members ({club.members?.length || 0})</span>
-            </button>
-            <p className="text-xs font-ui font-medium text-neutral-900 dark:text-white truncate flex-1 text-right">
-              {club.name}
-            </p>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 lg:px-12">
-              {/* Club Hero */}
-              <div className="bg-white dark:bg-neutral-900 p-4 sm:p-6 md:p-8 mb-4 sm:mb-8 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm transition-colors duration-300">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2 sm:mb-3">
-                  <h1 className="text-lg sm:text-3xl md:text-4xl font-serif font-bold text-neutral-900 dark:text-white">
-                    {club.name}
-                  </h1>
-                  {user && !isCreator && (
-                    <button
-                      onClick={handleMembershipToggle}
-                      disabled={isUpdatingMembership}
-                      className={`text-[11px] font-ui font-semibold tracking-[0.12em] uppercase px-4 py-2 border transition-colors duration-200 disabled:opacity-50 ${
-                        isMember
-                          ? "text-dark-green dark:text-light-green border-dark-green dark:border-light-green hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-700"
-                          : "text-neutral-900 dark:text-white border-neutral-900 dark:border-white hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900"
-                      }`}
-                    >
-                      {isUpdatingMembership ? "Working..." : isMember ? "Leave" : "Join"}
-                    </button>
-                  )}
-                </div>
-                <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed max-w-2xl">
-                  {club.description}
-                </p>
-              </div>
-
-              {/* Book of the Month */}
-              <section className="mb-4 sm:mb-8">
-                <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm transition-all duration-300">
-                  <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                    <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg">
-                      <Book size={16} className="sm:w-5 sm:h-5" />
-                    </div>
-                    <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white">
-                      Reading Now
-                    </h2>
+          {/* Now reading */}
+          <Section title="Now reading">
+            {book ? (
+              <div className="flex gap-5 sm:gap-8 items-start">
+                {book.volumeInfo.imageLinks?.thumbnail ? (
+                  <img
+                    src={book.volumeInfo.imageLinks.thumbnail}
+                    alt={book.volumeInfo.title}
+                    className="w-24 sm:w-32 aspect-[2/3] object-cover rounded-ns-lg shadow-ns-xl ring-1 ring-ns-border/40 shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-24 sm:w-32 aspect-[2/3] shrink-0 rounded-ns-lg bg-ns-surface border border-ns-border flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <span className="font-heading text-4xl text-ns-ink-muted">
+                      {book.volumeInfo.title.charAt(0).toUpperCase()}
+                    </span>
                   </div>
+                )}
 
-                  {club.bookOfTheMonth ? (
-                    <div className="flex gap-4 sm:gap-6 md:gap-8 items-start">
-                      {/* Book Cover */}
-                      {club.bookOfTheMonth.volumeInfo.imageLinks?.thumbnail && (
-                        <div className="relative group shrink-0">
-                          <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-100/20 translate-y-3 translate-x-3 blur-md rounded-lg"></div>
-                          <img
-                            src={club.bookOfTheMonth.volumeInfo.imageLinks.thumbnail}
-                            alt={club.bookOfTheMonth.volumeInfo.title}
-                            className="w-20 h-30 sm:w-32 sm:h-48 md:w-40 md:h-60 object-cover relative z-10 rounded-lg shadow-lg"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
-                        <h3 className="text-sm sm:text-lg md:text-xl font-bold text-neutral-900 dark:text-white leading-snug">
-                          {club.bookOfTheMonth.volumeInfo.title}
-                        </h3>
-                        <p className="text-xs sm:text-sm md:text-base text-dark-green dark:text-light-green font-medium font-serif italic">
-                          by {club.bookOfTheMonth.volumeInfo.authors?.join(", ")}
-                        </p>
-                        <div className="w-8 sm:w-12 h-0.5 bg-dark-green dark:bg-light-green"></div>
-                        <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-4 sm:line-clamp-none">
-                          {club.bookOfTheMonth.volumeInfo.description}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-neutral-400 dark:text-neutral-500 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
-                      <Book size={28} className="mb-2 opacity-50" />
-                      <p className="text-sm">No book selected for this month.</p>
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-heading italic text-2xl sm:text-3xl leading-tight text-ns-ink mb-1.5">
+                    {book.volumeInfo.title}
+                  </h3>
+                  {book.volumeInfo.authors && (
+                    <p className="font-ui text-xs tracking-wide text-ns-ink-secondary mb-3">
+                      by {book.volumeInfo.authors.join(", ")}
+                    </p>
                   )}
-                </div>
-              </section>
+                  <div className="w-10 h-0.5 bg-ns-accent mb-3" aria-hidden="true" />
+                  {book.volumeInfo.description && (
+                    <p className="font-body text-sm text-ns-ink-secondary leading-relaxed line-clamp-4 mb-4">
+                      {book.volumeInfo.description}
+                    </p>
+                  )}
 
-              {/* Reading Schedule */}
-              <ReadingScheduleSection club={club} isCreator={isCreator} />
-
-              {/* Discussion Prompts */}
-              <DiscussionPromptsSection
-                club={club}
-                isCreator={isCreator}
-                userCurrentChapter={userCurrentChapter}
-              />
-
-              {/* Polls */}
-              <PollsSection club={club} isCreator={isCreator} />
-
-              {/* Meetup Schedule */}
-              <section className="mb-4 sm:mb-8">
-                <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm">
-                  <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-2 bg-neutral-100 dark:bg-neutral-800 text-dark-green dark:text-light-green rounded-lg shrink-0">
-                        <Calendar size={16} className="sm:w-5 sm:h-5" />
-                      </div>
-                      <h2 className="text-base sm:text-xl md:text-2xl font-serif font-bold text-neutral-900 dark:text-white truncate">
-                        Next Meetup
-                      </h2>
-                    </div>
-                    {isCreator && !isEditingMeetup && (
-                      <button
-                        onClick={() => {
-                          setMeetupDraft(club.meetUp ?? "");
-                          setIsEditingMeetup(true);
-                        }}
-                        className="p-1.5 rounded-md text-neutral-400 hover:text-dark-green dark:hover:text-light-green hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
-                        title="Edit meetup details"
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    {book.source === "novelsync" && book.storyId && (
+                      <Link
+                        to={`/story/${book.storyId}`}
+                        className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-ns-accent hover:opacity-80 transition-opacity"
                       >
-                        <Edit size={15} />
+                        Read on NovelSync →
+                      </Link>
+                    )}
+                    {!!book.totalChapters && (
+                      <span className="font-ui text-[10px] uppercase tracking-widest text-ns-ink-muted border border-ns-border rounded-full px-2.5 py-0.5">
+                        {book.totalChapters} chapters
+                      </span>
+                    )}
+                    {isCreator && (
+                      <button
+                        type="button"
+                        onClick={() => setIsChangingBook(true)}
+                        className="font-ui text-[11px] font-semibold tracking-[0.12em] uppercase text-ns-ink-muted hover:text-ns-accent transition-colors"
+                      >
+                        Change book
                       </button>
                     )}
                   </div>
-
-                  {isEditingMeetup ? (
-                    <div className="space-y-3">
-                      <textarea
-                        value={meetupDraft}
-                        onChange={(e) => setMeetupDraft(e.target.value)}
-                        rows={3}
-                        placeholder="e.g. Saturday June 14 at 7pm — Zoom link: ..."
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-dark-green dark:focus:ring-light-green resize-none"
-                        disabled={isSavingMeetup}
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            setIsSavingMeetup(true);
-                            try {
-                              await bookClubRepo.updateMeetUp(club.id, meetupDraft.trim());
-                              setIsEditingMeetup(false);
-                            } catch (e) {
-                              console.error("Failed to save meetup:", e);
-                            } finally {
-                              setIsSavingMeetup(false);
-                            }
-                          }}
-                          disabled={isSavingMeetup}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-dark-green dark:bg-light-green text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-                        >
-                          <Save size={13} />
-                          {isSavingMeetup ? "Saving…" : "Save"}
-                        </button>
-                        <button
-                          onClick={() => setIsEditingMeetup(false)}
-                          disabled={isSavingMeetup}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
-                        >
-                          <X size={13} />
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : club.meetUp ? (
-                    <div className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-4 flex items-start gap-3 rounded-lg">
-                      <div className="w-1 bg-dark-green dark:bg-light-green rounded-full self-stretch min-h-[1.5rem] shrink-0"></div>
-                      <div>
-                        <p className="text-neutral-900 dark:text-white text-sm sm:text-base font-medium whitespace-pre-wrap">
-                          {club.meetUp}
-                        </p>
-                        <p className="text-neutral-500 dark:text-neutral-400 text-xs mt-1">
-                          Don't forget to bring your notes!
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="italic text-sm text-neutral-400 dark:text-neutral-500 pl-3 border-l-4 border-neutral-200 dark:border-neutral-800">
-                      {isCreator ? "No meetup scheduled yet. Click the edit button to add one." : "No meetup scheduled yet."}
-                    </p>
-                  )}
                 </div>
-              </section>
-
-              {user && (
-                <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 overflow-hidden mb-6 rounded-2xl shadow-sm">
+              </div>
+            ) : (
+              <div>
+                <p className="font-body italic text-sm text-ns-ink-muted mb-3">
+                  No book on the club's nightstand yet.
+                </p>
+                {isCreator && (
                   <button
-                    onClick={() => setIsChatOpen(!isChatOpen)}
-                    className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-200"
+                    type="button"
+                    onClick={() => setIsChangingBook(true)}
+                    className="font-ui text-[11px] font-semibold tracking-[0.14em] uppercase text-ns-accent hover:opacity-80 transition-opacity"
                   >
-                    <h2 className="text-base sm:text-lg md:text-xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                      <MessageCircle
-                        className="text-dark-green dark:text-light-green w-4 h-4 sm:w-5 sm:h-5"
-                        size={16}
-                      />
-                      Chat Room
-                    </h2>
-                    {isChatOpen ? (
-                      <ChevronUp className="text-dark-green dark:text-light-green w-4 h-4" size={16} />
-                    ) : (
-                      <ChevronDown className="text-dark-green dark:text-light-green w-4 h-4" size={16} />
-                    )}
+                    Choose a book →
                   </button>
-                  {isChatOpen && (
-                    <div className="p-4 sm:p-6 pt-0 animate-in slide-in-from-top-2 duration-300">
-                      <BookClubChat
-                        clubId={club.id}
-                        user={user}
-                        userCurrentChapter={userCurrentChapter}
-                      />
-                    </div>
-                  )}
+                )}
+              </div>
+            )}
+          </Section>
+
+          {/* Reading pace */}
+          <Section title="Reading pace">
+            <ReadingPaceSection
+              club={club}
+              isCreator={isCreator}
+              isMember={isMember}
+              progress={progressList}
+              userCurrentChapter={userCurrentChapter}
+              membersById={membersById}
+            />
+          </Section>
+
+          {/* Discussion */}
+          <Section title="Discussion">
+            <DiscussionSection
+              club={club}
+              isCreator={isCreator}
+              userCurrentChapter={userCurrentChapter}
+            />
+          </Section>
+
+          {/* Next book */}
+          <Section title="Next book">
+            <NextBookSection club={club} isCreator={isCreator} />
+          </Section>
+
+          <Ornament />
+
+          {/* Meetup */}
+          <Section title="Next meetup">
+            {isEditingMeetup ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={meetupDraft}
+                  onChange={(e) => setMeetupDraft(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. Saturday June 14 at 7pm — Zoom link: …"
+                  disabled={isSavingMeetup}
+                  autoFocus
+                  className="resize-none"
+                />
+                <div className="flex gap-3 items-center">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      setIsSavingMeetup(true);
+                      try {
+                        await bookClubRepo.updateMeetUp(
+                          club.id,
+                          meetupDraft.trim(),
+                        );
+                        setIsEditingMeetup(false);
+                      } catch (e) {
+                        console.error("Failed to save meetup:", e);
+                      } finally {
+                        setIsSavingMeetup(false);
+                      }
+                    }}
+                    disabled={isSavingMeetup}
+                  >
+                    {isSavingMeetup ? "Saving…" : "Save"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingMeetup(false)}
+                    disabled={isSavingMeetup}
+                    className="font-ui text-xs text-ns-ink-muted hover:text-ns-ink transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : club.meetUp ? (
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <p className="font-heading italic text-lg sm:text-xl text-ns-ink leading-snug whitespace-pre-wrap border-l-2 border-ns-accent pl-4 max-w-xl">
+                  {club.meetUp}
+                </p>
+                {isCreator && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMeetupDraft(club.meetUp ?? "");
+                      setIsEditingMeetup(true);
+                    }}
+                    className="font-ui text-[11px] font-semibold tracking-[0.14em] uppercase text-ns-ink-muted hover:text-ns-accent transition-colors shrink-0"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="font-body italic text-sm text-ns-ink-muted">
+                  No meetup scheduled yet.
+                </p>
+                {isCreator && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMeetupDraft("");
+                      setIsEditingMeetup(true);
+                    }}
+                    className="mt-2 font-ui text-[11px] font-semibold tracking-[0.14em] uppercase text-ns-accent hover:opacity-80 transition-opacity"
+                  >
+                    Schedule one →
+                  </button>
+                )}
+              </div>
+            )}
+          </Section>
+
+          {/* Chat */}
+          {user && (
+            <section className="border-t border-ns-border">
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className="w-full py-6 flex items-center justify-between gap-4 group"
+              >
+                <span className="font-ui text-[10px] font-semibold tracking-[0.2em] uppercase text-ns-ink-muted group-hover:text-ns-accent transition-colors text-left">
+                  Chat room
+                </span>
+                {isChatOpen ? (
+                  <ChevronUp size={16} className="text-ns-accent shrink-0" />
+                ) : (
+                  <ChevronDown size={16} className="text-ns-accent shrink-0" />
+                )}
+              </button>
+              {isChatOpen && (
+                <div className="pb-10">
+                  <BookClubChat
+                    clubId={club.id}
+                    user={user}
+                    userCurrentChapter={userCurrentChapter}
+                  />
                 </div>
               )}
-            </div>
-          </div>
-        </main>
+            </section>
+          )}
+        </div>
       </div>
+
+      {/* Members panel */}
+      <Dialog open={isMembersOpen} onOpenChange={setIsMembersOpen}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-ns-ink">
+              {memberCount} reader{memberCount !== 1 ? "s" : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto">
+            {members.length === 0 ? (
+              <p className="py-4 font-body italic text-sm text-ns-ink-muted">
+                No members yet.
+              </p>
+            ) : (
+              members.map((member) => {
+                const isFounder = member.id === club.creatorId;
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 py-2.5 border-b border-ns-border last:border-b-0"
+                  >
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-ns-surface border border-ns-border font-ui text-xs font-semibold text-ns-ink-secondary shrink-0">
+                      {member.username.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="flex-1 font-ui text-sm text-ns-ink truncate">
+                      {member.username}
+                    </span>
+                    {isFounder && (
+                      <span className="inline-flex items-center gap-1 font-ui text-[10px] uppercase tracking-widest text-ns-accent shrink-0">
+                        <Crown size={10} />
+                        Founder
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change book */}
+      <BookPickerDialog
+        open={isChangingBook}
+        onOpenChange={setIsChangingBook}
+        title={book ? "Change the club's book" : "Choose the club's book"}
+        onConfirm={async (newBook) => {
+          await bookClubRepo.updateBookOfTheMonth(club.id, newBook);
+        }}
+      />
     </>
   );
 };

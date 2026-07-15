@@ -11,10 +11,19 @@ import {
   MoreVertical,
   DollarSign,
   Loader2,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { StoryMetadata } from "@/types/IStory";
 import { generateCover } from "@/services/imageGenerationService";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { storiesRepo } from "@/services/StoriesRepo";
+import {
+  fetchCoverAsset,
+  buildEpub,
+  toEpubFilename,
+  downloadBlob,
+} from "@/utils/epubExport";
 
 interface StoryRowProps {
   story: StoryMetadata & {
@@ -75,6 +84,7 @@ export const StoryRow = ({
   const [showLightbox, setShowLightbox] = useState(false);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -120,6 +130,28 @@ export const StoryRow = ({
     if (onImageUpdate) {
       onImageUpdate(story.id, null, null);
       setShowImagePanel(false);
+    }
+  };
+
+  const handleExportEpub = async () => {
+    setIsExporting(true);
+    try {
+      const chapters = await storiesRepo.getChapters(story.id);
+      if (chapters.length === 0) {
+        toast.error("This story has no chapters to export yet.");
+        return;
+      }
+      const cover = await fetchCoverAsset(
+        story.coverImageUrl || story.thumbnailUrl,
+      );
+      const blob = await buildEpub(story, story.id, chapters, cover);
+      downloadBlob(blob, toEpubFilename(story.title));
+      toast.success("EPUB downloaded.");
+    } catch (error) {
+      console.error("Error exporting EPUB:", error);
+      toast.error("Failed to export EPUB. Please try again.");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -355,6 +387,22 @@ export const StoryRow = ({
                     >
                       <PenLine className="w-3.5 h-3.5 text-ns-ink-muted" />
                       Continue writing
+                    </button>
+                    <div className="my-1 border-t border-ns-border" />
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleExportEpub();
+                      }}
+                      disabled={isExporting}
+                      className="w-full px-3 py-2 text-left text-sm font-ui text-ns-ink hover:bg-ns-surface-hover flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isExporting ? (
+                        <Loader2 className="w-3.5 h-3.5 text-ns-ink-muted animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-ns-ink-muted" />
+                      )}
+                      {isExporting ? "Exporting…" : "Export as EPUB"}
                     </button>
                     <div className="my-1 border-t border-ns-border" />
                     {story.isPublished ? (
