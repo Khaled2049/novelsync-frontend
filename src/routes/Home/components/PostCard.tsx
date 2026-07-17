@@ -22,6 +22,7 @@ import { voteService } from "@/services/VoteService";
 import { reportService } from "@/services/ReportService";
 import { postsService } from "@/services/PostService";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { useAuthorUsername } from "@/hooks/queries/useUserQueries";
 import { toast } from "sonner";
 
 interface PostCardProps {
@@ -139,7 +140,8 @@ const PostCard: React.FC<PostCardProps> = ({
     return d.toLocaleDateString();
   };
 
-  const initials = post.authorName.charAt(0).toUpperCase();
+  const authorUsername = useAuthorUsername(post.authorId, post.authorUsername);
+  const initials = authorUsername.charAt(0).toUpperCase();
   const isAuthor = currentUser?.uid === post.authorId;
 
   const handleRowClick = (e: React.MouseEvent) => {
@@ -172,9 +174,13 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Header: meta + overflow menu */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 font-ui text-sm leading-tight">
-            <span className="font-semibold text-ns-ink truncate">
-              {post.authorName}
-            </span>
+            <Link
+              to={`/profile/${post.authorId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-ns-ink truncate no-underline hover:text-ns-accent hover:underline transition-colors"
+            >
+              @{authorUsername}
+            </Link>
             <span className="text-ns-ink-muted">·</span>
             <span className="text-ns-ink-muted text-xs">
               {formatDate(post.createdAt)}

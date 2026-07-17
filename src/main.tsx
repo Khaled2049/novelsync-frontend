@@ -38,7 +38,9 @@ const Announcements = lazy(() => import("./components/explore/Announcements"));
 const HelpSupport = lazy(() => import("./routes/Help/HelpSupport"));
 const DemoEditorPage = lazy(() => import("./routes/Demo/DemoEditorPage"));
 const DemoEditorIndex = lazy(() => import("./routes/Demo/DemoEditorIndex"));
-const UserProfile = lazy(() => import("./routes/Profile/UserProfile"));
+const PublicUserProfile = lazy(
+  () => import("./routes/Profile/PublicUserProfile"),
+);
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-ns-bg">
@@ -183,10 +185,10 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/profile",
+        path: "/profile/:userId",
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <UserProfile />
+            <PublicUserProfile />
           </Suspense>
         ),
       },

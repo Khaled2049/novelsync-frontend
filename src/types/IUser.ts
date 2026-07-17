@@ -2,6 +2,8 @@ import { User as FirebaseUser } from "firebase/auth";
 
 export interface IUser extends FirebaseUser {
   username: string;
+  firstName?: string;
+  lastName?: string;
   followers: string[];
   following: string[];
   createdAt: string;

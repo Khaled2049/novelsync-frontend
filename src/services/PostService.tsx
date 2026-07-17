@@ -16,7 +16,7 @@ import {
   DocumentData,
   writeBatch,
 } from "firebase/firestore";
-import { firestore, auth } from "@/config/firebase";
+import { firestore } from "@/config/firebase";
 import { IPost } from "@/types/IPost";
 import { voteService } from "./VoteService";
 import { rateLimitService } from "./RateLimitService";
@@ -209,9 +209,10 @@ class PostsService {
     userId: string,
     post: Omit<
       IPost,
-      "id" | "createdAt" | "authorId" | "authorName" | "commentCount"
+      "id" | "createdAt" | "authorId" | "authorUsername" | "commentCount"
     > & {
       bookClubId?: string;
+      authorUsername?: string;
     },
   ): Promise<string> {
     try {
@@ -236,7 +237,7 @@ class PostsService {
         id: newPostRef.id,
         createdAt: serverTimestamp(),
         content: post.content,
-        authorName: auth.currentUser?.displayName || "",
+        authorUsername: post.authorUsername || "unknown",
         authorId: userId,
         commentCount: 0,
         upvoteCount: 0,

@@ -407,13 +407,27 @@ service cloud.firestore {
       allow list: if false;
       allow create, update: if request.auth != null &&
         request.auth.uid == userId &&
-        request.resource.data.keys().hasOnly(["username", "displayName", "photoURL", "updatedAt"]) &&
+        request.resource.data.keys().hasOnly(["username", "photoURL", "updatedAt", "bio", "occupation", "location", "createdAt"]) &&
         request.resource.data.keys().hasAll(["username", "updatedAt"]) &&
         request.resource.data.username is string &&
         request.resource.data.updatedAt is string &&
-        (!("displayName" in request.resource.data) || request.resource.data.displayName is string) &&
-        (!("photoURL" in request.resource.data) || request.resource.data.photoURL is string);
+        (!("photoURL" in request.resource.data) || request.resource.data.photoURL is string) &&
+        (!("bio" in request.resource.data) || request.resource.data.bio is string) &&
+        (!("occupation" in request.resource.data) || request.resource.data.occupation is string) &&
+        (!("location" in request.resource.data) || request.resource.data.location is string) &&
+        (!("createdAt" in request.resource.data) || request.resource.data.createdAt is string);
       allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null &&
+        username == username.lower() &&
+        request.resource.data.keys().hasOnly(['uid']) &&
+        request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if false;
     }
 
     match /users/{userId} {
@@ -458,6 +472,10 @@ service cloud.firestore {
         allow create, update, delete: if false;
       }
 
+      // Reading history is private. `allow read` grants list as well as get, so
+      // opening it would let any signed-in user enumerate another user's whole
+      // reading history. If public reading history is ever built, scope the
+      // relaxation to get and read specific docs rather than listing.
       match /readingProgress/{storyId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }

@@ -18,6 +18,7 @@ import {
 import { auth, firestore } from "../config/firebase";
 import { storageService } from "@/services/StorageService";
 import { publicProfileService } from "@/services/PublicProfileService";
+import { usernameService } from "@/services/UsernameService";
 
 /** Optional profile details collected during the signup wizard. */
 export interface SignupProfile {
@@ -42,10 +43,13 @@ export const useFirebaseAuth = () => {
       occupation?: string;
       location?: string;
       writingInterests?: string;
-      displayName?: string;
       photoURL?: string;
     },
   ) => {
+    const claim = await usernameService.claim(userData.username, userId);
+    if (claim === "taken") {
+      throw new Error("That username is already taken.");
+    }
     const dbUser = {
       username: userData.username,
       email: userData.email,
@@ -69,12 +73,21 @@ export const useFirebaseAuth = () => {
         : {}),
     };
 
-    await setDoc(doc(firestore, "users", userId), dbUser);
-    await publicProfileService.upsertPublicProfile(userId, {
-      username: userData.username,
-      ...(userData.displayName ? { displayName: userData.displayName } : {}),
-      ...(userData.photoURL ? { photoURL: userData.photoURL } : {}),
-    });
+    let userDocWritten = false;
+    try {
+      await setDoc(doc(firestore, "users", userId), dbUser);
+      userDocWritten = true;
+      await publicProfileService.upsertPublicProfile(userId, {
+        username: userData.username,
+        createdAt: dbUser.createdAt,
+        ...(userData.photoURL ? { photoURL: userData.photoURL } : {}),
+      });
+    } catch (error) {
+      if (claim === "claimed" && !userDocWritten) {
+        await usernameService.release(userData.username);
+      }
+      throw error;
+    }
   };
 
   /**
@@ -193,7 +206,6 @@ export const useFirebaseAuth = () => {
         occupation: profile?.occupation,
         location: profile?.location,
         writingInterests: profile?.writingInterests,
-        displayName: username,
         ...(photoURL ? { photoURL } : {}),
       });
 

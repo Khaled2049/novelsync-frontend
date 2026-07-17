@@ -22,8 +22,8 @@ const StoriesHeader: React.FC<StoriesHeaderProps> = ({
           {/* Welcome Section */}
           <div className="space-y-2 sm:space-y-3">
             <h1 className="font-heading text-2xl sm:text-3xl font-semibold tracking-wide text-gray-900 dark:text-white">
-              {user.displayName
-                ? `Welcome back, ${user.displayName}`
+              {user.firstName || user.username
+                ? `Welcome back, ${user.firstName || user.username}`
                 : "Welcome back"}
             </h1>
             <div className="w-12 h-0.5 bg-dark-green/30 dark:bg-light-green/30" />

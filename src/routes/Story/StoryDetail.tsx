@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { Chapter, Story } from "@/types/IStory";
 import { CommentService } from "@/services/CommentService";
@@ -20,6 +20,7 @@ import { StoryCommentsSection } from "./components/StoryCommentsSection";
 import { ChapterReader } from "./components/reader/ChapterReader";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { AuthorName } from "@/components/common";
 import { getAbsoluteUrl } from "@/config/seo";
 import { readingProgressService } from "@/services/ReadingProgressService";
 
@@ -599,9 +600,15 @@ const StoryDetail: React.FC = () => {
                 {/* Author + stats */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-6">
                   <span className="font-ui text-xs text-ns-ink-muted">by</span>
-                  <span className="font-ui text-sm text-ns-ink">
-                    {state.story.author}
-                  </span>
+                  <Link
+                    to={`/profile/${state.story.userId}`}
+                    className="font-ui text-sm text-ns-ink hover:text-ns-accent transition-colors"
+                  >
+                    <AuthorName
+                      userId={state.story.userId}
+                      fallback={state.story.author}
+                    />
+                  </Link>
                   <span className="text-ns-border select-none">·</span>
                   <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -721,6 +728,7 @@ const StoryDetail: React.FC = () => {
 
               <StoryAuthorBio
                 author={state.story.author}
+                authorId={state.story.userId}
                 authorWalletAddress={authorWalletAddress || undefined}
                 storyId={id!}
               />

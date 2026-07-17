@@ -95,8 +95,7 @@ const BookClubDetails: React.FC = () => {
           const profile = profileMap.get(memberId);
           return {
             id: memberId,
-            username:
-              profile?.username || profile?.displayName || "Unknown User",
+            username: profile?.username || "Unknown User",
           };
         });
         if (isMounted) setMembers(memberInfos);

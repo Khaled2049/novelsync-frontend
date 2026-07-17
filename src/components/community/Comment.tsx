@@ -1,8 +1,10 @@
 // Comment.tsx
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { MessageCircle, Edit2, Trash2 } from "lucide-react";
 import { Comment as CommentType } from "@/types/IComment";
 import { IUser } from "@/types/IUser";
+import { useAuthorUsername } from "@/hooks/queries/useUserQueries";
 
 interface CommentProps {
   comment: CommentType;
@@ -39,6 +41,7 @@ export const Comment: React.FC<CommentProps> = React.memo(
       () => allComments.filter((c) => c.parentId === comment.id),
       [allComments, comment.id],
     );
+    const authorUsername = useAuthorUsername(comment.userId, comment.username);
 
     // const isLiked = useMemo(
     //   () =>
@@ -96,9 +99,18 @@ export const Comment: React.FC<CommentProps> = React.memo(
           {/* Comment Header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {comment?.username}
-              </span>
+              {comment?.userId ? (
+                <Link
+                  to={`/profile/${comment.userId}`}
+                  className="font-medium text-ns-ink no-underline hover:text-ns-accent hover:underline transition-colors"
+                >
+                  {authorUsername}
+                </Link>
+              ) : (
+                <span className="font-medium text-ns-ink">
+                  {authorUsername}
+                </span>
+              )}
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {new Date(comment.createdAt).toLocaleString()}
               </span>

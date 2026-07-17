@@ -76,8 +76,7 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
         postId,
         content: newComment.trim(),
         authorId: currentUser.uid,
-        authorName:
-          currentUser.displayName || currentUser.username || "Anonymous",
+        authorUsername: currentUser.username || "unknown",
         parentId: null,
         upvoteCount: 0,
         downvoteCount: 0,
@@ -109,8 +108,7 @@ const PostCommentSection: React.FC<PostCommentSectionProps> = ({
         postId,
         content,
         authorId: currentUser.uid,
-        authorName:
-          currentUser.displayName || currentUser.username || "Anonymous",
+        authorUsername: currentUser.username || "unknown",
         parentId,
         upvoteCount: 0,
         downvoteCount: 0,

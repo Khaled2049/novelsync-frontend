@@ -69,12 +69,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
     setIsPosting(true);
     setError(null);
 
+    const authorUsername = currentUser.username || "unknown";
+
     const tempId = `temp-${Date.now()}`;
     const optimisticPost: IPost = {
       id: tempId,
       content,
       createdAt: new Date(),
-      authorName: currentUser.displayName || currentUser.email || "You",
+      authorUsername,
       authorId: currentUser.uid,
       bookClubId,
       commentCount: 0,
@@ -89,6 +91,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       const postId = await postsService.addPost(currentUser.uid, {
         content,
         bookClubId,
+        authorUsername,
         upvoteCount: 0,
         downvoteCount: 0,
       });

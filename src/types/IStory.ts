@@ -34,6 +34,8 @@ export interface StoryMetadata {
   id: string;
   title: string;
   description: string;
+  /** Author uid — optional because some legacy mappers don't populate it. */
+  userId?: string;
   chapterCount: number;
   isPublished: boolean;
   createdAt: Date;
