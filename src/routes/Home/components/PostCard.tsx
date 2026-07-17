@@ -162,111 +162,104 @@ const PostCard: React.FC<PostCardProps> = ({
   return (
     <article
       onClick={handleRowClick}
-      className="group flex gap-3 px-2 py-4 border-b border-ns-border hover:bg-ns-surface-hover transition-colors rounded-ns cursor-pointer"
+      className="group bg-ns-surface border border-ns-border rounded-ns-lg px-[22px] py-5 mb-[18px] hover:bg-ns-surface-hover transition-colors cursor-pointer"
     >
-      {/* Avatar column */}
-      <div className="w-9 h-9 rounded-full bg-ns-accent flex items-center justify-center text-white font-ui font-semibold text-sm flex-shrink-0">
-        {initials}
-      </div>
-
-      {/* Content column */}
-      <div className="flex-1 min-w-0">
-        {/* Header: meta + overflow menu */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 font-ui text-sm leading-tight">
-            <Link
-              to={`/profile/${post.authorId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-semibold text-ns-ink truncate no-underline hover:text-ns-accent hover:underline transition-colors"
-            >
-              @{authorUsername}
-            </Link>
-            <span className="text-ns-ink-muted">·</span>
-            <span className="text-ns-ink-muted text-xs">
-              {formatDate(post.createdAt)}
-            </span>
-            {post.bookClubId && bookClubName && (
-              <Link
-                to={`/book-clubs/${post.bookClubId}`}
-                className="flex items-center gap-1 text-xs text-ns-accent hover:text-ns-accent-hover transition-colors no-underline"
-              >
-                <BookOpen size={12} />
-                <span className="truncate max-w-[10rem]">{bookClubName}</span>
-              </Link>
-            )}
+      {/* Header: avatar + meta + overflow menu */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0 font-ui text-[13px] leading-tight">
+          <div className="w-[34px] h-[34px] rounded-full bg-ns-accent flex items-center justify-center text-white font-ui font-semibold text-sm flex-shrink-0">
+            {initials}
           </div>
-
-          {currentUser && (isAuthor || !hasReported) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="flex-shrink-0 -mr-1 p-1.5 rounded-full text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors focus:outline-none disabled:opacity-40"
-                disabled={isDeleting}
-                aria-label="Post options"
-              >
-                <MoreHorizontal size={18} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                {isAuthor ? (
-                  <DropdownMenuItem
-                    onSelect={() => setShowDeleteConfirm(true)}
-                    className="text-ns-destructive focus:text-ns-destructive"
-                  >
-                    <Trash2 size={14} className="mr-2" />
-                    {isDeleting ? "Deleting…" : "Delete post"}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onSelect={() => setShowReportDialog(true)}>
-                    <Flag size={14} className="mr-2" />
-                    Report post
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <Link
+            to={`/profile/${post.authorId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="font-semibold text-ns-ink truncate no-underline hover:text-ns-accent hover:underline transition-colors"
+          >
+            @{authorUsername}
+          </Link>
+          <span className="text-ns-ink-muted">·</span>
+          <span className="text-ns-ink-muted">{formatDate(post.createdAt)}</span>
+          {post.bookClubId && bookClubName && (
+            <Link
+              to={`/book-clubs/${post.bookClubId}`}
+              className="flex items-center gap-1 text-ns-accent hover:text-ns-accent-hover transition-colors no-underline"
+            >
+              <BookOpen size={12} />
+              <span className="truncate max-w-[10rem]">{bookClubName}</span>
+            </Link>
           )}
         </div>
 
-        {/* Content */}
-        <p className="font-body text-ns-ink whitespace-pre-wrap break-words leading-relaxed mt-1 mb-2 text-[0.95rem]">
-          {post.content}
-        </p>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 -ml-2">
-          <VoteButtons
-            upvoteCount={upvoteCount}
-            downvoteCount={downvoteCount}
-            userVote={userVote}
-            onVote={handleVote}
-            isLoading={isVoting}
-            disabled={!currentUser}
-          />
-          <button
-            type="button"
-            onClick={() => setCommentsExpanded((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-ui text-xs transition-colors ${
-              commentsExpanded
-                ? "text-ns-accent bg-ns-accent-subtle"
-                : "text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover"
-            }`}
-            aria-expanded={commentsExpanded}
-          >
-            <MessageCircle size={15} />
-            <span>{commentCount}</span>
-          </button>
-        </div>
-
-        {/* Comment Section (expandable) */}
-        {commentsExpanded && (
-          <div data-no-rowclick>
-            <PostCommentSection
-              postId={post.id}
-              currentUser={currentUser}
-              onCommentCountChange={setCommentCount}
-              onHideComments={() => setCommentsExpanded(false)}
-            />
-          </div>
+        {currentUser && (isAuthor || !hasReported) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex-shrink-0 -mr-1 p-1.5 rounded-full text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover transition-colors focus:outline-none disabled:opacity-40"
+              disabled={isDeleting}
+              aria-label="Post options"
+            >
+              <MoreHorizontal size={18} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {isAuthor ? (
+                <DropdownMenuItem
+                  onSelect={() => setShowDeleteConfirm(true)}
+                  className="text-ns-destructive focus:text-ns-destructive"
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  {isDeleting ? "Deleting…" : "Delete post"}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onSelect={() => setShowReportDialog(true)}>
+                  <Flag size={14} className="mr-2" />
+                  Report post
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
+
+      {/* Content */}
+      <p className="font-body text-ns-ink whitespace-pre-wrap break-words text-[17px] leading-[1.55] mb-3.5">
+        {post.content}
+      </p>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 -ml-2">
+        <VoteButtons
+          upvoteCount={upvoteCount}
+          downvoteCount={downvoteCount}
+          userVote={userVote}
+          onVote={handleVote}
+          isLoading={isVoting}
+          disabled={!currentUser}
+        />
+        <button
+          type="button"
+          onClick={() => setCommentsExpanded((prev) => !prev)}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-ui text-xs transition-colors ${
+            commentsExpanded
+              ? "text-ns-accent bg-ns-accent-subtle"
+              : "text-ns-ink-muted hover:text-ns-ink hover:bg-ns-surface-hover"
+          }`}
+          aria-expanded={commentsExpanded}
+        >
+          <MessageCircle size={15} />
+          <span>{commentCount}</span>
+        </button>
+      </div>
+
+      {/* Comment Section (expandable) */}
+      {commentsExpanded && (
+        <div data-no-rowclick>
+          <PostCommentSection
+            postId={post.id}
+            currentUser={currentUser}
+            onCommentCountChange={setCommentCount}
+            onHideComments={() => setCommentsExpanded(false)}
+          />
+        </div>
+      )}
 
       {/* Delete confirmation */}
       <ConfirmDialog

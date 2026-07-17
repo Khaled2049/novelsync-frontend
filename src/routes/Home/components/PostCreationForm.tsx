@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { IClub } from "@/types/IClub";
 import { useContentModeration } from "@/hooks/useContentModeration";
 
@@ -86,7 +86,7 @@ const PostCreationForm: React.FC<PostCreationFormProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-b border-ns-border px-2 py-4 mb-1"
+      className="bg-ns-surface border border-ns-border rounded-ns-lg px-[22px] py-5 mb-7"
     >
       <textarea
         value={content}
@@ -99,13 +99,13 @@ const PostCreationForm: React.FC<PostCreationFormProps> = ({
         }}
         onKeyDown={handleKeyDown}
         placeholder="What are you reading?"
-        rows={3}
+        rows={2}
         maxLength={maxCharacters}
         disabled={isBusy}
         className="
           w-full resize-none bg-transparent border-0 outline-none
           font-body text-ns-ink placeholder:text-ns-ink-muted
-          text-[0.9375rem] leading-relaxed
+          text-[17px] leading-relaxed min-h-[44px]
           disabled:opacity-50
         "
       />
@@ -142,35 +142,32 @@ const PostCreationForm: React.FC<PostCreationFormProps> = ({
       )}
 
       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-ns-border">
-        <div className="flex items-center gap-3 ml-auto">
-          <span
-            className={`font-ui text-xs tabular-nums ${
-              isOverLimit
-                ? "text-ns-destructive font-semibold"
-                : isNearLimit
-                  ? "text-ns-destructive"
-                  : "text-ns-ink-muted"
-            }`}
-          >
-            {content.length}/{maxCharacters}
-          </span>
+        <span
+          className={`font-ui text-[13px] tabular-nums ${
+            isOverLimit
+              ? "text-ns-destructive font-semibold"
+              : isNearLimit
+                ? "text-ns-destructive"
+                : "text-ns-ink-muted"
+          }`}
+        >
+          {content.length} / {maxCharacters}
+        </span>
 
-          <button
-            type="submit"
-            disabled={!content.trim() || isBusy || isOverLimit}
-            className="
-              inline-flex items-center gap-1.5 px-5 py-2
-              bg-ns-accent text-white rounded-full
-              font-ui text-sm font-semibold tracking-wide
-              shadow-ns-sm hover:bg-ns-accent-hover hover:shadow-ns
-              transition-all duration-200
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
-            "
-          >
-            <Send size={14} />
-            {buttonLabel}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!content.trim() || isBusy || isOverLimit}
+          className="
+            inline-flex items-center px-5 py-[9px]
+            bg-ns-accent text-white rounded-full
+            font-ui text-sm
+            hover:bg-ns-accent-hover
+            transition-colors duration-200
+            disabled:opacity-40 disabled:cursor-not-allowed
+          "
+        >
+          {buttonLabel}
+        </button>
       </div>
     </form>
   );

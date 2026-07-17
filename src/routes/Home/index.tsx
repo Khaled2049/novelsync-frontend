@@ -4,6 +4,7 @@ import { Loader } from "lucide-react";
 import { useAuthContext } from "../../contexts/AuthContext";
 import PostFeed from "./components/PostFeed";
 import FeedNavigation, { FeedType } from "./components/FeedNavigation";
+import CommunitySidebar from "./components/CommunitySidebar";
 const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeFeed, setActiveFeed] = useState<FeedType>("home");
@@ -23,10 +24,18 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-12">
-      <FeedNavigation activeFeed={activeFeed} onFeedChange={setActiveFeed} />
+    <div className="flex gap-8 px-4 pb-12">
+      <div className="flex-1 min-w-0">
+        <FeedNavigation activeFeed={activeFeed} onFeedChange={setActiveFeed} />
 
-      <PostFeed currentUser={user} feedType={activeFeed} />
+        <PostFeed currentUser={user} feedType={activeFeed} />
+      </div>
+
+      {user && (
+        <aside className="hidden lg:block w-[260px] shrink-0">
+          <CommunitySidebar currentUser={user} />
+        </aside>
+      )}
     </div>
   );
 };

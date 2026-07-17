@@ -7,6 +7,7 @@ import { storiesRepo } from "../../services/StoriesRepo";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 import StoriesHeader from "@/components/story/StoriesHeader";
+import FeaturedStoryBanner from "@/components/story/FeaturedStoryBanner";
 import { AuthorName } from "@/components/common";
 import { StoryMetadata } from "@/types/IStory";
 import { usePublishedStories } from "@/hooks/queries/useStoryQueries";
@@ -178,6 +179,8 @@ const AllStories: React.FC = () => {
               isModalOpen={isModalOpen}
               onCloseModal={() => setIsModalOpen(false)}
             />
+
+            <FeaturedStoryBanner />
 
             {/* Mobile genre selector (Libby-style dropdown) */}
             <div className="lg:hidden mb-6" ref={genreMenuRef}>
@@ -423,12 +426,11 @@ const AllStories: React.FC = () => {
           </div>
 
           {/* Right: genre sidebar — desktop only */}
-          <aside className="hidden lg:block w-40 shrink-0 sticky top-20 self-start pt-8">
-            <div className="mb-4">
-              <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-ns-ink-muted">
+          <aside className="hidden lg:block w-40 shrink-0">
+            <div className="flex items-center h-9 mb-3 border-b border-ns-border">
+              <span className="font-ui text-[11px] tracking-[1.5px] uppercase text-ns-ink-muted">
                 Genres
               </span>
-              <div className="mt-2 h-px bg-ns-border" />
             </div>
             <nav className="flex flex-col">
               {CATEGORIES.map((category) => {

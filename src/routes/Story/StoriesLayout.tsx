@@ -51,15 +51,14 @@ const StoriesLayout = () => {
   return (
     <div className="min-h-full bg-ns-bg">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-4">
-        <div className="flex gap-6 pt-6 pb-10">
+        <div className="flex gap-8 pt-6 pb-10">
           {/* Desktop left sidebar nav */}
-          <aside className="hidden lg:flex w-40 shrink-0">
-            <div className="sticky top-20 pt-8">
-              <div className="mb-4 px-3">
-                <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-ns-ink-muted">
+          <aside className="hidden lg:flex w-[260px] shrink-0">
+            <div className="sticky top-20">
+              <div className="flex items-center h-9 mb-3 px-3 border-b border-ns-border">
+                <span className="font-ui text-[11px] tracking-[1.5px] uppercase text-ns-ink-muted">
                   Explore
                 </span>
-                <div className="mt-2 h-px bg-ns-border" />
               </div>
               <nav className="flex flex-col gap-0.5">
                 {tabs.map((tab) => {
