@@ -2,7 +2,7 @@ export interface IPost {
   id: string;
   content: string;
   createdAt: Date | any; // Firestore Timestamp compatible
-  authorName: string;
+  authorUsername: string;
   authorId: string;
   bookClubId?: string;
   commentCount: number;

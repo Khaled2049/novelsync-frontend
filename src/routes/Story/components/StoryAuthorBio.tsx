@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { User, DollarSign } from "lucide-react";
 import { StoryTipModal } from "./StoryTipModal";
 import { WEB3_ENABLED } from "@/config/featureFlags";
+import { useAuthorUsername } from "@/hooks/queries/useUserQueries";
 
 interface StoryAuthorBioProps {
   author: string;
+  authorId?: string;
   bio?: string;
   authorWalletAddress?: string;
   storyId: string;
@@ -12,15 +15,20 @@ interface StoryAuthorBioProps {
 
 export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
   author,
+  authorId,
   bio,
   authorWalletAddress,
   storyId,
 }) => {
   const [showTipModal, setShowTipModal] = useState(false);
 
+  // Resolve the author's current username live from their public profile so the
+  // bio reflects username changes; fall back to the copy stored on the story.
+  const displayAuthor = useAuthorUsername(authorId, author);
+
   const authorBio =
     bio ||
-    `${author} is a writer who loves exploring complex themes through storytelling.`;
+    `${displayAuthor} is a writer who loves exploring complex themes through storytelling.`;
 
   return (
     <>
@@ -35,7 +43,16 @@ export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-ui text-sm font-semibold text-ns-ink mb-1.5">
-              {author}
+              {authorId ? (
+                <Link
+                  to={`/profile/${authorId}`}
+                  className="hover:text-ns-accent transition-colors"
+                >
+                  {displayAuthor}
+                </Link>
+              ) : (
+                displayAuthor
+              )}
             </h4>
             <p className="font-body text-sm text-ns-ink-secondary leading-relaxed">
               {authorBio}
@@ -66,7 +83,7 @@ export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
 
       {WEB3_ENABLED && (
         <StoryTipModal
-          author={author}
+          author={displayAuthor}
           authorWalletAddress={
             authorWalletAddress || "0x0000000000000000000000000000000000000000"
           }

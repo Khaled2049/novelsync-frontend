@@ -1,12 +1,13 @@
 import { useAuthContext } from "../../contexts/AuthContext";
 import { FaEye, FaThumbsUp, FaBook } from "react-icons/fa";
 import { ChevronRight, ChevronDown, Check } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { storiesRepo } from "../../services/StoriesRepo";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
 import StoriesHeader from "@/components/story/StoriesHeader";
+import { AuthorName } from "@/components/common";
 import { StoryMetadata } from "@/types/IStory";
 import { usePublishedStories } from "@/hooks/queries/useStoryQueries";
 
@@ -304,9 +305,22 @@ const AllStories: React.FC = () => {
                         <h3 className="font-ui font-medium text-sm truncate text-ns-ink group-hover:text-ns-accent transition-colors duration-200">
                           {story.title}
                         </h3>
-                        <p className="text-xs text-ns-ink-muted font-ui truncate mt-0.5">
-                          {story.author}
-                        </p>
+                        {story.userId ? (
+                          <Link
+                            to={`/profile/${story.userId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="block text-xs text-ns-ink-muted font-ui truncate mt-0.5 hover:text-ns-accent transition-colors"
+                          >
+                            <AuthorName
+                              userId={story.userId}
+                              fallback={story.author}
+                            />
+                          </Link>
+                        ) : (
+                          <p className="text-xs text-ns-ink-muted font-ui truncate mt-0.5">
+                            {story.author}
+                          </p>
+                        )}
                         <div className="flex items-center gap-3 mt-1">
                           <span className="flex items-center gap-1 text-[11px] text-ns-ink-muted font-ui">
                             <FaEye className="opacity-60" />
@@ -370,12 +384,26 @@ const AllStories: React.FC = () => {
                         >
                           {story.title}
                         </h3>
-                        <p
-                          title={story.author}
-                          className="text-xs text-ns-ink-muted font-ui truncate"
-                        >
-                          {story.author}
-                        </p>
+                        {story.userId ? (
+                          <Link
+                            to={`/profile/${story.userId}`}
+                            title={story.author}
+                            onClick={(e) => e.stopPropagation()}
+                            className="block text-xs text-ns-ink-muted font-ui truncate hover:text-ns-accent transition-colors"
+                          >
+                            <AuthorName
+                              userId={story.userId}
+                              fallback={story.author}
+                            />
+                          </Link>
+                        ) : (
+                          <p
+                            title={story.author}
+                            className="text-xs text-ns-ink-muted font-ui truncate"
+                          >
+                            {story.author}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}

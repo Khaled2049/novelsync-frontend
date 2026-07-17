@@ -52,6 +52,7 @@ class StoriesRepo {
       updatedAt: data.updatedAt.toDate(),
       createdAt: data.createdAt.toDate(),
       author: data.author,
+      userId: data.userId,
       views: data.views,
       likes: data.likes,
       coverImageUrl: data.coverImageUrl || "",
@@ -83,6 +84,7 @@ class StoriesRepo {
         createdAt: data.createdAt.toDate(),
         updatedAt: data.updatedAt.toDate(),
         author: data.author,
+        userId: data.userId,
         views: data.views,
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
@@ -174,6 +176,7 @@ class StoriesRepo {
         createdAt: data.createdAt?.toDate() ?? new Date(),
         updatedAt: data.updatedAt.toDate(),
         author: data.author,
+        userId: data.userId,
         views: data.views,
         likes: data.likes,
         coverImageUrl: data.coverImageUrl || "",
@@ -216,7 +219,7 @@ class StoriesRepo {
       const profileSnap = await getDoc(publicProfileRef);
       if (profileSnap.exists()) {
         const profile = profileSnap.data();
-        return profile.username || profile.displayName || "";
+        return profile.username || "";
       }
     } catch (error) {
       console.error("Error getting user info:", error);

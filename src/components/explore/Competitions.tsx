@@ -203,8 +203,7 @@ const Competitions: React.FC = () => {
 
     try {
       const payload = buildPayload();
-      const creatorName =
-        user.username || user.displayName || user.email || "Unknown user";
+      const creatorName = user.username || user.email || "Unknown user";
 
       if (editingCompetitionId) {
         await competitionService.updateCompetition(

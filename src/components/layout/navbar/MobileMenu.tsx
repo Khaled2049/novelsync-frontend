@@ -125,7 +125,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
             {user ? (
               <>
                 <Link
-                  to="/profile"
+                  to={`/profile/${user.uid}`}
                   onClick={onClose}
                   className="flex items-center gap-3 p-4 mb-2 rounded-ns-lg bg-ns-surface border border-ns-border hover:border-ns-border-strong hover:bg-ns-surface-hover transition-colors group"
                 >
@@ -138,13 +138,13 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-ns-accent flex items-center justify-center shrink-0">
                       <span className="text-white text-lg font-semibold font-ui">
-                        {user.displayName?.[0]?.toUpperCase() || "U"}
+                        {user.username?.[0]?.toUpperCase() || "U"}
                       </span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-semibold font-ui truncate text-ns-ink">
-                      {user.displayName || "User"}
+                      @{user.username || "user"}
                     </p>
                     <p className="text-sm text-ns-ink-muted truncate">
                       {user.email}

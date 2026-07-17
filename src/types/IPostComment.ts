@@ -3,7 +3,7 @@ export interface IPostComment {
   postId: string;
   content: string;
   authorId: string;
-  authorName: string;
+  authorUsername: string;
   parentId: string | null;
   createdAt: Date | any; // Firestore Timestamp compatible
   updatedAt: Date | any; // Firestore Timestamp compatible

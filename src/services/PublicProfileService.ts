@@ -3,23 +3,37 @@ import { firestore } from "@/config/firebase";
 
 export interface PublicProfile {
   username: string;
-  displayName?: string;
   photoURL?: string;
+  bio?: string;
+  occupation?: string;
+  location?: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
 class PublicProfileService {
   async upsertPublicProfile(
     userId: string,
-    data: { username: string; displayName?: string; photoURL?: string },
+    data: {
+      username: string;
+      photoURL?: string;
+      bio?: string;
+      occupation?: string;
+      location?: string;
+      createdAt?: string;
+    },
   ): Promise<void> {
     const profileRef = doc(firestore, "publicProfiles", userId);
     await setDoc(
       profileRef,
       {
         username: data.username,
-        ...(data.displayName ? { displayName: data.displayName } : {}),
         ...(data.photoURL ? { photoURL: data.photoURL } : {}),
+        // !== undefined (not truthiness) so fields can be cleared to ""
+        ...(data.bio !== undefined ? { bio: data.bio } : {}),
+        ...(data.occupation !== undefined ? { occupation: data.occupation } : {}),
+        ...(data.location !== undefined ? { location: data.location } : {}),
+        ...(data.createdAt ? { createdAt: data.createdAt } : {}),
         updatedAt: new Date().toISOString(),
       },
       { merge: true },

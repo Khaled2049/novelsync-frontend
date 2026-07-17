@@ -129,7 +129,7 @@ const UserDropdown = ({
     >
       {/* User Info — editorial header with accent-tinted band */}
       <Link
-        to="/profile"
+        to={`/profile/${user.uid}`}
         onClick={onClose}
         className="group/header relative block border-b border-ns-border bg-gradient-to-br from-ns-accent-subtle to-ns-surface px-4 pt-5 pb-4 transition-colors"
       >
@@ -147,7 +147,7 @@ const UserDropdown = ({
           )}
           <div className="flex-1 min-w-0">
             <p className="font-ui text-sm font-semibold truncate text-ns-ink">
-              {user.displayName || "User"}
+              @{user.username || "user"}
             </p>
             <p className="font-ui text-xs text-ns-ink-muted truncate">
               {user.email}

@@ -10,3 +10,4 @@ export { default as BookSearch } from "./BookSearch";
 export { default as SearchField } from "./SearchField";
 export { TagMultiSelect } from "./TagMultiSelect";
 export { RouteError } from "./RouteError";
+export { AuthorName } from "./AuthorName";

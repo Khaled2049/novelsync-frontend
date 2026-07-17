@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   MessageCircle,
   Edit2,
@@ -10,6 +11,7 @@ import { IPostComment } from "@/types/IPostComment";
 import { IUser } from "@/types/IUser";
 import VoteButtons from "@/components/community/VoteButtons";
 import { voteService } from "@/services/VoteService";
+import { useAuthorUsername } from "@/hooks/queries/useUserQueries";
 
 interface PostCommentProps {
   comment: IPostComment;
@@ -44,6 +46,13 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
     const replies = useMemo(
       () => allComments.filter((c) => c.parentId === comment.id),
       [allComments, comment.id],
+    );
+
+    // Live-resolve the author's current username (falls back to the stored copy
+    // while the profile loads) so username changes show up here too.
+    const authorUsername = useAuthorUsername(
+      comment.authorId,
+      comment.authorUsername,
     );
 
     const handleEdit = async () => {
@@ -176,9 +185,13 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
 
               {/* Comment Header */}
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-ui font-semibold text-ns-ink text-xs">
-                  {comment.authorName}
-                </span>
+                <Link
+                  to={`/profile/${comment.authorId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-ui font-semibold text-ns-ink text-xs no-underline hover:text-ns-accent hover:underline transition-colors"
+                >
+                  @{authorUsername}
+                </Link>
                 <span className="font-ui text-[10px] text-ns-ink-muted">
                   {formatDate(comment.createdAt)}
                 </span>
@@ -316,9 +329,13 @@ export const PostComment: React.FC<PostCommentProps> = React.memo(
               {/* Collapsed preview */}
               {isCollapsed && (
                 <div className="flex items-center gap-1.5 font-ui text-xs text-ns-ink-muted">
-                  <span className="text-ns-ink font-medium">
-                    {comment.authorName}
-                  </span>
+                  <Link
+                    to={`/profile/${comment.authorId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-ns-ink font-medium no-underline hover:text-ns-accent hover:underline transition-colors"
+                  >
+                    @{authorUsername}
+                  </Link>
                   <span className="text-[10px]">
                     {formatDate(comment.createdAt)}
                   </span>

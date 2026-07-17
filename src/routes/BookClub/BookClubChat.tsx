@@ -42,10 +42,9 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [senderNames, setSenderNames] = useState<Record<string, string>>({});
   const [currentUsername, setCurrentUsername] = useState<string>(
-    user.username || user.displayName || "Anonymous",
+    user.username || "Anonymous",
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { displayName } = user;
   const maxMessageLength = RATE_LIMITS.MAX_MESSAGE_SIZE_CHARS;
 
   useEffect(() => {
@@ -72,15 +71,11 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
         if (!isMounted) return;
 
         const resolvedUsername =
-          profile?.username ||
-          profile?.displayName ||
-          user.username ||
-          displayName ||
-          "Anonymous";
+          profile?.username || user.username || "Anonymous";
         setCurrentUsername(resolvedUsername);
       } catch {
         if (isMounted) {
-          setCurrentUsername(user.username || displayName || "Anonymous");
+          setCurrentUsername(user.username || "Anonymous");
         }
       }
     };
@@ -89,7 +84,7 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [displayName, user.uid, user.username]);
+  }, [user.uid, user.username]);
 
   useEffect(() => {
     let isMounted = true;
@@ -106,8 +101,8 @@ const BookClubChat: React.FC<BookClubChatProps> = ({
           const next = { ...prev };
           senderIds.forEach((senderId) => {
             const profile = profileMap.get(senderId);
-            if (profile?.username || profile?.displayName) {
-              next[senderId] = profile.username || profile.displayName || next[senderId];
+            if (profile?.username) {
+              next[senderId] = profile.username || next[senderId];
             }
           });
           return next;
