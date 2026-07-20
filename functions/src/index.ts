@@ -53,3 +53,4 @@ export {
   validateAiKey,
 } from "./aiSettingsEndpoints";
 export { reserveStorageUpload } from "./storageUploadEndpoints";
+export { getCreditBalance, purchaseCredits } from "./creditEndpoints";

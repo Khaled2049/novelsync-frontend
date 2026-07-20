@@ -7,8 +7,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { useEarnings } from "@/hooks/useEarnings";
 import { useUserStoriesWithEarnings } from "@/hooks/queries/useStoryQueries";
+import {
+  useAiCreditsQuery,
+  usePurchaseCredits,
+} from "@/hooks/queries/useCreditQueries";
 import { useAccount, useChainId } from "wagmi";
 import { userService } from "@/services/UserService";
+import { getApiErrorMessage } from "@/api";
+import { Button } from "@/components/ui/button";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import { WEB3_ENABLED } from "@/config/featureFlags";
 import {
@@ -75,6 +81,87 @@ const Row = ({
     <div className="flex-shrink-0">{children}</div>
   </div>
 );
+
+// Preset top-up tiers (MVP: no payment). Must match ALLOWED_CREDIT_TIERS in the
+// Firebase Function / agent service, which reject any other amount.
+const CREDIT_TIERS = [10000, 50000, 100000];
+
+const AiCreditsCard: React.FC<{ userId: string | undefined }> = ({
+  userId,
+}) => {
+  const { data, isLoading, isError } = useAiCreditsQuery(userId);
+  const purchase = usePurchaseCredits(userId);
+  const [justAdded, setJustAdded] = useState<number | null>(null);
+
+  const handlePurchase = (amount: number) => {
+    purchase.mutate(amount, {
+      onSuccess: () => {
+        setJustAdded(amount);
+        setTimeout(() => setJustAdded(null), 3000);
+      },
+    });
+  };
+
+  return (
+    <Card title="AI Credits">
+      <Row
+        label="Available credits"
+        description="Spent on platform AI features like co-write."
+      >
+        <span className="font-heading text-2xl text-ns-ink tabular-nums">
+          {isLoading
+            ? "…"
+            : isError
+              ? "—"
+              : (data?.availableCredits ?? 0).toLocaleString()}
+        </span>
+      </Row>
+
+      <div className="pt-4">
+        <p className="text-[10px] font-ui font-semibold uppercase tracking-widest text-ns-ink-muted mb-3">
+          Top up
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {CREDIT_TIERS.map((amount) => {
+            const pending =
+              purchase.isPending && purchase.variables === amount;
+            return (
+              <Button
+                key={amount}
+                variant="outline"
+                disabled={purchase.isPending}
+                onClick={() => handlePurchase(amount)}
+              >
+                {pending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  `+${amount.toLocaleString()}`
+                )}
+              </Button>
+            );
+          })}
+        </div>
+
+        {justAdded !== null && (
+          <div className="mt-3 flex items-center gap-2 text-sm font-ui text-ns-accent">
+            <CheckCircle2 className="w-4 h-4" /> Added{" "}
+            {justAdded.toLocaleString()} credits
+          </div>
+        )}
+        {purchase.isError && (
+          <p className="mt-3 text-sm font-ui text-ns-destructive">
+            {getApiErrorMessage(purchase.error, "Failed to purchase credits")}
+          </p>
+        )}
+        {isError && !purchase.isError && (
+          <p className="mt-3 text-xs font-ui text-ns-ink-muted">
+            Couldn&apos;t load your balance. Try refreshing.
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 // ─── Owner-only settings (Appearance, AI Provider, Wallet & Earnings) ──────────
 
@@ -214,6 +301,9 @@ const OwnerSettings: React.FC = () => {
       >
         <AiSettings />
       </Suspense>
+
+      {/* ── AI Credits (platform users only; BYOK users don't spend credits) ── */}
+      {!user?.hasCustomAiProvider && <AiCreditsCard userId={user?.uid} />}
 
       {/* ── Wallet & Earnings ── */}
       {WEB3_ENABLED && (

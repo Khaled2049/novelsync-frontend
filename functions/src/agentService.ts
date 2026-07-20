@@ -268,6 +268,92 @@ export async function callAgent(
   }
 }
 
+/**
+ * Call an arbitrary POST endpoint on the Python agent service, reusing the
+ * same auth as {@link callAgent}: a GCP identity token for Cloud Run plus the
+ * end-user's forwarded Firebase token. Used for non-generation endpoints such
+ * as credit balance/top-up. Returns the parsed `{success,data,error}` envelope.
+ */
+export async function callAgentPath(
+  path: string,
+  body: Record<string, unknown>,
+  firebaseToken?: string,
+): Promise<AgentResponse> {
+  const agentUrl = getAgentServiceUrl();
+  const target = `${agentUrl}${path}`;
+
+  try {
+    const identityToken = await getIdentityToken();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (identityToken) {
+      headers.Authorization = `Bearer ${identityToken}`;
+    }
+    if (firebaseToken) {
+      headers["X-Firebase-Token"] = firebaseToken;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let rawResponse: Response;
+    try {
+      rawResponse = await fetch(target, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const responseData: unknown = await rawResponse.json().catch(() => null);
+    if (!rawResponse.ok) {
+      throw new FetchError(`HTTP ${rawResponse.status} ${rawResponse.statusText}`, {
+        response: {
+          status: rawResponse.status,
+          statusText: rawResponse.statusText,
+          data: responseData,
+        },
+      });
+    }
+    return { success: true, data: responseData };
+  } catch (error) {
+    if (error instanceof FetchError) {
+      const agentError = (error.response?.data as any)?.error;
+      const friendlyMessage =
+        typeof agentError === "object" && agentError?.message
+          ? agentError.message
+          : typeof agentError === "string"
+            ? agentError
+            : null;
+      const errorCode: string | undefined =
+        typeof agentError === "object" && typeof agentError?.code === "string"
+          ? agentError.code
+          : undefined;
+      logger.error(`Agent service error [${path}]: ${friendlyMessage ?? error.message}`, {
+        status: error.response?.status,
+        url: target,
+        isLocalDevelopment,
+      });
+      return {
+        success: false,
+        error: friendlyMessage ?? error.message,
+        errorCode,
+      };
+    }
+    const networkError =
+      error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error calling agent service [${path}]`, {
+      error: networkError.message,
+      url: target,
+      isLocalDevelopment,
+    });
+    return { success: false, error: networkError.message };
+  }
+}
+
 const NON_RETRYABLE_ERROR_CODES = new Set([
   "INSUFFICIENT_CREDITS",
   "UNAUTHORIZED",

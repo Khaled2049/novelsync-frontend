@@ -35,6 +35,7 @@ export const queryKeys = {
     publicProfile: (userId: string) =>
       ["user", userId, "publicProfile"] as const,
     recentlyRead: (userId: string) => ["user", userId, "recentlyRead"] as const,
+    aiCredits: (userId: string) => ["user", userId, "aiCredits"] as const,
   },
   earnings: {
     story: (storyId: string, chainId: number) =>

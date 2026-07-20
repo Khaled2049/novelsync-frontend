@@ -7,6 +7,19 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
 
 const MAX_TURNS = 12;
 
+// The agent raises "unexpected structure" / "Expected N choices" when the model
+// returns malformed or truncated JSON — technical noise (often including a raw
+// JSON dump) that's almost always transient. Surface reassuring copy instead of
+// the raw payload; genuine actionable errors (e.g. insufficient credits) pass
+// through unchanged. Retrying is always a manual user action (never automatic).
+function friendlyChoicesError(err: unknown, fallback: string): string {
+  const raw = err instanceof Error ? err.message : "";
+  if (/unexpected structure|Expected \d+ choice|malformed|```/i.test(raw)) {
+    return "The AI's response came back garbled. This is usually temporary — please try again.";
+  }
+  return raw || fallback;
+}
+
 interface InteractiveStoryPanelProps {
   storyId: string;
   chapterId?: string;
@@ -65,9 +78,7 @@ export function InteractiveStoryPanel({
       })
       .catch((err: unknown) => {
         setErrorMessage(
-          err instanceof Error
-            ? err.message
-            : "Failed to generate story choices.",
+          friendlyChoicesError(err, "Failed to generate story choices."),
         );
         setPhase("error");
       });
@@ -107,9 +118,7 @@ export function InteractiveStoryPanel({
       }
       onClose();
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to generate ending.",
-      );
+      setErrorMessage(friendlyChoicesError(err, "Failed to generate ending."));
       setPhase("choosing");
     }
   }
@@ -131,9 +140,7 @@ export function InteractiveStoryPanel({
         onChoiceInserted();
       }
     } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to generate scene.",
-      );
+      setErrorMessage(friendlyChoicesError(err, "Failed to generate scene."));
     } finally {
       setIsLoadingCustom(false);
       setCustomDirection("");
@@ -196,11 +203,20 @@ export function InteractiveStoryPanel({
           </div>
         )}
 
-        {/* Error state */}
+        {/* Error state — manual retry only (bumping regenKey re-runs the fetch) */}
         {phase === "error" && (
-          <p className="font-ui text-sm text-ns-destructive py-4 text-center">
-            {errorMessage}
-          </p>
+          <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
+            <p className="font-ui text-sm text-ns-destructive">
+              {errorMessage}
+            </p>
+            <button
+              onClick={() => setRegenKey((k) => k + 1)}
+              className="flex items-center gap-1.5 px-3 py-1.5 font-ui text-xs bg-ns-accent text-white rounded-ns hover:bg-ns-accent-hover transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Try again
+            </button>
+          </div>
         )}
 
         {/* Choices */}
