@@ -41,6 +41,31 @@ interface StoryDetailState {
 
 type ViewMode = "details" | "reader";
 
+const CHAPTER_FETCH_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 const StoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthContext();
@@ -79,9 +104,10 @@ const StoryDetail: React.FC = () => {
   // responses when the user navigates faster than the network resolves.
   const activeChapterId = useRef<string | null>(null);
   // Saved resume position (chapter + scroll), captured on load.
-  const resumeRef = useRef<{ chapterIndex: number; scrollPercent: number } | null>(
-    null,
-  );
+  const resumeRef = useRef<{
+    chapterIndex: number;
+    scrollPercent: number;
+  } | null>(null);
   const [readNowPending, setReadNowPending] = useState(false);
 
   // --- Data Loading ---
@@ -134,7 +160,11 @@ const StoryDetail: React.FC = () => {
       }));
 
       try {
-        const fullChapter = await storiesRepo.getChapter(id, chapterMeta.id);
+        const fullChapter = await withTimeout(
+          storiesRepo.getChapter(id, chapterMeta.id),
+          CHAPTER_FETCH_TIMEOUT_MS,
+          "Chapter fetch",
+        );
 
         // A newer navigation superseded this request — drop the stale result.
         if (activeChapterId.current !== chapterMeta.id) return;
@@ -327,7 +357,10 @@ const StoryDetail: React.FC = () => {
       currentChapterIndex: prevIndex,
       chapterError: null,
       ...(cached && chapterMeta
-        ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
+        ? {
+            currentChapter: { ...chapterMeta, content: cached } as Chapter,
+            chapterLoading: false,
+          }
         : { chapterLoading: true }),
     }));
 
@@ -372,7 +405,10 @@ const StoryDetail: React.FC = () => {
       currentChapterIndex: nextIndex,
       chapterError: null,
       ...(cached && chapterMeta
-        ? { currentChapter: { ...chapterMeta, content: cached } as Chapter, chapterLoading: false }
+        ? {
+            currentChapter: { ...chapterMeta, content: cached } as Chapter,
+            chapterLoading: false,
+          }
         : { chapterLoading: true }),
     }));
 
@@ -489,7 +525,6 @@ const StoryDetail: React.FC = () => {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
 
   // --- Render ---
   if (state.loading) {
