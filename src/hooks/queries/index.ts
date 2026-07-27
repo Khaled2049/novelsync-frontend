@@ -3,6 +3,7 @@ export * from "./useBookClubQueries";
 export * from "./useCharacterQueries";
 export * from "./useCommentQueries";
 export * from "./usePlaceQueries";
+export * from "./usePlotQueries";
 export * from "./usePostQueries";
 export * from "./useStoryQueries";
 export * from "./useUserQueries";

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Book, ChevronDown, PlusCircle, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
@@ -18,42 +18,63 @@ import {
   PlotLine,
   TemplateData,
   DEFAULT_PLOT_EVENT_VALUES,
+  PLOT_TEMPLATES,
+  ensureEventDefaults,
 } from "@/types/IPlot";
-import { Character } from "@/types/ICharacter";
-import { Place } from "@/types/IPlace";
-import { plotService } from "@/services/PlotService";
-import { characterService } from "@/services/CharacterService";
-import { placeService } from "@/services/PlaceService";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/hooks/queries/queryKeys";
+import { useCharacters } from "@/hooks/queries/useCharacterQueries";
+import { usePlaces } from "@/hooks/queries/usePlaceQueries";
+import {
+  useAddEvent,
+  useAddPlotLine,
+  useDeleteEvent,
+  useDeletePlotLine,
+  usePlots,
+  useReorderEvents,
+  useUpdateEvent,
+  useUpdatePlotLineMeta,
+} from "@/hooks/queries/usePlotQueries";
 import { useParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 
-// Helper to ensure event has all required fields with defaults
-function ensureEventDefaults(
-  event: Partial<PlotEvent> & { id: string; name: string; content: string },
-  orderIndex: number,
-): PlotEvent {
-  return {
-    ...DEFAULT_PLOT_EVENT_VALUES,
-    ...event,
-    characterIds: event.characterIds ?? [],
-    locationId: event.locationId ?? null,
-    dependencies: event.dependencies ?? [],
-    dependents: event.dependents ?? [],
-    tensionLevel: event.tensionLevel ?? 5,
-    pacing: event.pacing ?? "moderate",
-    storyBeat: event.storyBeat ?? "rising_action",
-    orderIndex: event.orderIndex ?? orderIndex,
-  };
-}
+/** Inline grid edits coalesce into one write per event after this idle gap. */
+const INLINE_SAVE_DEBOUNCE_MS = 600;
 
 const PlotTimeline: React.FC = () => {
-  const [plotLines, setPlotLines] = useState<PlotLine[]>([]);
   const { storyId } = useParams<{ storyId: string }>();
   const { user } = useAuthContext();
   const { requireAuth } = useDemoMode();
+  const queryClient = useQueryClient();
 
-  const [templates, setTemplates] = useState<TemplateData[]>([]);
+  const { data: rawPlotLines } = usePlots(storyId);
+  // Characters and places come from the shared cache the Characters/Places pages
+  // already populate — this page must not refetch them itself.
+  const { data: characters = [] } = useCharacters(storyId);
+  const { data: places = [] } = usePlaces(storyId);
+
+  const addPlotLineMutation = useAddPlotLine(storyId);
+  const updatePlotLineMeta = useUpdatePlotLineMeta(storyId);
+  const deletePlotLineMutation = useDeletePlotLine(storyId);
+  const addEventMutation = useAddEvent(storyId);
+  const updateEventMutation = useUpdateEvent(storyId);
+  const deleteEventMutation = useDeleteEvent(storyId);
+  const reorderEventsMutation = useReorderEvents(storyId);
+
+  // Legacy events are backfilled on read so the grid never sees a partial event.
+  const plotLines: PlotLine[] = useMemo(
+    () =>
+      (rawPlotLines ?? []).map((line) => ({
+        ...line,
+        events: (line.events ?? []).map((event, index) =>
+          ensureEventDefaults(event, index),
+        ),
+      })),
+    [rawPlotLines],
+  );
+
+  const templates: TemplateData[] = PLOT_TEMPLATES;
   const [isPlotLineModalOpen, setisPlotLineModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editingPlotLine, setEditingPlotLine] = useState<PlotLine | null>(null);
@@ -64,25 +85,24 @@ const PlotTimeline: React.FC = () => {
 
   const [activePlotLineId, setActivePlotLineId] = useState<string | null>(null);
 
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [places, setPlaces] = useState<Place[]>([]);
-
-  // Debounced per-plotline persistence for inline cell edits
+  // Debounced per-event persistence for inline cell edits, keyed plotLineId:eventId.
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingEdits = useRef<
+    Record<string, { plotLineId: string; event: PlotEvent }>
+  >({});
 
-  useEffect(() => {
-    loadPlots();
-    if (storyId) {
-      characterService
-        .getCharacters(storyId)
-        .then(setCharacters)
-        .catch(() => {});
-      placeService
-        .getPlaces(storyId)
-        .then(setPlaces)
-        .catch(() => {});
+  // Navigating away mid-debounce must not lose the last keystrokes — flush, don't drop.
+  const flushPendingRef = useRef<() => void>(() => {});
+  flushPendingRef.current = () => {
+    for (const key of Object.keys(pendingEdits.current)) {
+      clearTimeout(saveTimers.current[key]);
+      delete saveTimers.current[key];
+      const pending = pendingEdits.current[key];
+      delete pendingEdits.current[key];
+      updateEventMutation.mutate({ ...pending, revalidate: false });
     }
-  }, [storyId]);
+  };
+  useEffect(() => () => flushPendingRef.current(), []);
 
   // Keep an active plotline selected as the list changes
   useEffect(() => {
@@ -95,163 +115,92 @@ const PlotTimeline: React.FC = () => {
     }
   }, [plotLines, activePlotLineId]);
 
-  const loadPlots = async () => {
-    if (!storyId) return;
-
-    const plots = await plotService.getPlots(storyId);
-    const migratedPlots = plots.map((plot) => ({
-      ...plot,
-      events: plot.events.map((event, index) =>
-        ensureEventDefaults(event, index),
-      ),
-    }));
-    setPlotLines(migratedPlots);
-
-    const data = await plotService.loadTemplateData();
-    setTemplates(data);
-  };
-
-  const persistPlotLine = (plotLine: PlotLine) => {
-    if (!storyId) return;
-    if (saveTimers.current[plotLine.id]) {
-      clearTimeout(saveTimers.current[plotLine.id]);
-    }
-    saveTimers.current[plotLine.id] = setTimeout(() => {
-      plotService
-        .updatePlot(storyId, plotLine)
-        .catch((e) => console.error("Error saving plot line:", e));
-    }, 600);
-  };
-
   const addPlotLine = async () => {
     if (!storyId) return;
-
-    const plotId = await plotService.addPlot(storyId, "New PlotLine");
-    setPlotLines([
-      ...plotLines,
-      {
-        id: plotId,
-        name: "New PlotLine",
-        description: "",
-        events: [],
-      },
-    ]);
+    const plotId = await addPlotLineMutation.mutateAsync("New PlotLine");
     setActivePlotLineId(plotId);
   };
 
-  const addEvent = async (plotLineId: string) => {
+  const addEvent = (plotLineId: string) => {
     if (!storyId || !user?.uid) return;
 
     const plotLine = plotLines.find((pl) => pl.id === plotLineId);
     const orderIndex = plotLine ? plotLine.events.length : 0;
 
-    const newEvent: PlotEvent = {
-      ...DEFAULT_PLOT_EVENT_VALUES,
-      id: new Date().getTime().toString(),
-      name: "New Event",
-      content: "",
-      orderIndex,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userId: user.uid,
-    };
-
-    const eventId = await plotService.addEvent(storyId, plotLineId, newEvent);
-    setPlotLines(
-      plotLines.map((plotLine) =>
-        plotLine.id === plotLineId
-          ? {
-              ...plotLine,
-              events: [
-                ...plotLine.events,
-                { ...newEvent, id: eventId } as PlotEvent,
-              ],
-            }
-          : plotLine,
-      ),
-    );
+    // No id here — plotService.addEvent mints it.
+    addEventMutation.mutate({
+      plotLineId,
+      event: {
+        ...DEFAULT_PLOT_EVENT_VALUES,
+        name: "New Event",
+        content: "",
+        orderIndex,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: user.uid,
+      },
+    });
   };
 
-  // Inline cell edit — optimistic local update + debounced atomic save
+  // Inline cell edit. The cache is written on the keystroke so the grid stays
+  // responsive; the network write is debounced per event, so typing across cells
+  // collapses into one write per event instead of one per character.
   const updateEventInline = (plotLineId: string, updatedEvent: PlotEvent) => {
-    const next = plotLines.map((pl) =>
-      pl.id === plotLineId
-        ? {
-            ...pl,
-            events: pl.events.map((ev) =>
-              ev.id === updatedEvent.id
-                ? { ...updatedEvent, updatedAt: new Date().toISOString() }
-                : ev,
-            ),
-          }
-        : pl,
+    if (!storyId) return;
+    const event = { ...updatedEvent, updatedAt: new Date().toISOString() };
+
+    queryClient.setQueryData<PlotLine[]>(
+      queryKeys.plots.byStory(storyId),
+      (old) =>
+        (old ?? []).map((line) =>
+          line.id === plotLineId
+            ? {
+                ...line,
+                events: line.events.map((e) =>
+                  e.id === event.id ? event : e,
+                ),
+              }
+            : line,
+        ),
     );
-    setPlotLines(next);
-    const updated = next.find((pl) => pl.id === plotLineId);
-    if (updated) persistPlotLine(updated);
+
+    const timerKey = `${plotLineId}:${event.id}`;
+    if (saveTimers.current[timerKey]) {
+      clearTimeout(saveTimers.current[timerKey]);
+    }
+    pendingEdits.current[timerKey] = { plotLineId, event };
+    saveTimers.current[timerKey] = setTimeout(() => {
+      delete saveTimers.current[timerKey];
+      delete pendingEdits.current[timerKey];
+      // No settle-time refetch: other cells may still be inside their debounce,
+      // and server state would momentarily revert them under the user's cursor.
+      updateEventMutation.mutate({ plotLineId, event, revalidate: false });
+    }, INLINE_SAVE_DEBOUNCE_MS);
   };
 
   const deleteEvent = (plotLineId: string, eventId: string) => {
     if (!storyId) return;
-    const plotLine = plotLines.find((pl) => pl.id === plotLineId);
-    if (!plotLine) return;
-
-    const updated: PlotLine = {
-      ...plotLine,
-      events: plotLine.events
-        .filter((ev) => ev.id !== eventId)
-        .map((ev, idx) => ({ ...ev, orderIndex: idx })),
-    };
-    setPlotLines(plotLines.map((pl) => (pl.id === plotLineId ? updated : pl)));
-    plotService
-      .updatePlot(storyId, updated)
-      .catch((e) => console.error("Error deleting plot point:", e));
+    deleteEventMutation.mutate({ plotLineId, eventId });
   };
 
-  const removePlotline = async (plotLineId: string) => {
+  const removePlotline = (plotLineId: string) => {
     if (!storyId) return;
-    await plotService.deletePlot(storyId, plotLineId);
-    setPlotLines(plotLines.filter((plotLine) => plotLine.id !== plotLineId));
+    deletePlotLineMutation.mutate(plotLineId);
   };
 
   const handleSavePlotLineModal = async () => {
     if (!storyId || !editingPlotLine) return;
-    await plotService.updatePlot(storyId, editingPlotLine);
-    if (editingPlotLine) {
-      setPlotLines(
-        plotLines.map((plotLine) =>
-          plotLine.id === editingPlotLine.id ? editingPlotLine : plotLine,
-        ),
-      );
-      closeEditPlotLineModal();
-    }
+    await updatePlotLineMeta.mutateAsync(editingPlotLine);
+    closeEditPlotLineModal();
   };
 
   const handleSaveEvent = async () => {
     if (!storyId || !editingEvent) return;
-
-    if (editingEvent) {
-      await plotService.updateEvent(
-        storyId,
-        editingEvent.plotLineId,
-        editingEvent.event,
-      );
-      setPlotLines(
-        plotLines.map((plotLine) =>
-          plotLine.id === editingEvent.plotLineId
-            ? {
-                ...plotLine,
-                events: plotLine.events.map((event) =>
-                  event.id === editingEvent.event.id
-                    ? editingEvent.event
-                    : event,
-                ),
-              }
-            : plotLine,
-        ),
-      );
-      closeEditEventModal();
-    }
+    await updateEventMutation.mutateAsync({
+      plotLineId: editingEvent.plotLineId,
+      event: editingEvent.event,
+    });
+    closeEditEventModal();
   };
 
   const openEditPlotlineModal = (plotLine: PlotLine) => {
@@ -265,8 +214,7 @@ const PlotTimeline: React.FC = () => {
   };
 
   const openEditEventModal = (plotLineId: string, event: PlotEvent) => {
-    const migratedEvent = ensureEventDefaults(event, event.orderIndex ?? 0);
-    setEditingEvent({ plotLineId, event: { ...migratedEvent } });
+    setEditingEvent({ plotLineId, event: { ...event } });
     setIsEventModalOpen(true);
   };
 
@@ -282,32 +230,32 @@ const PlotTimeline: React.FC = () => {
     }
 
     try {
-      const plotId = await plotService.addPlot(storyId, template.name);
+      const plotId = await addPlotLineMutation.mutateAsync(template.name);
 
-      const eventPromises = template.events.map((e, idx) => {
-        const plotEvent: PlotEvent = {
-          ...DEFAULT_PLOT_EVENT_VALUES,
-          id: idx.toString(),
-          content: e.content,
-          name: e.name,
-          orderIndex: idx,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          userId: user.uid,
-        };
-        return plotService.addEvent(storyId, plotId, plotEvent);
-      });
+      // Sequential: each addEvent is an arrayUnion on the same document.
+      for (const [idx, e] of template.events.entries()) {
+        await addEventMutation.mutateAsync({
+          plotLineId: plotId,
+          event: {
+            ...DEFAULT_PLOT_EVENT_VALUES,
+            content: e.content,
+            name: e.name,
+            orderIndex: idx,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            userId: user.uid,
+          },
+        });
+      }
 
-      await Promise.all(eventPromises);
       setActivePlotLineId(plotId);
-      loadPlots();
     } catch (error) {
       console.error("Error adding plot line from template:", error);
       throw error;
     }
   };
 
-  const handleDragEnd = async (result: DropResult) => {
+  const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
 
     if (!destination) return;
@@ -319,35 +267,17 @@ const PlotTimeline: React.FC = () => {
       return;
     }
 
+    if (source.droppableId !== destination.droppableId) return;
+
     const plotLineId = source.droppableId;
     const plotLine = plotLines.find((pl) => pl.id === plotLineId);
+    if (!plotLine || !storyId) return;
 
-    if (!plotLine) return;
+    const orderedIds = plotLine.events.map((e) => e.id);
+    const [removed] = orderedIds.splice(source.index, 1);
+    orderedIds.splice(destination.index, 0, removed);
 
-    if (source.droppableId === destination.droppableId) {
-      const newEvents = Array.from(plotLine.events);
-      const [removed] = newEvents.splice(source.index, 1);
-      newEvents.splice(destination.index, 0, removed);
-
-      const updatedEvents = newEvents.map((event, index) => ({
-        ...event,
-        orderIndex: index,
-        updatedAt: new Date().toISOString(),
-      }));
-
-      const updatedPlotLine = {
-        ...plotLine,
-        events: updatedEvents,
-      };
-
-      setPlotLines(
-        plotLines.map((pl) => (pl.id === plotLineId ? updatedPlotLine : pl)),
-      );
-
-      if (storyId) {
-        await plotService.updatePlot(storyId, updatedPlotLine);
-      }
-    }
+    reorderEventsMutation.mutate({ plotLineId, orderedIds });
   };
 
   const activePlotLine =

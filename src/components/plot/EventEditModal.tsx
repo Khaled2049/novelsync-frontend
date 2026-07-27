@@ -2,7 +2,7 @@ import {
   PlotEvent,
   StoryBeatType,
   PacingType,
-  DEFAULT_PLOT_EVENT_VALUES,
+  ensureEventDefaults,
 } from "@/types/IPlot";
 import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,24 +36,6 @@ const TENSION_LABELS: Record<number, string> = {
   9: "Critical",
   10: "Maximum",
 };
-
-// Helper to ensure event has all required fields with defaults
-function ensureEventDefaults(
-  event: Partial<PlotEvent> & { id: string; name: string; content: string },
-): PlotEvent {
-  return {
-    ...DEFAULT_PLOT_EVENT_VALUES,
-    ...event,
-    characterIds: event.characterIds ?? [],
-    locationId: event.locationId ?? null,
-    dependencies: event.dependencies ?? [],
-    dependents: event.dependents ?? [],
-    tensionLevel: event.tensionLevel ?? 5,
-    pacing: event.pacing ?? "moderate",
-    storyBeat: event.storyBeat ?? "rising_action",
-    orderIndex: event.orderIndex ?? 0,
-  };
-}
 
 export const EventEditModal: React.FC<EventEditModalProps> = ({
   isOpen,
@@ -98,7 +80,10 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
   if (!isOpen || !editingEvent) return null;
 
   // Ensure event has all fields with defaults
-  const event = ensureEventDefaults(editingEvent.event);
+  const event = ensureEventDefaults(
+    editingEvent.event,
+    editingEvent.event.orderIndex ?? 0,
+  );
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     pointerDownOnOverlay.current = e.target === e.currentTarget;

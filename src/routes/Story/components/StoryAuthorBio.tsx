@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import { User, DollarSign } from "lucide-react";
 import { StoryTipModal } from "./StoryTipModal";
 import { WEB3_ENABLED } from "@/config/featureFlags";
-import { useAuthorUsername } from "@/hooks/queries/useUserQueries";
+import {
+  useAuthorUsername,
+  usePublicProfile,
+} from "@/hooks/queries/useUserQueries";
 
 interface StoryAuthorBioProps {
   author: string;
@@ -26,8 +29,13 @@ export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
   // bio reflects username changes; fall back to the copy stored on the story.
   const displayAuthor = useAuthorUsername(authorId, author);
 
+  // Pull the author's live public profile for the real bio + photo. Prefer it
+  // over the copy passed in, then a generic line while signed out / unset.
+  const { data: authorProfile } = usePublicProfile(authorId);
+  const photoURL = authorProfile?.photoURL;
   const authorBio =
-    bio ||
+    authorProfile?.bio?.trim() ||
+    bio?.trim() ||
     `${displayAuthor} is a writer who loves exploring complex themes through storytelling.`;
 
   return (
@@ -38,8 +46,16 @@ export const StoryAuthorBio: React.FC<StoryAuthorBioProps> = ({
         </p>
 
         <div className="flex gap-5 items-start">
-          <div className="w-14 h-14 rounded-full bg-ns-elevated border border-ns-border flex items-center justify-center flex-shrink-0">
-            <User className="w-6 h-6 text-ns-ink-muted" />
+          <div className="w-14 h-14 rounded-full bg-ns-elevated border border-ns-border overflow-hidden flex items-center justify-center flex-shrink-0">
+            {photoURL ? (
+              <img
+                src={photoURL}
+                alt={displayAuthor}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-6 h-6 text-ns-ink-muted" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-ui text-sm font-semibold text-ns-ink mb-1.5">

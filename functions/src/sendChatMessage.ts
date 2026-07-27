@@ -109,10 +109,10 @@ export const sendChatMessage = onRequest(
 
       const responseData = (agentResponse.data as any).data;
 
-      // Save user message and assistant response to Firestore. We no longer write
-      // a contextSnapshot: it required reading every context doc up front (the cost
-      // this change removes), and the agent now selects context per message via
-      // vector retrieval, so a Node-side ID list wouldn't reflect what was used.
+      // Save user message and assistant response to Firestore. There is no
+      // contextSnapshot: it required reading every context doc up front, and the
+      // agent now selects context per message via vector retrieval, so a Node-side
+      // ID list wouldn't reflect what was actually used.
       await saveChatMessages(
         db,
         storyId,

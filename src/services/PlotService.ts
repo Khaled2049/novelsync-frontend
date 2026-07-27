@@ -3,24 +3,28 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
+  runTransaction,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import {
-  PlotEvent,
-  PlotLine,
-  TemplateData,
-  PLOT_TEMPLATES,
-  EventDependency,
-  DEFAULT_PLOT_EVENT_VALUES,
-} from "@/types/IPlot";
+import { PlotEvent, PlotLine } from "@/types/IPlot";
 import { firestore } from "@/config/firebase";
 import { storiesRepo } from "@/services/StoriesRepo";
 
+/**
+ * Plot lines are one document per line with their events in a nested array
+ * field, so every event write is a read-modify-write of the parent document.
+ * All of those go through a transaction and reconcile by event id — a
+ * concurrent edit to a *different* event in the same line must survive.
+ */
 class PlotService {
   private storiesCollection = collection(firestore, "stories");
+
+  private plotRef(storyId: string, plotId: string) {
+    const storyRef = doc(this.storiesCollection, storyId);
+    return doc(collection(storyRef, "plots"), plotId);
+  }
 
   async addPlot(storyId: string, plotName: string): Promise<string> {
     try {
@@ -47,11 +51,17 @@ class PlotService {
     }
   }
 
-  async updatePlot(storyId: string, plot: PlotLine): Promise<void> {
+  /** Metadata-only write — deliberately never touches the events array. */
+  async updatePlotMeta(
+    storyId: string,
+    plotId: string,
+    meta: { name: string; description: string },
+  ): Promise<void> {
     try {
-      const storyRef = doc(this.storiesCollection, storyId);
-      const plotRef = doc(collection(storyRef, "plots"), plot.id);
-      await setDoc(plotRef, plot);
+      await updateDoc(this.plotRef(storyId, plotId), {
+        name: meta.name,
+        description: meta.description,
+      });
     } catch (error) {
       console.error("Error updating plot:", error);
       throw error;
@@ -60,65 +70,131 @@ class PlotService {
 
   async deletePlot(storyId: string, plotId: string): Promise<void> {
     try {
-      const storyRef = doc(this.storiesCollection, storyId);
-      const plotRef = doc(collection(storyRef, "plots"), plotId);
-      await deleteDoc(plotRef);
+      await deleteDoc(this.plotRef(storyId, plotId));
     } catch (error) {
       console.error("Error deleting plot:", error);
       throw error;
     }
   }
 
-  async addEvent(storyId: string, plotLineId: string, event: PlotEvent) {
+  /**
+   * Mints the event id here so no call site can invent its own scheme.
+   * `arrayUnion` is already atomic, so this needs no transaction.
+   */
+  async addEvent(
+    storyId: string,
+    plotLineId: string,
+    event: Omit<PlotEvent, "id">,
+  ): Promise<PlotEvent> {
     try {
-      const storyRef = doc(this.storiesCollection, storyId);
-      const plotRef = doc(collection(storyRef, "plots"), plotLineId);
-
-      await updateDoc(plotRef, {
-        events: arrayUnion(event),
+      const newEvent: PlotEvent = { ...event, id: crypto.randomUUID() };
+      await updateDoc(this.plotRef(storyId, plotLineId), {
+        events: arrayUnion(newEvent),
       });
-
-      return event.id;
+      return newEvent;
     } catch (error) {
       console.error("Error adding event:", error);
       throw error;
     }
   }
 
-  // Given plotId and eventId, it should update the event in the plot.
+  /** Splices only the matching event, leaving concurrent sibling edits intact. */
   async updateEvent(
     storyId: string,
     plotId: string,
     updatedEvent: PlotEvent,
   ): Promise<void> {
+    const ref = this.plotRef(storyId, plotId);
     try {
-      const storyRef = doc(this.storiesCollection, storyId);
-      const plotRef = doc(collection(storyRef, "plots"), plotId);
+      await runTransaction(firestore, async (tx) => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists()) {
+          throw new Error("Plot not found");
+        }
 
-      // First, get the current plot data
-      const plotSnapshot = await getDoc(plotRef);
-      if (!plotSnapshot.exists()) {
-        throw new Error("Plot not found");
-      }
+        const events = (snapshot.data() as PlotLine).events ?? [];
+        const index = events.findIndex((e) => e.id === updatedEvent.id);
+        if (index === -1) {
+          throw new Error("Event not found in the plot");
+        }
 
-      const plotData = plotSnapshot.data() as PlotLine;
-
-      // Find the index of the event to update
-      const eventIndex = plotData.events.findIndex(
-        (event) => event.id === updatedEvent.id,
-      );
-
-      if (eventIndex === -1) {
-        throw new Error("Event not found in the plot");
-      }
-
-      // Update the event in the events array
-      plotData.events[eventIndex] = updatedEvent;
-
-      // Update the entire plot document with the modified events array
-      await setDoc(plotRef, plotData);
+        const next = [...events];
+        next[index] = updatedEvent;
+        tx.update(ref, { events: next });
+      });
     } catch (error) {
       console.error("Error updating event:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Array-level rewrite for drag-reorder. `orderedIds` is applied to whatever
+   * the document currently holds; events added since the caller's read are
+   * appended rather than dropped.
+   */
+  async reorderEvents(
+    storyId: string,
+    plotId: string,
+    orderedIds: string[],
+  ): Promise<PlotEvent[]> {
+    const ref = this.plotRef(storyId, plotId);
+    try {
+      return await runTransaction(firestore, async (tx) => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists()) {
+          throw new Error("Plot not found");
+        }
+
+        const current = (snapshot.data() as PlotLine).events ?? [];
+        const byId = new Map(current.map((e) => [e.id, e]));
+
+        const ordered = orderedIds
+          .map((id) => byId.get(id))
+          .filter((e): e is PlotEvent => e !== undefined);
+
+        // Anything that appeared between the caller's read and this write.
+        const seen = new Set(orderedIds);
+        const appended = current.filter((e) => !seen.has(e.id));
+
+        const next = [...ordered, ...appended].map((event, index) => ({
+          ...event,
+          orderIndex: index,
+        }));
+
+        tx.update(ref, { events: next });
+        return next;
+      });
+    } catch (error) {
+      console.error("Error reordering events:", error);
+      throw error;
+    }
+  }
+
+  /** Removes one event and renumbers the survivors, preserving concurrent adds. */
+  async deleteEvent(
+    storyId: string,
+    plotId: string,
+    eventId: string,
+  ): Promise<PlotEvent[]> {
+    const ref = this.plotRef(storyId, plotId);
+    try {
+      return await runTransaction(firestore, async (tx) => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists()) {
+          throw new Error("Plot not found");
+        }
+
+        const events = (snapshot.data() as PlotLine).events ?? [];
+        const next = events
+          .filter((e) => e.id !== eventId)
+          .map((event, index) => ({ ...event, orderIndex: index }));
+
+        tx.update(ref, { events: next });
+        return next;
+      });
+    } catch (error) {
+      console.error("Error deleting event:", error);
       throw error;
     }
   }
@@ -134,241 +210,6 @@ class PlotService {
       return plotsSnapshot.docs.map((doc) => doc.data() as PlotLine);
     } catch (error) {
       console.error("Error getting plots:", error);
-      throw error;
-    }
-  }
-
-  async loadTemplateData(): Promise<TemplateData[]> {
-    return PLOT_TEMPLATES;
-  }
-
-  // Migrate a legacy event to the new format with default values
-  migrateEvent(
-    event: Partial<PlotEvent> & { id: string; name: string; content: string },
-    orderIndex: number,
-  ): PlotEvent {
-    return {
-      ...DEFAULT_PLOT_EVENT_VALUES,
-      ...event,
-      orderIndex: event.orderIndex ?? orderIndex,
-      characterIds: event.characterIds ?? [],
-      locationId: event.locationId ?? null,
-      dependencies: event.dependencies ?? [],
-      dependents: event.dependents ?? [],
-      tensionLevel: event.tensionLevel ?? 5,
-      pacing: event.pacing ?? "moderate",
-      storyBeat: event.storyBeat ?? "rising_action",
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  // Add a dependency between two events
-  async addEventDependency(
-    storyId: string,
-    sourceEvent: { plotLineId: string; eventId: string },
-    targetEvent: { plotLineId: string; eventId: string },
-    relationshipType: EventDependency["relationshipType"],
-    description?: string,
-  ): Promise<void> {
-    try {
-      const storyRef = doc(this.storiesCollection, storyId);
-
-      // Get both plot lines
-      const sourcePlotRef = doc(
-        collection(storyRef, "plots"),
-        sourceEvent.plotLineId,
-      );
-      const targetPlotRef = doc(
-        collection(storyRef, "plots"),
-        targetEvent.plotLineId,
-      );
-
-      const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
-        getDoc(sourcePlotRef),
-        getDoc(targetPlotRef),
-      ]);
-
-      if (!sourcePlotSnapshot.exists() || !targetPlotSnapshot.exists()) {
-        throw new Error("Plot line not found");
-      }
-
-      const sourcePlotData = sourcePlotSnapshot.data() as PlotLine;
-      const targetPlotData = targetPlotSnapshot.data() as PlotLine;
-
-      // Find the events
-      const sourceEventIndex = sourcePlotData.events.findIndex(
-        (e) => e.id === sourceEvent.eventId,
-      );
-      const targetEventIndex = targetPlotData.events.findIndex(
-        (e) => e.id === targetEvent.eventId,
-      );
-
-      if (sourceEventIndex === -1 || targetEventIndex === -1) {
-        throw new Error("Event not found");
-      }
-
-      // Create dependency objects
-      const dependencyForSource: EventDependency = {
-        eventId: targetEvent.eventId,
-        plotLineId: targetEvent.plotLineId,
-        relationshipType,
-        description,
-      };
-
-      const dependentForTarget: EventDependency = {
-        eventId: sourceEvent.eventId,
-        plotLineId: sourceEvent.plotLineId,
-        relationshipType,
-        description,
-      };
-
-      // Update source event's dependencies
-      const sourceEventData = this.migrateEvent(
-        sourcePlotData.events[sourceEventIndex],
-        sourceEventIndex,
-      );
-      sourceEventData.dependencies = [
-        ...sourceEventData.dependencies,
-        dependencyForSource,
-      ];
-      sourcePlotData.events[sourceEventIndex] = sourceEventData;
-
-      // Update target event's dependents
-      const targetEventData = this.migrateEvent(
-        targetPlotData.events[targetEventIndex],
-        targetEventIndex,
-      );
-      targetEventData.dependents = [
-        ...targetEventData.dependents,
-        dependentForTarget,
-      ];
-      targetPlotData.events[targetEventIndex] = targetEventData;
-
-      // Save both plot lines
-      if (sourceEvent.plotLineId === targetEvent.plotLineId) {
-        // Same plot line, save once
-        await setDoc(sourcePlotRef, sourcePlotData);
-      } else {
-        // Different plot lines, save both
-        await Promise.all([
-          setDoc(sourcePlotRef, sourcePlotData),
-          setDoc(targetPlotRef, targetPlotData),
-        ]);
-      }
-    } catch (error) {
-      console.error("Error adding event dependency:", error);
-      throw error;
-    }
-  }
-
-  // Remove a dependency between two events
-  async removeEventDependency(
-    storyId: string,
-    sourceEvent: { plotLineId: string; eventId: string },
-    targetEvent: { plotLineId: string; eventId: string },
-  ): Promise<void> {
-    try {
-      const storyRef = doc(this.storiesCollection, storyId);
-
-      const sourcePlotRef = doc(
-        collection(storyRef, "plots"),
-        sourceEvent.plotLineId,
-      );
-      const targetPlotRef = doc(
-        collection(storyRef, "plots"),
-        targetEvent.plotLineId,
-      );
-
-      const [sourcePlotSnapshot, targetPlotSnapshot] = await Promise.all([
-        getDoc(sourcePlotRef),
-        getDoc(targetPlotRef),
-      ]);
-
-      if (!sourcePlotSnapshot.exists() || !targetPlotSnapshot.exists()) {
-        throw new Error("Plot line not found");
-      }
-
-      const sourcePlotData = sourcePlotSnapshot.data() as PlotLine;
-      const targetPlotData = targetPlotSnapshot.data() as PlotLine;
-
-      const sourceEventIndex = sourcePlotData.events.findIndex(
-        (e) => e.id === sourceEvent.eventId,
-      );
-      const targetEventIndex = targetPlotData.events.findIndex(
-        (e) => e.id === targetEvent.eventId,
-      );
-
-      if (sourceEventIndex === -1 || targetEventIndex === -1) {
-        throw new Error("Event not found");
-      }
-
-      // Remove from source's dependencies
-      const sourceEventData = this.migrateEvent(
-        sourcePlotData.events[sourceEventIndex],
-        sourceEventIndex,
-      );
-      sourceEventData.dependencies = sourceEventData.dependencies.filter(
-        (d) =>
-          !(
-            d.eventId === targetEvent.eventId &&
-            d.plotLineId === targetEvent.plotLineId
-          ),
-      );
-      sourcePlotData.events[sourceEventIndex] = sourceEventData;
-
-      // Remove from target's dependents
-      const targetEventData = this.migrateEvent(
-        targetPlotData.events[targetEventIndex],
-        targetEventIndex,
-      );
-      targetEventData.dependents = targetEventData.dependents.filter(
-        (d) =>
-          !(
-            d.eventId === sourceEvent.eventId &&
-            d.plotLineId === sourceEvent.plotLineId
-          ),
-      );
-      targetPlotData.events[targetEventIndex] = targetEventData;
-
-      if (sourceEvent.plotLineId === targetEvent.plotLineId) {
-        await setDoc(sourcePlotRef, sourcePlotData);
-      } else {
-        await Promise.all([
-          setDoc(sourcePlotRef, sourcePlotData),
-          setDoc(targetPlotRef, targetPlotData),
-        ]);
-      }
-    } catch (error) {
-      console.error("Error removing event dependency:", error);
-      throw error;
-    }
-  }
-
-  // Get all events across all plot lines for a story (useful for dependency selection)
-  async getAllEvents(
-    storyId: string,
-  ): Promise<{ plotLineId: string; plotLineName: string; event: PlotEvent }[]> {
-    try {
-      const plots = await this.getPlots(storyId);
-      const allEvents: {
-        plotLineId: string;
-        plotLineName: string;
-        event: PlotEvent;
-      }[] = [];
-
-      for (const plot of plots) {
-        for (let i = 0; i < plot.events.length; i++) {
-          allEvents.push({
-            plotLineId: plot.id,
-            plotLineName: plot.name,
-            event: this.migrateEvent(plot.events[i], i),
-          });
-        }
-      }
-
-      return allEvents;
-    } catch (error) {
-      console.error("Error getting all events:", error);
       throw error;
     }
   }

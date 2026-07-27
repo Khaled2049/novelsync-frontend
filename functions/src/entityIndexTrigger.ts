@@ -5,7 +5,10 @@
  * One shared handler, three exports (one per subcollection, since v2 triggers need
  * a literal document path). Re-embedding is DEBOUNCED via indexEntityTask so form
  * autosaves don't cause churn; deletes run immediately. Only the fields we actually
- * embed are compared, so an `updatedAt`-only write doesn't trigger a re-embed.
+ * embed are compared (see `entityFields.ts`), so an `updatedAt`-only write doesn't
+ * trigger a re-embed.
+ *
+ * Referential integrity on delete/rename lives in `entityCascadeTrigger.ts`.
  *
  * See chat-scaling-design.md.
  */
@@ -19,42 +22,7 @@ import {
   resolveOwnerId,
 } from "./indexShared";
 import { EntityKind, IndexEntityTaskPayload } from "./indexEntityTask";
-
-/** Fields that contribute to the embedded text, per kind. Anything else changing
- *  (timestamps, UI flags) must NOT trigger a re-embed. Keep in sync with the
- *  agent's compose_entity_text. */
-const SIGNATURE_FIELDS: Record<EntityKind, string[]> = {
-  character: [
-    "name",
-    "age",
-    "soul",
-    "personality",
-    "voice",
-    "backstory",
-    "affiliations",
-    "notes",
-    "relationships",
-  ],
-  place: [
-    "name",
-    "description",
-    "atmosphere",
-    "geography",
-    "history",
-    "significance",
-    "notes",
-  ],
-  plot: ["name", "description", "events"],
-};
-
-/** Array-of-object fields where only some sub-fields are embedded (see the agent's
- *  compose_entity_text). We compare ONLY those sub-fields so volatile siblings —
- *  per-event updatedAt/createdAt/tensionLevel/orderIndex, a relationship's
- *  characterId — don't flip the signature and force a needless re-embed. */
-const EMBEDDED_SUBFIELDS: Record<string, string[]> = {
-  events: ["name", "content"],
-  relationships: ["name", "type", "description"],
-};
+import { EMBEDDED_SUBFIELDS, SIGNATURE_FIELDS } from "./entityFields";
 
 /** Project a field down to just what contributes to the embedded text. */
 function projectField(field: string, value: unknown): unknown {

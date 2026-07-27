@@ -5,12 +5,6 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
-  contextSnapshot?: {
-    chapterIds: string[];
-    characterIds: string[];
-    plotIds: string[];
-    placeIds: string[];
-  };
 }
 
 export interface ChatSession {

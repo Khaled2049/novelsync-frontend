@@ -91,7 +91,6 @@ class ChatService {
               data.timestamp instanceof Timestamp
                 ? data.timestamp.toDate()
                 : new Date(),
-            contextSnapshot: data.contextSnapshot,
           } as ChatMessage;
         });
 
@@ -133,7 +132,6 @@ class ChatService {
             data.timestamp instanceof Timestamp
               ? data.timestamp.toDate()
               : new Date(),
-          contextSnapshot: data.contextSnapshot,
         } as ChatMessage;
       });
     } catch (error) {

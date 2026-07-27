@@ -79,17 +79,30 @@ export const DEFAULT_PLOT_EVENT_VALUES: Omit<
   orderIndex: 0,
 };
 
-// Helper to migrate legacy events
-export function migrateEvent(
-  legacyEvent: { id: string; name: string; content: string },
+/**
+ * The single source of truth for plot-event defaulting. Early events were just
+ * `{ id, name, content }`, so anything read out of Firestore has to be backfilled
+ * before the UI sees it.
+ *
+ * Order matters: defaults first, then the stored event, so a real value is never
+ * overwritten by a default. Migration happens on read only — it is not written
+ * back unless the user edits the event.
+ */
+export function ensureEventDefaults(
+  event: Partial<PlotEvent> & { id: string; name: string; content: string },
   orderIndex: number,
 ): PlotEvent {
   return {
-    ...legacyEvent,
     ...DEFAULT_PLOT_EVENT_VALUES,
-    orderIndex,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    ...event,
+    characterIds: event.characterIds ?? [],
+    locationId: event.locationId ?? null,
+    dependencies: event.dependencies ?? [],
+    dependents: event.dependents ?? [],
+    tensionLevel: event.tensionLevel ?? 5,
+    pacing: event.pacing ?? "moderate",
+    storyBeat: event.storyBeat ?? "rising_action",
+    orderIndex: event.orderIndex ?? orderIndex,
   };
 }
 

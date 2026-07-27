@@ -14,10 +14,7 @@ import { visualizer } from "rollup-plugin-visualizer";
  * `src/lib/transformersConfig.ts`.
  */
 function serveOrtWasm(): Plugin {
-  const ortDist = path.resolve(
-    __dirname,
-    "node_modules/onnxruntime-web/dist",
-  );
+  const ortDist = path.resolve(__dirname, "node_modules/onnxruntime-web/dist");
   const files = [
     "ort-wasm-simd-threaded.jsep.mjs",
     "ort-wasm-simd-threaded.jsep.wasm",

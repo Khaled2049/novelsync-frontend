@@ -322,7 +322,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         if (finalConflict.trim()) {
           await plotService.addEvent(storyId, plotLineId, {
             ...DEFAULT_PLOT_EVENT_VALUES,
-            id: crypto.randomUUID(),
             name: "Central Conflict",
             content: finalConflict,
             storyBeat: "inciting_incident",
@@ -336,7 +335,6 @@ const CoWriteWizard: React.FC<CoWriteWizardProps> = ({
         for (const ev of events.filter((e) => e.name.trim())) {
           await plotService.addEvent(storyId, plotLineId, {
             ...DEFAULT_PLOT_EVENT_VALUES,
-            id: crypto.randomUUID(),
             name: ev.name,
             content: ev.content,
             storyBeat: ev.storyBeat,

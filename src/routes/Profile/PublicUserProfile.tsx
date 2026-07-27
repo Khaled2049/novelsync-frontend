@@ -1,10 +1,20 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Briefcase, Calendar, MapPin, User, UserX } from "lucide-react";
+import {
+  Briefcase,
+  Calendar,
+  Camera,
+  Loader2,
+  MapPin,
+  User,
+  UserX,
+} from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { usePublicProfile } from "@/hooks/queries/useUserQueries";
 import { EditableField } from "@/components/ui/editable-field";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { storageService } from "@/services/StorageService";
+import { validateImageFile } from "@/utils/imageUpload";
 
 const OwnerSettings = lazy(() => import("./OwnerSettings"));
 
@@ -22,6 +32,40 @@ const PublicUserProfile: React.FC = () => {
 
   // usePublicProfile no-ops while signed out; the sign-in prompt below covers it.
   const { data: profile, isLoading: profileLoading } = usePublicProfile(userId);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const handlePhotoSelected = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    // Reset so re-selecting the same file still fires onChange.
+    e.target.value = "";
+    if (!file || !user) return;
+
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setPhotoError(validationError);
+      return;
+    }
+
+    setPhotoError(null);
+    setPhotoUploading(true);
+    try {
+      const photoURL = await storageService.uploadProfileImage(file, user.uid);
+      // updateProfile persists to the user doc and mirrors to publicProfiles,
+      // then invalidates the public-profile query so the avatar refreshes.
+      await updateProfile({ photoURL });
+    } catch (err) {
+      setPhotoError(
+        err instanceof Error ? err.message : "Couldn't upload photo.",
+      );
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -89,6 +133,8 @@ const PublicUserProfile: React.FC = () => {
   // Public identity is the @username. For the owner, prefer the live auth value
   // so username edits reflect instantly (the mirrored public doc may lag).
   const username = (isSelf && user?.username) || profile.username;
+  // Prefer the live auth value for the owner so a fresh upload shows instantly.
+  const photoURL = (isSelf && user?.photoURL) || profile.photoURL;
   const memberSince = formatMemberSince(profile.createdAt);
   // Owners edit occupation/location inline below, so only show them as read-only
   // chips for visitors. "Member since" is shown to everyone.
@@ -111,17 +157,50 @@ const PublicUserProfile: React.FC = () => {
         {/* ── Header ── */}
         <header className="pb-8 border-b border-ns-border animate-ns-fade-in">
           {/* Avatar on top */}
-          <div className="w-28 h-28 sm:w-32 sm:h-32 mx-auto rounded-full bg-ns-surface border border-ns-border shadow-ns-sm overflow-hidden flex items-center justify-center">
-            {profile.photoURL ? (
-              <img
-                src={profile.photoURL}
-                alt={username}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-12 h-12 text-ns-ink-muted" />
-            )}
+          <div className="w-28 h-28 sm:w-32 sm:h-32 mx-auto">
+            <div className="relative w-full h-full rounded-full bg-ns-surface border border-ns-border shadow-ns-sm overflow-hidden flex items-center justify-center group cursor-default">
+              {photoURL ? (
+                <img
+                  src={photoURL}
+                  alt={username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-ns-ink-muted" />
+              )}
+
+              {isSelf && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoSelected}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={photoUploading}
+                    aria-label="Change profile photo"
+                    className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                  >
+                    {photoUploading ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Camera className="w-6 h-6" />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+
+          {isSelf && photoError && (
+            <p className="mt-2 text-center text-xs font-ui text-ns-destructive">
+              {photoError}
+            </p>
+          )}
 
           {/* Identity */}
           <div className="flex items-baseline gap-3 flex-wrap mt-5">

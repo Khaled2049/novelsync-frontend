@@ -8,12 +8,6 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: admin.firestore.Timestamp;
-  contextSnapshot?: {
-    chapterIds: string[];
-    characterIds: string[];
-    plotIds: string[];
-    placeIds: string[];
-  };
 }
 
 export interface ChatSession {
@@ -58,7 +52,6 @@ export async function getChatHistory(
           role: data.role,
           content: data.content,
           timestamp: data.timestamp,
-          contextSnapshot: data.contextSnapshot,
         } as ChatMessage;
       })
       .reverse();
@@ -78,13 +71,7 @@ export async function saveChatMessages(
   chatId: string,
   userId: string,
   userMessage: string,
-  assistantResponse: string,
-  contextSnapshot?: {
-    chapterIds: string[];
-    characterIds: string[];
-    plotIds: string[];
-    placeIds: string[];
-  }
+  assistantResponse: string
 ): Promise<void> {
   try {
     const chatRef = db
@@ -111,7 +98,6 @@ export async function saveChatMessages(
       role: "assistant",
       content: assistantResponse,
       timestamp: FieldValue.serverTimestamp(),
-      ...(contextSnapshot && { contextSnapshot }),
     });
 
     await chatRef.set(

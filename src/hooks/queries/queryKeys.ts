@@ -17,6 +17,9 @@ export const queryKeys = {
   places: {
     byStory: (storyId: string) => ["places", storyId] as const,
   },
+  plots: {
+    byStory: (storyId: string) => ["plots", storyId] as const,
+  },
   posts: {
     feed: (feedType: string) => ["posts", "feed", feedType] as const,
   },

@@ -19,10 +19,6 @@ export {
   brainstormPlot,
 } from "./brainstormIdeas";
 export {
-  getStoryContextEndpoint as getStoryContext,
-  updateContext,
-} from "./contextEndpoints";
-export {
   getJobStatus,
   getStoryJobsEndpoint as getStoryJobs,
 } from "./jobEndpoints";
@@ -41,6 +37,10 @@ export {
   onPlaceWrite,
   onPlotWrite,
 } from "./entityIndexTrigger";
+export {
+  onCharacterCascade,
+  onPlaceCascade,
+} from "./entityCascadeTrigger";
 export { clearChatSession } from "./clearChatSession";
 export { enhanceText } from "./enhanceText";
 export { enhanceWizardInput } from "./enhanceWizardInput";

@@ -1,0 +1,27 @@
+import path from "path";
+import { defineConfig } from "vitest/config";
+
+/**
+ * Deliberately separate from vite.config.ts.
+ *
+ * Vitest ships its own (much newer) copy of vite, so importing `defineConfig` from
+ * `vitest/config` into the app config makes TypeScript compare that vite's `Plugin`
+ * type against the app's vite 5 `Plugin` — an "excessive stack depth" error. Keeping
+ * the test config here means no plugin types are ever compared across the two.
+ *
+ * Vitest prefers this file over vite.config.ts, so `yarn test` picks it up
+ * automatically; `yarn build` never loads it.
+ */
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  test: {
+    // Unit tests only — browser/E2E coverage lives in cypress/.
+    // They sit outside src/ so the app build doesn't pull in functions/ sources.
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
+  },
+});
