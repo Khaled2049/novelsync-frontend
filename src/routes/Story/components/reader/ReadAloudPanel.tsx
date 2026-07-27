@@ -3,18 +3,12 @@
 import React, { useEffect, useRef } from "react";
 import { X, Headphones, Play, Pause, Square, Gauge, Mic2 } from "lucide-react";
 import { TtsVoiceId } from "@/types/IReader";
-import {
-  TTS_VOICES,
-  DEFAULT_VOICE_FOR_GENDER,
-  voiceGender,
-  TtsVoiceGender,
-} from "../../constants/ttsVoices";
 import type { ReadAloudStatus } from "@/hooks/useReadAloud";
 
 interface ReadAloudPanelProps {
   status: ReadAloudStatus;
-  loadProgress: number;
-  device: "webgpu" | "wasm" | null;
+  /** English voices offered by the browser; empty until `voiceschanged` fires. */
+  voices: SpeechSynthesisVoice[];
   voice: TtsVoiceId;
   speed: number;
   onVoiceChange: (voice: TtsVoiceId) => void;
@@ -24,28 +18,9 @@ interface ReadAloudPanelProps {
   onClose: () => void;
 }
 
-const Spinner: React.FC = () => (
-  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-    <circle
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-      className="opacity-25"
-    />
-    <path
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      className="opacity-75"
-    />
-  </svg>
-);
-
 export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
   status,
-  loadProgress,
-  device,
+  voices,
   voice,
   speed,
   onVoiceChange,
@@ -66,10 +41,12 @@ export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  const gender = voiceGender(voice);
-  const isBusy = status === "loading" || status === "buffering";
-  const isActive = status === "playing" || isBusy;
-  const genderOptions: TtsVoiceGender[] = ["female", "male"];
+  // The stored voiceURI may not exist on this device; the hook falls back to the
+  // browser default, so reflect that here rather than showing a blank select.
+  const selectedVoice =
+    voices.find((v) => v.voiceURI === voice) ??
+    voices.find((v) => v.default) ??
+    voices[0];
 
   return (
     <div
@@ -80,11 +57,6 @@ export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
         <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
           <Headphones size={20} className="text-gray-900 dark:text-gray-100" />
           Read Aloud
-          {device && (
-            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-              {device === "webgpu" ? "GPU" : "CPU"}
-            </span>
-          )}
         </h3>
         <button
           onClick={onClose}
@@ -99,30 +71,20 @@ export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={onPlayPause}
-          disabled={status === "loading"}
+          disabled={voices.length === 0}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white font-medium transition-colors"
-          aria-label={isActive ? "Pause" : "Play"}
+          aria-label={status === "playing" ? "Pause" : "Play"}
         >
-          {isBusy ? (
-            <Spinner />
-          ) : status === "playing" ? (
-            <Pause size={18} />
-          ) : (
-            <Play size={18} />
-          )}
-          {status === "loading"
-            ? "Preparing…"
-            : status === "buffering"
-              ? "Buffering…"
-              : status === "playing"
-                ? "Pause"
-                : status === "paused"
-                  ? "Resume"
-                  : "Play"}
+          {status === "playing" ? <Pause size={18} /> : <Play size={18} />}
+          {status === "playing"
+            ? "Pause"
+            : status === "paused"
+              ? "Resume"
+              : "Play"}
         </button>
         <button
           onClick={onStop}
-          disabled={status === "idle" || status === "loading"}
+          disabled={status === "idle"}
           className="p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
           aria-label="Stop"
         >
@@ -130,22 +92,10 @@ export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
         </button>
       </div>
 
-      {/* Model download progress */}
-      {status === "loading" && (
-        <div className="mb-6">
-          <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-300"
-              style={{ width: `${Math.round(loadProgress * 100)}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-            Downloading voice model… {Math.round(loadProgress * 100)}%
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-            One-time download, cached in your browser.
-          </p>
-        </div>
+      {voices.length === 0 && (
+        <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+          No speech voices are available in this browser.
+        </p>
       )}
 
       {status === "error" && (
@@ -160,34 +110,22 @@ export const ReadAloudPanel: React.FC<ReadAloudPanelProps> = ({
           <Mic2 size={16} className="text-gray-900 dark:text-gray-100" />
           Voice
         </label>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          {genderOptions.map((g) => (
-            <button
-              key={g}
-              onClick={() => onVoiceChange(DEFAULT_VOICE_FOR_GENDER[g])}
-              className={`px-4 py-2 rounded-lg border transition-all text-gray-900 dark:text-gray-100 capitalize ${
-                gender === g
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              aria-pressed={gender === g}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
         <select
-          value={voice}
-          onChange={(e) => onVoiceChange(e.target.value as TtsVoiceId)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={selectedVoice?.voiceURI ?? ""}
+          onChange={(e) => onVoiceChange(e.target.value)}
+          disabled={voices.length === 0}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           aria-label="Voice"
         >
-          {TTS_VOICES.filter((v) => v.gender === gender).map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
+          {voices.map((v) => (
+            <option key={v.voiceURI} value={v.voiceURI}>
+              {v.name}
             </option>
           ))}
         </select>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+          Voices are provided by your browser and operating system.
+        </p>
       </div>
 
       {/* Speed */}

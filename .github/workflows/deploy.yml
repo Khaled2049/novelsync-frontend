@@ -150,6 +150,9 @@ jobs:
         with:
           name: dist
           path: dist
+          # Only has to survive the hand-off to the deploy job below. The default
+          # is 90 days, which filled the account's artifact storage quota.
+          retention-days: 1
 
   deploy:
     name: Deploy Firebase

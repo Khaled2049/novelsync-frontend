@@ -17,15 +17,12 @@ export interface Highlight {
   createdAt: Date;
 }
 
-export type TtsVoiceId =
-  | "af_heart"
-  | "af_bella"
-  | "af_nicole"
-  | "af_sarah"
-  | "am_michael"
-  | "am_puck"
-  | "am_fenrir"
-  | "am_eric";
+/**
+ * `voiceURI` of a browser SpeechSynthesis voice. Not a closed union: the list is
+ * whatever the user's OS/browser exposes, and a persisted value may not exist on
+ * another device — consumers fall back to the browser default.
+ */
+export type TtsVoiceId = string;
 
 export interface ReaderSettings {
   fontSize: number;

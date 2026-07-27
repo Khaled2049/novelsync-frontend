@@ -225,17 +225,13 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({
       {READ_ALOUD_ENABLED && showReadAloud && (
         <ReadAloudPanel
           status={readAloud.status}
-          loadProgress={readAloud.loadProgress}
-          device={readAloud.device}
+          voices={readAloud.voices}
           voice={settings.ttsVoice}
           speed={settings.ttsSpeed}
           onVoiceChange={(ttsVoice) => updateSettings({ ttsVoice })}
           onSpeedChange={(ttsSpeed) => updateSettings({ ttsSpeed })}
           onPlayPause={() => {
-            if (
-              readAloud.status === "playing" ||
-              readAloud.status === "buffering"
-            ) {
+            if (readAloud.status === "playing") {
               readAloud.pause();
             } else {
               void readAloud.play();

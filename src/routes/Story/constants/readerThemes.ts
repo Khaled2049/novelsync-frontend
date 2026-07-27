@@ -38,7 +38,8 @@ export const DEFAULT_READER_SETTINGS = {
   lineHeight: 1.8,
   theme: "light" as const,
   textAlign: "justify" as const,
-  ttsVoice: "af_heart" as const,
+  // Empty means "whatever the browser reports as its default voice".
+  ttsVoice: "",
   ttsSpeed: 1.0,
 };
 
