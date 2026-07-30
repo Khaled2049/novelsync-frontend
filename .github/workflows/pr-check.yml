@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Test
+        run: yarn test
+
       - name: Build (type-check + bundle)
         run: yarn build
         env:
@@ -37,7 +40,6 @@ jobs:
           VITE_CHAIN_ID: "1"
           VITE_MAX_AI_USAGE: "100"
           VITE_APP_NAME: NovelSync
-
 
   functions:
     name: Functions Type-check & Audit

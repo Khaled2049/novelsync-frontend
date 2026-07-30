@@ -32,3 +32,5 @@ docs/blogs/*
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
+# Firebase emulator persisted state (--import/--export-on-exit)
+.emulator-data/

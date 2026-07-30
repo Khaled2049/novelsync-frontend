@@ -128,6 +128,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Test
+        run: yarn test
+
       - name: Build
         run: yarn build
         env:
@@ -144,6 +147,7 @@ jobs:
           VITE_CHAIN_ID: ${{ secrets.VITE_CHAIN_ID }}
           VITE_MAX_AI_USAGE: ${{ secrets.VITE_MAX_AI_USAGE }}
           VITE_APP_NAME: ${{ secrets.VITE_APP_NAME }}
+          VITE_AGENT_MCP_URL: ${{ secrets.VITE_AGENT_MCP_URL || 'https://novelsync-agents-ukvrbnaddq-uc.a.run.app' }}
 
       - name: Upload dist
         uses: actions/upload-artifact@v4

@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { APP_NAME } from "@/config/seo";
+
+/** Only same-origin relative paths — never absolute URLs (open-redirect guard). */
+const safeRedirect = (raw: string | null): string => {
+  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/";
+};
 
 const Signin: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +19,7 @@ const Signin: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { signin } = useFirebaseAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -28,7 +35,7 @@ const Signin: React.FC = () => {
 
     const res = await signin(formData.email, formData.password);
     if (res.status === 200) {
-      navigate("/");
+      navigate(safeRedirect(searchParams.get("redirect")));
     } else {
       setFormData({ email: "", password: "" });
       setIsLoading(false);
