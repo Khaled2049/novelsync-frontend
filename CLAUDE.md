@@ -111,4 +111,5 @@ VITE_FIREBASE_APP_ID
 VITE_USE_EMULATORS          # default true in dev
 VITE_MAX_AI_USAGE           # default 100 (daily quota display — server enforces MAX_AI_USAGE)
 VITE_CHAIN_ID               # default 31337 (local Anvil)
+VITE_AGENT_MCP_URL          # agents service base URL for the /mcp-connect consent page (default http://localhost:8000)
 ```

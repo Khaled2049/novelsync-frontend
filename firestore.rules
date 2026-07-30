@@ -488,5 +488,23 @@ service cloud.firestore {
         allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
       }
     }
+
+    // MCP OAuth state (novelsync-agents MCP server). Written and read ONLY by
+    // the agents service via the Admin SDK, which bypasses these rules; token
+    // and code documents are keyed by SHA-256 hashes of the credentials.
+    // Firestore is default-deny so these blocks change nothing — they exist to
+    // document that no client SDK may ever touch these collections.
+    match /mcpOauthClients/{clientId} {
+      allow read, write: if false;
+    }
+    match /mcpOauthTxns/{txnId} {
+      allow read, write: if false;
+    }
+    match /mcpOauthCodes/{codeHash} {
+      allow read, write: if false;
+    }
+    match /mcpOauthTokens/{tokenHash} {
+      allow read, write: if false;
+    }
   }
 }

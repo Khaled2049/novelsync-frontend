@@ -6,10 +6,18 @@
  *
  * This list decides *when* a re-embed fires. Its counterpart in the agents repo,
  * `agents/storyAgent/entity_schema.py`, decides *what* gets embedded and how it is
- * labelled in prompts. The two must name the same fields, and
- * `src/__tests__/entityFieldSync.test.ts` enforces that — a mismatch means edits to
- * a field either never re-embed (the AI answers from a stale vector) or re-embed
- * needlessly (burning indexing budget).
+ * labelled in prompts. **The two must name the same fields, and nothing checks
+ * that they do** — a cross-repo test used to, but it needed a credential to clone
+ * the other private repo in CI and was removed as not worth the upkeep.
+ *
+ * So this is a manual convention now: change one side, change the other in the
+ * same breath. A mismatch fails silently in both directions — edits to a field
+ * either never re-embed (the AI keeps answering from a stale vector) or re-embed
+ * needlessly (burning indexing budget). Neither surfaces as an error.
+ *
+ * A third consumer now reads the agents-side list: the MCP server projects
+ * `get_entity` onto it (`mcp_server/data.py`), so a field removed there stops
+ * being readable over MCP.
  */
 
 export type EmbeddedEntityKind = "character" | "place" | "plot";

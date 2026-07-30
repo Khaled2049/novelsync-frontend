@@ -6,7 +6,7 @@
     "build:watch": "tsc --watch",
     "export-prod": "npm run build && node lib/export-prod-data.js",
     "dev": "npm run build && firebase emulators:start --inspect-functions --only functions",
-    "emulator": "npm run build && firebase emulators:start",
+    "emulator": "npm run build && firebase emulators:start --import=../.emulator-data --export-on-exit=../.emulator-data",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -40,6 +40,7 @@
   "private": true,
   "overrides": {
     "protobufjs": "^7.5.5",
-    "fast-xml-parser": "^5.0.0"
+    "fast-xml-parser": "^5.0.0",
+    "websocket-driver": "^0.7.5"
   }
 }

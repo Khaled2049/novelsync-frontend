@@ -31,6 +31,7 @@ const PrivacyPolicy = lazy(() => import("./components/pages/PrivacyPolicy"));
 const TermsOfUse = lazy(() => import("./components/pages/TermsOfUse"));
 const ForgotPassword = lazy(() => import("./routes/Auth/forgot-password"));
 const CompleteSignup = lazy(() => import("./routes/Auth/complete-signup"));
+const McpConnect = lazy(() => import("./routes/Auth/McpConnect"));
 const StoriesLayout = lazy(() => import("./routes/Story/StoriesLayout"));
 const Competitions = lazy(() => import("./components/explore/Competitions"));
 
@@ -181,6 +182,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <Signup />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/mcp-connect",
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <McpConnect />
           </Suspense>
         ),
       },

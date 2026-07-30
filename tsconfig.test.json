@@ -5,5 +5,9 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     "types": ["node"]
   },
-  "include": ["tests", "functions/src/entityFields.ts", "src/types/IPlot.ts"]
+  "include": [
+    "tests",
+    "src/types/IPlot.ts",
+    "src/routes/Auth/mcpConsentScopes.ts"
+  ]
 }
