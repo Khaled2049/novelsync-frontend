@@ -506,5 +506,29 @@ service cloud.firestore {
     match /mcpOauthTokens/{tokenHash} {
       allow read, write: if false;
     }
+    
+    match /mcpWrites/{writeKey} {
+      allow read, write: if false;
+    }
+
+    match /mcpAccess/{uid} {
+      function isValidMcpRequest() {
+        return request.resource.data.status == 'requested'
+               && request.resource.data.keys().hasOnly(['status', 'requestedAt', 'note'])
+               && request.resource.data.requestedAt == request.time
+               && (!('note' in request.resource.data)
+                   || (request.resource.data.note is string
+                       && request.resource.data.note.size() <= 500));
+      }
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && isValidMcpRequest();
+      allow update: if request.auth != null
+                    && request.auth.uid == uid
+                    && resource.data.status == 'revoked'
+                    && isValidMcpRequest();
+      allow delete: if false;
+    }
   }
 }

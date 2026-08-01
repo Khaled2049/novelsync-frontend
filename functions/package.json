@@ -13,7 +13,10 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "set-admin": "node scripts/set-admin-claim.js",
-    "unset-admin": "node scripts/set-admin-claim.js --revoke"
+    "unset-admin": "node scripts/set-admin-claim.js --revoke",
+    "mcp-requests": "node scripts/list-mcp-requests.js",
+    "grant-mcp": "node scripts/set-mcp-access.js",
+    "revoke-mcp": "node scripts/set-mcp-access.js --revoke"
   },
   "engines": {
     "node": "22"
