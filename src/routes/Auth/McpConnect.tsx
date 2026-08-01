@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { auth } from "@/config/firebase";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,18 @@ interface TxnInfo {
   scopes: string[];
 }
 
-type Status = "loading" | "ready" | "submitting" | "expired" | "error";
+type Status =
+  | "loading"
+  | "ready"
+  | "submitting"
+  | "expired"
+  | "denied" // 403 from /oauth/complete: account not on the rollout allowlist
+  | "error";
 
 const McpConnect = () => {
   const { user, loading } = useAuthContext();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const txnId = searchParams.get("txn");
 
   const [status, setStatus] = useState<Status>("loading");
@@ -84,6 +91,14 @@ const McpConnect = () => {
           setStatus("expired");
           return;
         }
+        if (resp.status === 403) {
+          // The allowlist refusal, by far the likeliest failure while MCP is
+          // invite-only. It carries a specific remedy (request access from
+          // the profile page), so it must not collapse into the generic
+          // "something went wrong".
+          setStatus("denied");
+          return;
+        }
         if (!resp.ok) {
           setStatus("error");
           return;
@@ -118,7 +133,7 @@ const McpConnect = () => {
     <>
       <SEOHead
         title={`Connect an App - ${APP_NAME}`}
-        description="Approve or deny an application's request to read your stories."
+        description="Approve or deny an application's request to access your stories."
         noindex={true}
         nofollow={true}
       />
@@ -134,6 +149,23 @@ const McpConnect = () => {
                   {APP_NAME} connector in Claude) to get a fresh one.
                 </CardDescription>
               </CardHeader>
+            </>
+          ) : status === "denied" ? (
+            <>
+              <CardHeader>
+                <CardTitle>Your account needs MCP access</CardTitle>
+                <CardDescription>
+                  MCP connections are currently limited to approved accounts,
+                  and this one hasn't been approved yet. Request access from
+                  your profile settings — once it's granted, restart the
+                  connection from your MCP client.
+                </CardDescription>
+              </CardHeader>
+              <CardFooter className="justify-end">
+                <Button onClick={() => navigate(`/profile/${user.uid}`)}>
+                  Request access
+                </Button>
+              </CardFooter>
             </>
           ) : status === "error" ? (
             <CardHeader>

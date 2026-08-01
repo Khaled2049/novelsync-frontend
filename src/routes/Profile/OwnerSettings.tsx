@@ -7,6 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUserWalletAddress } from "@/hooks/useUserWalletAddress";
 import { useEarnings } from "@/hooks/useEarnings";
 import { useUserStoriesWithEarnings } from "@/hooks/queries/useStoryQueries";
+import { useMcpAccess } from "@/hooks/useMcpAccess";
 import {
   useAiCreditsQuery,
   usePurchaseCredits,
@@ -85,6 +86,65 @@ const Row = ({
 // Preset top-up tiers (MVP: no payment). Must match ALLOWED_CREDIT_TIERS in the
 // Firebase Function / agent service, which reject any other amount.
 const CREDIT_TIERS = [10000, 50000, 100000];
+
+const McpAccessCard: React.FC<{ userId: string | undefined }> = ({
+  userId,
+}) => {
+  const { status, loading, requesting, error, request } = useMcpAccess(userId);
+
+  const body = () => {
+    if (loading) {
+      return <Loader2 className="w-4 h-4 animate-spin text-ns-ink-muted" />;
+    }
+    if (status === "granted") {
+      return (
+        <span className="flex items-center gap-2 text-sm font-ui text-ns-accent">
+          <CheckCircle2 className="w-4 h-4" /> Enabled
+        </span>
+      );
+    }
+    if (status === "requested") {
+      return (
+        <span className="text-sm font-ui text-ns-ink-muted">
+          Pending review
+        </span>
+      );
+    }
+    return (
+      <Button
+        variant="outline"
+        disabled={requesting}
+        onClick={() => request()}
+      >
+        {requesting ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          "Request access"
+        )}
+      </Button>
+    );
+  };
+
+  return (
+    <Card title="MCP Access">
+      <Row
+        label="Connect Claude to your stories"
+        description={
+          status === "granted"
+            ? "Add the NovelSync connector in Claude to read and draft your stories."
+            : status === "revoked"
+              ? "Access was turned off for this account. You can request it again and we'll take another look."
+              : "MCP is in limited testing. Request access and we'll review it."
+        }
+      >
+        {body()}
+      </Row>
+      {error && (
+        <p className="text-xs font-ui text-red-500 pt-3">{error}</p>
+      )}
+    </Card>
+  );
+};
 
 const AiCreditsCard: React.FC<{ userId: string | undefined }> = ({
   userId,
@@ -304,6 +364,9 @@ const OwnerSettings: React.FC = () => {
 
       {/* ── AI Credits (platform users only; BYOK users don't spend credits) ── */}
       {!user?.hasCustomAiProvider && <AiCreditsCard userId={user?.uid} />}
+
+      {/* ── MCP access (limited rollout; owner approves each account) ── */}
+      <McpAccessCard userId={user?.uid} />
 
       {/* ── Wallet & Earnings ── */}
       {WEB3_ENABLED && (
