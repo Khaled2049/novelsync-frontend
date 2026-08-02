@@ -37,7 +37,7 @@ yarn cy:open
 
 ## Prerequisites
 
-- Docker (for creditProxy), a Python venv in `../novelsync-agents` (`venv/`), and
+- Docker (for creditProxy), a Python venv in `../taleTribe-agents` (`venv/`), and
   the Firebase CLI (via `yarn start:emulator`).
 - The stack runs creditProxy on **8090** to avoid colliding with the Firestore
   emulator on 8080, and the agent with `USE_MOCK=true` + `LLM_PROVIDER=mock` for

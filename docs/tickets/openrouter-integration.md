@@ -17,7 +17,7 @@ In both cases, `checkAiAccess` returns a `ProviderConfig` object
 (`{provider, api_key, model}`) that gets forwarded as-is to an external
 Python agent service via `callAgentWithRetry`
 (`functions/src/agentService.ts:76`, `POST ${AGENT_SERVICE_URL}/agent/execute`).
-That service (repo: `novelsync-agents`) is where the actual
+That service (repo: `taleTribe-agents`) is where the actual
 provider SDK calls happen — this repo never talks to OpenAI/Anthropic/Gemini
 directly (the one exception is `generateCoverImage.ts`, which calls Replicate
 directly for cover art and is unrelated to this ticket).
@@ -76,7 +76,7 @@ via a direct integration).
    `ProviderConfig` (with `api_key: OPENROUTER_API_KEY`) instead of leaving
    model resolution implicit — same shape already used by the BYOK branch,
    so `agentService.ts` doesn't need to change on this side.
-4. In `novelsync-agents` (separate repo): add an `"openrouter"` branch to
+4. In `taleTribe-agents` (separate repo): add an `"openrouter"` branch to
    whatever does provider dispatch — set `base_url` to
    `https://openrouter.ai/api/v1` and use an OpenAI-compatible client
    (OpenRouter mirrors the OpenAI chat-completions schema), which may let
@@ -96,7 +96,7 @@ via a direct integration).
 
 ## Open Questions
 
-- Does `novelsync-agents` already have a generic "OpenAI-compatible client"
+- Does `taleTribe-agents` already have a generic "OpenAI-compatible client"
   path that OpenRouter can reuse, or does provider dispatch need a new
   branch from scratch?
 - Any need to track OpenRouter's per-request cost/usage data (it exposes

@@ -16,7 +16,7 @@ set -euo pipefail
 
 FRONTEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT_DIR="$(cd "$FRONTEND_DIR/.." && pwd)"
-AGENTS_DIR="$ROOT_DIR/novelsync-agents"
+AGENTS_DIR="$ROOT_DIR/taleTribe-agents"
 CREDIT_DIR="$ROOT_DIR/creditProxy"
 
 CREDIT_PROXY_PORT="${CREDIT_PROXY_PORT:-8090}"
@@ -77,12 +77,12 @@ else
   wait_for "http://localhost:4000" "Firebase emulators"
 fi
 
-# 3. novelsync-agents — USE_MOCK=true keeps embeddings deterministic/offline;
+# 3. taleTribe-agents — USE_MOCK=true keeps embeddings deterministic/offline;
 #    AGENT_SERVICE_URL on the functions side defaults to localhost:8000.
 if is_up "http://localhost:8000/health"; then
-  echo "novelsync-agents already up on :8000 — reusing it."
+  echo "taleTribe-agents already up on :8000 — reusing it."
 else
-  echo "Starting novelsync-agents on :8000..."
+  echo "Starting taleTribe-agents on :8000..."
   (
     cd "$AGENTS_DIR"
     # shellcheck disable=SC1091
@@ -95,7 +95,7 @@ else
     python server.py
   ) &
   PIDS+=($!)
-  wait_for "http://localhost:8000/health" "novelsync-agents"
+  wait_for "http://localhost:8000/health" "taleTribe-agents"
 fi
 
 # 4. Vite dev server (development mode => Firebase Web SDK wires to emulators).

@@ -30,12 +30,12 @@ Timelines are goals, not guarantees. We will acknowledge receipt and keep you in
 
 In scope:
 
-- This repository (`novelsync-frontend`) — React app, Firebase Cloud Functions, Firestore/Storage rules, Terraform, and GitHub Actions workflows defined here.
+- This repository (`taleTribe-frontend`) — React app, Firebase Cloud Functions, Firestore/Storage rules, Terraform, and GitHub Actions workflows defined here.
 
 Out of scope (report to the appropriate project or vendor):
 
 - Third-party services (Firebase, Google Cloud, Replicate, etc.) — use their security programs
-- Private companion repos (`novelsync-agents`, `creditProxy`) unless you have been directed to report here
+- Private companion repos (`taleTribe-agents`, `creditProxy`) unless you have been directed to report here
 - Social engineering, physical attacks, or denial-of-service against infrastructure you do not operate
 
 Thank you for helping keep TTT safe.

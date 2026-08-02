@@ -489,7 +489,7 @@ service cloud.firestore {
       }
     }
 
-    // MCP OAuth state (novelsync-agents MCP server). Written and read ONLY by
+    // MCP OAuth state (taleTribe-agents MCP server). Written and read ONLY by
     // the agents service via the Admin SDK, which bypasses these rules; token
     // and code documents are keyed by SHA-256 hashes of the credentials.
     // Firestore is default-deny so these blocks change nothing — they exist to

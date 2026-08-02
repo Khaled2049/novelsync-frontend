@@ -7,7 +7,7 @@ import { corsOptions } from "./corsConfig";
 
 // Allowed top-up amounts. Validated here AND in the Python agent service so a
 // crafted request can't mint an arbitrary balance. Keep in sync with
-// ALLOWED_CREDIT_TIERS in novelsync-agents/server.py.
+// ALLOWED_CREDIT_TIERS in taleTribe-agents/server.py.
 const ALLOWED_CREDIT_TIERS = new Set([10000, 50000, 100000]);
 
 /** Pull `available_credits` out of the agent's `{success,data,error}` envelope. */
