@@ -76,13 +76,14 @@
     "tailwindcss-animate": "^1.0.7",
     "tippy.js": "^6.3.7",
     "unique-names-generator": "^4.7.1",
-    "uuid": "^10.0.0",
+    "uuid": "^11.1.1",
     "viem": "^2.46.3",
     "wagmi": "^3.5.0",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@types/aos": "^3.0.7",
+    "@types/node": "^22.19.5",
     "@types/react": "^19.0.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.0.0",
@@ -104,10 +105,15 @@
     "tailwind-scrollbar": "^3.1.0",
     "tailwindcss": "^3.4.7",
     "typescript": "^5.2.2",
-    "vite": "^5.3.4",
+    "vite": "^6.4.3",
     "vitest": "^4.1.10"
   },
   "resolutions": {
-    "protobufjs": "^7.5.5"
+    "protobufjs": "^7.5.5",
+    "undici": "^6.27.0",
+    "qs": "^6.15.2",
+    "uuid": "^11.1.1",
+    "esbuild": "^0.25.0",
+    "vite": "^6.4.3"
   }
 }

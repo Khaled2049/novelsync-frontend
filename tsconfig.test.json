@@ -8,6 +8,8 @@
   "include": [
     "tests",
     "src/types/IPlot.ts",
-    "src/routes/Auth/mcpConsentScopes.ts"
+    "src/routes/Auth/mcpConsentScopes.ts",
+    "src/utils/epubExport.ts",
+    "src/types/IStory.ts"
   ]
 }
