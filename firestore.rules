@@ -440,14 +440,21 @@ service cloud.firestore {
         !('isAdmin' in request.resource.data);
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // own-profile branch now also blocks sensitive BYOK/admin fields to prevent
-      // self-elevating hasCustomAiProvider to bypass AI quotas.
+      // own-profile branch also blocks sensitive BYOK/admin fields (to prevent
+      // self-elevating hasCustomAiProvider to bypass AI quotas) and every quota
+      // counter. The counters are maintained solely by the Admin SDK —
+      // consumeDailyBudget (usageBudget.ts) for the aiUsage/indexUsage pairs and
+      // onStoryWrite (storyCountTrigger.ts) for storyCount — and no client code
+      // writes them. Leaving one writable lets a user reset their own ceiling:
+      // zeroing indexUsage/lastIndexUsageDate buys unlimited embedding passes,
+      // and zeroing storyCount defeats the per-user story cap in userStoryCount().
       allow update: if request.auth != null && (
-        // Own profile: any field except followers and sensitive admin/BYOK fields
         (userId == request.auth.uid &&
          request.resource.data.followers == resource.data.followers &&
          !request.resource.data.diff(resource.data).affectedKeys()
-           .hasAny(['hasCustomAiProvider', 'aiSettings', 'role', 'isAdmin', 'aiUsage', 'lastAiUsageDate'])) ||
+           .hasAny(['hasCustomAiProvider', 'aiSettings', 'role', 'isAdmin',
+                    'aiUsage', 'lastAiUsageDate',
+                    'indexUsage', 'lastIndexUsageDate', 'storyCount'])) ||
         // Follow/unfollow: only the followers field may change
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers']) && (
           // Follow: add yourself
