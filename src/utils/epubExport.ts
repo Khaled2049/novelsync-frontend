@@ -44,9 +44,18 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-// XML Name production (simplified, no colon — we don't declare namespaces for
-// user content, so any prefixed name like "o:p" or "xmlns:v" is invalid here).
 const VALID_XML_NAME = /^[A-Za-z_][\w.-]*$/;
+const SAFE_LINK_SCHEMES = new Set(["http:", "https:", "mailto:"]);
+
+export function safeHref(rawHref: string): string {
+  const href = rawHref.trim();
+  if (!href) return "#";
+  // eslint-disable-next-line no-control-regex
+  const withoutControls = href.replace(/[\u0000-\u0020\u007f]/g, "");
+  const scheme = withoutControls.match(/^([a-zA-Z][\w+.-]*):/);
+  if (!scheme) return href; // relative, fragment, or protocol-relative path
+  return SAFE_LINK_SCHEMES.has(scheme[1].toLowerCase() + ":") ? href : "#";
+}
 
 /**
  * Strips inline chapter images (out of scope for v1) and neutralizes anything
@@ -78,10 +87,7 @@ function cleanChapterHtml(html: string): string {
       }
     });
     if (el.tagName === "A") {
-      const href = el.getAttribute("href") || "";
-      if (href.trim().toLowerCase().startsWith("javascript:")) {
-        el.setAttribute("href", "#");
-      }
+      el.setAttribute("href", safeHref(el.getAttribute("href") || ""));
     }
   });
 

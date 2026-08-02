@@ -6,6 +6,8 @@ import { useParams } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { SlideOverPanel } from "@/components/common";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { toast } from "sonner";
+import { validateImageFile } from "@/utils/imageUpload";
 import {
   useAddPlace,
   usePlaces,
@@ -144,7 +146,20 @@ const Places: React.FC = () => {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
+
+    // `accept="image/*"` is a filter in the picker, not a guarantee: a file can
+    // still arrive by drag-and-drop or by choosing "all files". Validate the
+    // same way the upload path does, so the preview can never show something
+    // Storage will reject afterwards.
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+    // Object URLs live until revoked or the document unloads.
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };

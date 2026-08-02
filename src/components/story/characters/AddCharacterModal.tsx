@@ -1,6 +1,7 @@
 import { Character } from "@/types/ICharacter";
 import { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import { validateImageFile } from "@/utils/imageUpload";
 
 interface AddCharacterModalProps {
   storyId: string;
@@ -32,7 +33,16 @@ const AddCharacterModal = ({
 
   const handleArtSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    setSubmitError(null);
+    // Object URLs live until revoked or the document unloads.
+    if (artPreview) URL.revokeObjectURL(artPreview);
     setArtFile(file);
     setArtPreview(URL.createObjectURL(file));
   };
