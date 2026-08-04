@@ -45,7 +45,20 @@ export { clearChatSession } from "./clearChatSession";
 export { enhanceText } from "./enhanceText";
 export { enhanceWizardInput } from "./enhanceWizardInput";
 export { onInviteApproved } from "./inviteService";
-export { joinCompetition } from "./competitionEndpoints";
+export {
+  joinCompetition,
+  createCompetition,
+  updateCompetition,
+  cancelCompetition,
+} from "./competitionEndpoints";
+export {
+  submitToCompetition,
+  withdrawSubmission,
+  castCompetitionVote,
+  advanceCompetitionPhase,
+} from "./competitionEntryEndpoints";
+export { competitionAdvanceTask } from "./competitionAdvanceTask";
+export { settleCompetitionEndpoint as settleCompetition } from "./competitionSettlementEndpoints";
 export { createUserByAdmin, setUserAdmin } from "./adminUserService";
 export {
   saveAiSettings,
@@ -54,3 +67,8 @@ export {
 } from "./aiSettingsEndpoints";
 export { reserveStorageUpload } from "./storageUploadEndpoints";
 export { getCreditBalance, purchaseCredits } from "./creditEndpoints";
+export {
+  getTokenBalance,
+  claimTokenFaucet,
+  adminGrantTokens,
+} from "./tokenEndpoints";

@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { ICompetition, CompetitionStatus } from "@/types/ICompetition";
+import { formatMinorUnits } from "@/lib/money";
 
 const formatTimeRemaining = (deadline: Date): string => {
   const now = new Date();
@@ -129,7 +131,12 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
 
           {/* Title */}
           <h2 className="font-heading text-2xl md:text-[2rem] font-light italic leading-[1.15] text-neutral-900 dark:text-neutral-50 mb-3 group-hover:text-dark-green dark:group-hover:text-light-green transition-colors duration-300">
-            {competition.title}
+            <Link
+              to={`/explore/competitions/${competition.id}`}
+              className="hover:underline underline-offset-4"
+            >
+              {competition.title}
+            </Link>
           </h2>
 
           {/* Description */}
@@ -172,14 +179,26 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
 
         {/* Right: prize + action */}
         <div className="shrink-0 flex flex-col items-end justify-between gap-6 self-stretch py-1">
-          {/* Prize */}
+          {/* Prize. Competitions predating TALE show their old label — those
+              pools were never funded, so rendering them as real TALE would
+              misrepresent what a winner would actually receive. */}
           <div className="text-right">
             <p className="font-ui text-[9px] font-bold tracking-[0.16em] uppercase text-neutral-400 dark:text-neutral-600 mb-1">
-              {competition.prizeCurrency}
+              {competition.prizePool ? competition.prizePool.symbol : "Prize"}
             </p>
             <p className="font-heading text-3xl md:text-4xl font-light italic text-neutral-900 dark:text-white leading-none">
-              {competition.prizeAmount.toLocaleString()}
+              {competition.prizePool
+                ? formatMinorUnits(
+                    competition.prizePool.amount,
+                    competition.prizePool.decimals,
+                  )
+                : (competition.legacyPrizeLabel ?? "—")}
             </p>
+            {competition.escrowState === "refunded" && (
+              <p className="font-ui text-[9px] tracking-[0.14em] uppercase text-neutral-400 dark:text-neutral-600 mt-1">
+                Refunded
+              </p>
+            )}
           </div>
 
           {/* CTA */}
@@ -218,7 +237,7 @@ const CompetitionCard: React.FC<CompetitionCardProps> = ({
                   onClick={() => onDelete?.(competition.id)}
                   className="font-ui text-[10px] font-semibold tracking-[0.12em] uppercase text-red-500 hover:text-red-600 transition-colors"
                 >
-                  Delete
+                  Cancel
                 </button>
               </div>
             )}

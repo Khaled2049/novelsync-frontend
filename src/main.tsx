@@ -34,6 +34,9 @@ const CompleteSignup = lazy(() => import("./routes/Auth/complete-signup"));
 const McpConnect = lazy(() => import("./routes/Auth/McpConnect"));
 const StoriesLayout = lazy(() => import("./routes/Story/StoriesLayout"));
 const Competitions = lazy(() => import("./components/explore/Competitions"));
+const CompetitionDetail = lazy(
+  () => import("./components/explore/CompetitionDetail"),
+);
 
 const Announcements = lazy(() => import("./components/explore/Announcements"));
 const HelpSupport = lazy(() => import("./routes/Help/HelpSupport"));
@@ -116,6 +119,14 @@ const router = createBrowserRouter([
             element: (
               <Suspense fallback={<LoadingFallback />}>
                 <Competitions />
+              </Suspense>
+            ),
+          },
+          {
+            path: "competitions/:competitionId",
+            element: (
+              <Suspense fallback={<LoadingFallback />}>
+                <CompetitionDetail />
               </Suspense>
             ),
           },

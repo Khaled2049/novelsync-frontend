@@ -46,4 +46,17 @@ export const queryKeys = {
     lifetime: (walletAddress: string, chainId: number) =>
       ["earnings", "lifetime", walletAddress, chainId] as const,
   },
+  token: {
+    balance: (userId: string) => ["token", "balance", userId] as const,
+  },
+  competitions: {
+    all: () => ["competitions"] as const,
+    list: (userId: string) => ["competitions", "list", userId] as const,
+    detail: (competitionId: string) =>
+      ["competitions", competitionId] as const,
+    submissions: (competitionId: string) =>
+      ["competitions", competitionId, "submissions"] as const,
+    myBallot: (competitionId: string, userId: string) =>
+      ["competitions", competitionId, "ballot", userId] as const,
+  },
 } as const;

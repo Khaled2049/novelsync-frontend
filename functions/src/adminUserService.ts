@@ -10,6 +10,7 @@ import {
   animals,
 } from "unique-names-generator";
 import { corsOptions } from "./corsConfig";
+import { ensureAdmin as ensureAdminAuth } from "./authService";
 import { buildUserProfileDefaults } from "./userProfileDefaults";
 
 const db = admin.firestore();
@@ -30,14 +31,6 @@ interface InviteDoc {
 
 interface DecodedAdminToken extends admin.auth.DecodedIdToken {
   admin?: boolean;
-}
-
-function getBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-
-  return authHeader.split("Bearer ")[1] || null;
 }
 
 function isValidEmail(email: string): boolean {
@@ -85,24 +78,15 @@ async function generateUniqueUsername(maxAttempts = 20): Promise<string> {
   });
 }
 
+/**
+ * Thin wrapper over the shared `ensureAdmin` in authService, kept so the call
+ * sites here can go on using the decoded token directly (e.g. `adminToken.uid`).
+ */
 async function ensureAdmin(
   authHeader: string | undefined,
 ): Promise<DecodedAdminToken> {
-  const token = getBearerToken(authHeader);
-
-  if (!token) {
-    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
-  }
-
-  const decoded = (await admin
-    .auth()
-    .verifyIdToken(token)) as DecodedAdminToken;
-
-  if (!decoded.admin) {
-    throw Object.assign(new Error("Forbidden"), { statusCode: 403 });
-  }
-
-  return decoded;
+  const { decoded } = await ensureAdminAuth(authHeader);
+  return decoded as DecodedAdminToken;
 }
 
 export const createUserByAdmin = onRequest(

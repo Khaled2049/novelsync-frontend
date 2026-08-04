@@ -1,14 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { APP_NAME } from "@/config/seo";
 import { useAuthContext } from "@/contexts/AuthContext";
 import CompetitionCard from "./CompetitionCard";
-import { competitionService } from "@/services/CompetitionService";
+import TokenBalanceBadge from "./TokenBalanceBadge";
+import {
+  useCancelCompetition,
+  useCompetitionsQuery,
+  useCreateCompetition,
+  useJoinCompetition,
+  useUpdateCompetition,
+} from "@/hooks/queries/useCompetitionQueries";
+import { formatMinorUnits, parseTokenInput } from "@/lib/money";
+import { TALE_SYMBOL } from "@/types/IToken";
 import {
   CompetitionDifficulty,
   CompetitionStatus,
   ICompetition,
-  ICompetitionInput,
+  ICompetitionCreateInput,
+  ICompetitionUpdate,
 } from "@/types/ICompetition";
 
 const STATUS_TABS: { value: CompetitionStatus | "all"; label: string }[] = [
@@ -29,10 +40,11 @@ interface CompetitionFormState {
   description: string;
   category: string;
   difficulty: CompetitionDifficulty;
+  /** Whole TALE as typed, e.g. "1000". Converted to minor units on submit. */
   prizeAmount: string;
-  prizeCurrency: string;
   startDate: string;
   deadline: string;
+  votingDeadline: string;
   maxParticipants: string;
   tags: string;
 }
@@ -46,6 +58,7 @@ const getInitialFormState = (): CompetitionFormState => {
   const now = new Date();
   const start = new Date(now.getTime() + 60 * 60 * 1000);
   const deadline = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const votingDeadline = new Date(deadline.getTime() + 3 * 24 * 60 * 60 * 1000);
 
   return {
     title: "",
@@ -53,9 +66,9 @@ const getInitialFormState = (): CompetitionFormState => {
     category: "",
     difficulty: "beginner",
     prizeAmount: "",
-    prizeCurrency: "USDC",
     startDate: toDateTimeLocal(start),
     deadline: toDateTimeLocal(deadline),
+    votingDeadline: toDateTimeLocal(votingDeadline),
     maxParticipants: "",
     tags: "",
   };
@@ -76,16 +89,31 @@ const mapCompetitionToForm = (
     description: competition.description,
     category: competition.category,
     difficulty: competition.difficulty,
-    prizeAmount: String(competition.prizeAmount),
-    prizeCurrency: competition.prizeCurrency,
+    // Display only — the prize is immutable once escrow is funded, so the
+    // field is rendered read-only while editing.
+    prizeAmount: competition.prizePool
+      ? formatMinorUnits(
+          competition.prizePool.amount,
+          competition.prizePool.decimals,
+        )
+      : String(competition.prizeAmount),
     startDate: toDateTimeLocal(competition.startDate),
     deadline: toDateTimeLocal(competition.deadline),
+    votingDeadline: competition.votingDeadline
+      ? toDateTimeLocal(competition.votingDeadline)
+      : "",
     maxParticipants: competition.maxParticipants
       ? String(competition.maxParticipants)
       : "",
     tags: competition.tags.join(", "),
   };
 };
+
+const parseTags = (raw: string): string[] =>
+  raw
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 
 const Competitions: React.FC = () => {
   const { user } = useAuthContext();
@@ -99,10 +127,7 @@ const Competitions: React.FC = () => {
     "all" | "sponsored" | "non-sponsored"
   >("all");
 
-  const [competitions, setCompetitions] = useState<ICompetition[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [editingCompetitionId, setEditingCompetitionId] = useState<
@@ -111,36 +136,28 @@ const Competitions: React.FC = () => {
   const [formState, setFormState] = useState<CompetitionFormState>(
     getInitialFormState(),
   );
-  const [saving, setSaving] = useState(false);
 
-  const loadCompetitions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const {
+    data: competitionsData,
+    isLoading: loading,
+    error: loadError,
+  } = useCompetitionsQuery(user?.uid);
+  const competitions = useMemo<ICompetition[]>(
+    () => competitionsData ?? [],
+    [competitionsData],
+  );
 
-    try {
-      const [fetchedCompetitions, joinedIds] = await Promise.all([
-        competitionService.getCompetitions(),
-        user
-          ? competitionService.getUserJoinedCompetitionIds(user.uid)
-          : Promise.resolve(new Set<string>()),
-      ]);
+  const createCompetition = useCreateCompetition();
+  const updateCompetition = useUpdateCompetition();
+  const cancelCompetition = useCancelCompetition();
+  const joinCompetition = useJoinCompetition(user?.uid);
 
-      setCompetitions(
-        fetchedCompetitions.map((competition) => ({
-          ...competition,
-          isJoined: joinedIds.has(competition.id),
-        })),
-      );
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to load competitions."));
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    loadCompetitions();
-  }, [loadCompetitions]);
+  const saving = createCompetition.isPending || updateCompetition.isPending;
+  const joiningId = joinCompetition.isPending
+    ? (joinCompetition.variables ?? null)
+    : null;
+  const displayedError =
+    error ?? (loadError ? getErrorMessage(loadError, "Failed to load competitions.") : null);
 
   const handleFormChange = (
     field: keyof CompetitionFormState,
@@ -172,120 +189,132 @@ const Competitions: React.FC = () => {
     setError(null);
   };
 
-  const buildPayload = (): ICompetitionInput => {
-    return {
-      title: formState.title,
-      description: formState.description,
-      category: formState.category,
-      difficulty: formState.difficulty,
-      prizeAmount: Number(formState.prizeAmount),
-      prizeCurrency: formState.prizeCurrency,
-      startDate: new Date(formState.startDate),
-      deadline: new Date(formState.deadline),
-      maxParticipants: formState.maxParticipants
-        ? Number(formState.maxParticipants)
-        : null,
-      tags: formState.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    };
-  };
-
-  const handleSaveCompetition = async () => {
+  const handleSaveCompetition = () => {
     if (!user) {
       setError("You must be logged in to manage competitions.");
       return;
     }
 
-    setSaving(true);
     setError(null);
 
-    try {
-      const payload = buildPayload();
-      const creatorName = user.username || user.email || "Unknown user";
+    if (editingCompetitionId) {
+      // The prize is deliberately absent — it is immutable once escrow is
+      // funded, and the server rejects any attempt to change it.
+      const updates: ICompetitionUpdate = {
+        title: formState.title,
+        description: formState.description,
+        category: formState.category,
+        difficulty: formState.difficulty,
+        tags: parseTags(formState.tags),
+        maxParticipants: formState.maxParticipants
+          ? Number(formState.maxParticipants)
+          : null,
+        startDate: new Date(formState.startDate),
+        deadline: new Date(formState.deadline),
+        ...(formState.votingDeadline
+          ? { votingDeadline: new Date(formState.votingDeadline) }
+          : {}),
+      };
 
-      if (editingCompetitionId) {
-        await competitionService.updateCompetition(
-          editingCompetitionId,
-          user.uid,
-          payload,
-        );
-      } else {
-        await competitionService.createCompetition(
-          user.uid,
-          creatorName,
-          payload,
-        );
-      }
-
-      resetForm();
-      await loadCompetitions();
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to save competition."));
-    } finally {
-      setSaving(false);
+      updateCompetition.mutate(
+        { competitionId: editingCompetitionId, updates },
+        {
+          onSuccess: () => {
+            toast.success("Competition updated");
+            resetForm();
+          },
+          onError: (err) =>
+            setError(getErrorMessage(err, "Failed to save competition.")),
+        },
+      );
+      return;
     }
+
+    // Parse the prize before hitting the network so a typo is caught here
+    // rather than as a 400 — the server still validates it regardless.
+    let prizeAmount: ICompetitionCreateInput["prizeAmount"];
+    try {
+      prizeAmount = parseTokenInput(formState.prizeAmount);
+    } catch (err) {
+      setError(getErrorMessage(err, "Enter a valid prize amount."));
+      return;
+    }
+
+    createCompetition.mutate(
+      {
+        title: formState.title,
+        description: formState.description,
+        category: formState.category,
+        difficulty: formState.difficulty,
+        tags: parseTags(formState.tags),
+        maxParticipants: formState.maxParticipants
+          ? Number(formState.maxParticipants)
+          : null,
+        startDate: new Date(formState.startDate),
+        deadline: new Date(formState.deadline),
+        votingDeadline: new Date(formState.votingDeadline),
+        prizeAmount,
+        creatorName: user.username || user.email || "Unknown user",
+      },
+      {
+        onSuccess: () => {
+          toast.success(
+            `Competition created — ${formState.prizeAmount} ${TALE_SYMBOL} moved into escrow`,
+          );
+          resetForm();
+        },
+        onError: (err) =>
+          setError(getErrorMessage(err, "Failed to create competition.")),
+      },
+    );
   };
 
-  const handleDeleteCompetition = async (competitionId: string) => {
+  /**
+   * Cancel, not delete. A competition holding a prize pool cannot be removed —
+   * the escrowed tokens are returned to the creator instead.
+   */
+  const handleCancelCompetition = (competitionId: string) => {
     if (!user) {
-      setError("You must be logged in to delete competitions.");
+      setError("You must be logged in to manage competitions.");
       return;
     }
 
     if (
-      !window.confirm("Delete this competition? This action cannot be undone.")
+      !window.confirm(
+        "Cancel this competition? The prize pool is refunded to the creator and it can't be reopened.",
+      )
     ) {
       return;
     }
 
-    try {
-      setError(null);
-      await competitionService.deleteCompetition(competitionId, user.uid);
-      setCompetitions((prev) =>
-        prev.filter((item) => item.id !== competitionId),
-      );
-      if (editingCompetitionId === competitionId) {
-        resetForm();
-      }
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to delete competition."));
-    }
+    setError(null);
+    cancelCompetition.mutate(
+      { competitionId },
+      {
+        onSuccess: () => {
+          toast.success("Competition cancelled and prize refunded");
+          if (editingCompetitionId === competitionId) resetForm();
+        },
+        onError: (err) =>
+          setError(getErrorMessage(err, "Failed to cancel competition.")),
+      },
+    );
   };
 
-  const handleJoinCompetition = async (competitionId: string) => {
+  const handleJoinCompetition = (competitionId: string) => {
     if (!user) {
       setError("You must be logged in to join competitions.");
       return;
     }
 
     const competition = competitions.find((item) => item.id === competitionId);
-    if (!competition || competition.isJoined) {
-      return;
-    }
+    if (!competition || competition.isJoined) return;
 
-    try {
-      setJoiningId(competitionId);
-      setError(null);
-      await competitionService.joinCompetition(competitionId);
-
-      setCompetitions((prev) =>
-        prev.map((item) =>
-          item.id === competitionId
-            ? {
-                ...item,
-                isJoined: true,
-                participants: item.participants + 1,
-              }
-            : item,
-        ),
-      );
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to join competition."));
-    } finally {
-      setJoiningId(null);
-    }
+    setError(null);
+    joinCompetition.mutate(competitionId, {
+      onError: (err) =>
+        setError(getErrorMessage(err, "Failed to join competition.")),
+    });
   };
 
   const categories = useMemo(() => {
@@ -346,6 +375,7 @@ const Competitions: React.FC = () => {
                 Compete for prizes, get discovered, and push your writing
                 further.
               </p>
+              {user && <TokenBalanceBadge />}
               {user && (
                 <button
                   onClick={handleStartCreate}
@@ -361,9 +391,9 @@ const Competitions: React.FC = () => {
           </div>
         </header>
 
-        {error && (
+        {displayedError && (
           <div className="mb-6 p-3 border border-red-200 bg-red-50 text-red-700 text-sm flex items-center justify-between gap-3">
-            <span>{error}</span>
+            <span>{displayedError}</span>
             <button
               onClick={() => setError(null)}
               className="text-red-500 hover:text-red-700"
@@ -463,37 +493,26 @@ const Competitions: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="md:col-span-2 space-y-1.5">
                 <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
-                  Prize Amount
+                  Prize Pool ({TALE_SYMBOL})
                 </label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   value={formState.prizeAmount}
                   onChange={(e) =>
                     handleFormChange("prizeAmount", e.target.value)
                   }
-                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
-                  placeholder="5000"
+                  disabled={!!editingCompetitionId}
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm disabled:opacity-50"
+                  placeholder="1000"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
-                  Prize Currency
-                </label>
-                <input
-                  value={formState.prizeCurrency}
-                  onChange={(e) =>
-                    handleFormChange(
-                      "prizeCurrency",
-                      e.target.value.toUpperCase(),
-                    )
-                  }
-                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
-                  placeholder="USDC"
-                />
+                <p className="font-ui text-[10px] text-neutral-400 dark:text-neutral-600">
+                  {editingCompetitionId
+                    ? "The prize can't be changed once it's escrowed — cancel and recreate instead."
+                    : `Moved from your balance into escrow when the competition is created.`}
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -512,7 +531,7 @@ const Competitions: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
-                  Deadline
+                  Submissions Close
                 </label>
                 <input
                   type="datetime-local"
@@ -520,6 +539,23 @@ const Competitions: React.FC = () => {
                   onChange={(e) => handleFormChange("deadline", e.target.value)}
                   className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+                  Voting Closes
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formState.votingDeadline}
+                  onChange={(e) =>
+                    handleFormChange("votingDeadline", e.target.value)
+                  }
+                  className="w-full bg-transparent border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm"
+                />
+                <p className="font-ui text-[10px] text-neutral-400 dark:text-neutral-600">
+                  At least an hour after submissions close.
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -643,9 +679,11 @@ const Competitions: React.FC = () => {
                 competition={competition}
                 onJoin={handleJoinCompetition}
                 onEdit={handleStartEdit}
-                onDelete={handleDeleteCompetition}
+                onDelete={handleCancelCompetition}
                 joinLoading={joiningId === competition.id}
-                canManage={competition.creatorId === user?.uid}
+                canManage={
+                  competition.creatorId === user?.uid || !!user?.isAdmin
+                }
               />
             ))}
           </div>
