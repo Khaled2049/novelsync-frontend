@@ -23,34 +23,34 @@ const SubmissionCard: React.FC<SubmissionCardProps> = ({
   rank,
 }) => {
   return (
-    <article className="group border-b border-neutral-200 dark:border-neutral-800 py-6 flex items-start gap-5">
+    <article className="group border-b border-ns-border py-6 flex items-start gap-5">
       {submission.coverImageUrl ? (
         <img
           src={submission.coverImageUrl}
           alt=""
-          className="w-16 h-24 object-cover shrink-0 bg-neutral-100 dark:bg-neutral-900"
+          className="w-16 h-24 object-cover shrink-0 rounded-ns bg-ns-surface"
         />
       ) : (
-        <div className="w-16 h-24 shrink-0 bg-neutral-100 dark:bg-neutral-900" />
+        <div className="w-16 h-24 shrink-0 rounded-ns bg-ns-surface" />
       )}
 
       <div className="flex-1 min-w-0">
         {rank !== undefined && (
-          <p className="font-ui text-[10px] font-bold tracking-[0.18em] uppercase text-dark-green dark:text-light-green mb-1">
+          <p className="font-ui text-[10px] font-bold tracking-[0.18em] uppercase text-ns-gold-bright mb-1">
             {rank === 1 ? "Winner" : `Rank ${rank}`}
           </p>
         )}
 
-        <h3 className="font-heading text-xl md:text-2xl font-light italic text-neutral-900 dark:text-neutral-50 leading-tight">
+        <h3 className="font-heading text-xl md:text-2xl font-light text-ns-ink leading-tight">
           <Link
             to={`/story/${submission.storyId}`}
-            className="hover:text-dark-green dark:hover:text-light-green transition-colors"
+            className="hover:text-ns-accent transition-colors"
           >
             {submission.storyTitle}
           </Link>
         </h3>
 
-        <p className="font-ui text-[10px] tracking-[0.14em] uppercase text-neutral-400 dark:text-neutral-600 mt-1">
+        <p className="font-ui text-[10px] tracking-[0.14em] uppercase text-ns-ink-muted mt-1">
           {submission.storyAuthorName ?? "Anonymous"}
           {isOwnEntry && " · your entry"}
         </p>
@@ -58,7 +58,7 @@ const SubmissionCard: React.FC<SubmissionCardProps> = ({
         {/* A vote count exists only after settlement — during voting there is
             no readable tally anywhere, by design. */}
         {submission.voteCount !== undefined && (
-          <p className="font-ui text-[11px] font-semibold tracking-wide text-neutral-500 dark:text-neutral-400 mt-2 tabular-nums">
+          <p className="font-ui text-[11px] font-semibold tracking-wide text-ns-ink-secondary mt-2 tabular-nums">
             {submission.voteCount} vote{submission.voteCount === 1 ? "" : "s"}
           </p>
         )}
@@ -67,7 +67,7 @@ const SubmissionCard: React.FC<SubmissionCardProps> = ({
       <div className="shrink-0 flex flex-col items-end gap-2">
         <Link
           to={`/story/${submission.storyId}`}
-          className="font-ui text-[10px] font-semibold tracking-[0.12em] uppercase text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+          className="font-ui text-[10px] font-semibold tracking-[0.12em] uppercase text-ns-ink-muted hover:text-ns-ink transition-colors"
         >
           Read
         </Link>
@@ -80,10 +80,10 @@ const SubmissionCard: React.FC<SubmissionCardProps> = ({
             title={
               isOwnEntry ? "You can't vote for your own entry" : undefined
             }
-            className={`font-ui text-[10px] font-bold tracking-[0.12em] uppercase px-3 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`font-ui text-[10px] font-bold tracking-[0.12em] uppercase px-3 py-1.5 rounded-ns border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               selected
-                ? "bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white"
-                : "text-neutral-900 dark:text-white border-neutral-900 dark:border-white hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900"
+                ? "bg-ns-ink text-ns-bg border-ns-ink"
+                : "text-ns-ink border-ns-border-strong hover:bg-ns-ink hover:text-ns-bg"
             }`}
           >
             {selected ? "Backed" : "Back this"}

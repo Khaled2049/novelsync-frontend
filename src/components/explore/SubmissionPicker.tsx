@@ -61,16 +61,16 @@ const SubmissionPicker: React.FC<SubmissionPickerProps> = ({
         </DialogHeader>
 
         {isLoading ? (
-          <p className="font-body text-sm text-neutral-500 py-6">
+          <p className="font-body text-sm text-ns-ink-muted py-6">
             Loading your stories…
           </p>
         ) : published.length === 0 ? (
           <div className="py-6">
-            <p className="font-body text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="font-body text-sm text-ns-ink-secondary">
               You have no published stories yet.
             </p>
             {unpublishedCount > 0 && (
-              <p className="font-body text-sm text-neutral-400 dark:text-neutral-600 mt-2">
+              <p className="font-body text-sm text-ns-ink-muted mt-2">
                 {unpublishedCount} unpublished{" "}
                 {unpublishedCount === 1 ? "story" : "stories"} can't be entered —
                 voters need to be able to read your entry.
@@ -78,20 +78,20 @@ const SubmissionPicker: React.FC<SubmissionPickerProps> = ({
             )}
           </div>
         ) : (
-          <ul className="max-h-80 overflow-y-auto divide-y divide-neutral-200 dark:divide-neutral-800">
+          <ul className="max-h-80 overflow-y-auto divide-y divide-ns-border">
             {published.map((story) => (
               <li key={story.id}>
                 <button
                   type="button"
                   onClick={() => onPick(story.id)}
                   disabled={isSubmitting}
-                  className="w-full text-left py-3 px-1 hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors disabled:opacity-50"
+                  className="w-full text-left py-3 px-1 rounded-ns hover:bg-ns-surface transition-colors disabled:opacity-50"
                 >
-                  <span className="font-heading italic text-lg text-neutral-900 dark:text-neutral-50 block">
+                  <span className="font-heading italic text-lg text-ns-ink block">
                     {story.title}
                   </span>
                   {story.description && (
-                    <span className="font-body text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 block mt-0.5">
+                    <span className="font-body text-xs text-ns-ink-muted line-clamp-1 block mt-0.5">
                       {story.description}
                     </span>
                   )}

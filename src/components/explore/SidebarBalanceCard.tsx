@@ -9,18 +9,18 @@ import { formatTokenAmount } from "@/lib/money";
 import { TALE_DECIMALS, TALE_SYMBOL, type MinorUnits } from "@/types/IToken";
 
 /**
- * The signed-in user's TALE balance, with a faucet claim, as an inline span
- * for surfaces that just want a compact balance readout. The Explore sidebar
- * uses the vertical `SidebarBalanceCard` instead, which shares these same
- * data hooks but not this layout.
+ * $TALE balance card, rendered on the Profile page (owner settings). Shares
+ * data hooks and formatting with TokenBalanceBadge (that one stays as the
+ * inline span used elsewhere) but needs its own layout, so it isn't reused
+ * directly.
  */
-export const TokenBalanceBadge = () => {
+export function SidebarBalanceCard() {
   const { user } = useAuthContext();
   const userId = user?.uid;
   const { data, isLoading } = useTokenBalanceQuery(userId);
   const claimFaucet = useClaimFaucet(userId);
 
-  const label = useMemo(() => {
+  const amount = useMemo(() => {
     if (!data) return null;
     return formatTokenAmount({
       assetId: data.assetId,
@@ -31,6 +31,8 @@ export const TokenBalanceBadge = () => {
   }, [data]);
 
   if (!userId) return null;
+
+  const [wholeAmount, symbol] = amount ? amount.split(" ") : [null, TALE_SYMBOL];
 
   const handleClaim = () => {
     claimFaucet.mutate(undefined, {
@@ -53,23 +55,28 @@ export const TokenBalanceBadge = () => {
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-400 dark:text-neutral-600">
-        Balance
+    <div className="flex flex-col gap-2 rounded-ns-lg border border-ns-border bg-ns-elevated p-4">
+      <span className="font-ui text-[10px] font-semibold uppercase tracking-[0.18em] text-ns-ink-muted">
+        Your balance
       </span>
-      <span className="font-ui text-xs font-semibold tracking-wide text-dark-green dark:text-light-green tabular-nums">
-        {isLoading || !label ? "—" : label}
-      </span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-heading text-[30px] leading-none text-ns-ink tabular-nums">
+          {isLoading || !wholeAmount ? "—" : wholeAmount}
+        </span>
+        <span className="font-ui text-sm font-semibold text-ns-gold-bright">
+          {symbol}
+        </span>
+      </div>
       <button
         type="button"
         onClick={handleClaim}
         disabled={claimFaucet.isPending}
-        className="font-ui text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-500 dark:text-neutral-400 hover:text-dark-green dark:hover:text-light-green disabled:opacity-40 transition-colors"
+        className="self-start font-ui text-xs font-semibold text-ns-accent hover:text-ns-accent-hover disabled:opacity-40 transition-colors"
       >
         {claimFaucet.isPending ? "Claiming…" : "Claim daily"}
       </button>
     </div>
   );
-};
+}
 
-export default TokenBalanceBadge;
+export default SidebarBalanceCard;

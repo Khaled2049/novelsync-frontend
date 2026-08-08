@@ -80,6 +80,8 @@ export interface ICompetition {
    * taking it on trust.
    */
   resultsDigest?: string;
+  /** When settlement completed. Absent until `phase === "settled"`. */
+  settledAt?: Date;
   /** Submissions close. Kept as `deadline` — it is already in queries and the form. */
   deadline: Date;
   startDate: Date;

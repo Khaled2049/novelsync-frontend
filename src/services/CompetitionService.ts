@@ -39,6 +39,7 @@ interface CompetitionDoc {
   ballotCount?: number;
   results?: ICompetition["results"];
   resultsDigest?: string;
+  settledAt?: Timestamp;
   difficulty?: "beginner" | "intermediate" | "advanced";
   maxParticipants?: number | null;
   participantsCount?: number;
@@ -110,6 +111,7 @@ class CompetitionService {
       results: Array.isArray(data.results) ? data.results : undefined,
       resultsDigest:
         typeof data.resultsDigest === "string" ? data.resultsDigest : undefined,
+      settledAt: data.settledAt?.toDate?.(),
       status: deriveCompetitionStatus(data.phase, startDate, deadline),
       difficulty: data.difficulty ?? "beginner",
       participants: participantsCount,
